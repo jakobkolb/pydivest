@@ -1,0 +1,85 @@
+\title{Report on \\ Model Development for Fossil Fuel Divestment}
+\author{Jakob J. Kolb \\ Potsdam Institute for Climate Impact Research}
+
+\maketitle
+
+Previous studies \cite{Ans2013} suggest that feedback through supply-demand price mechanisms will have only limited impact on fossil fuel companies. This is due to the fact, that only approximately 15 \% of investors invest subject to socially responsible guidelines \cite{SIF2014Report} and that divested holdings are, especially in liquid markets, very likely to quickly find their way to less responsible investors. \\
+Therefore, the effects of a divestment campaigns on target industires rather stem from `soft' factors such as changes in market norms and stigmatization and growing uncertainty about future business opportunities. This means that for the understanding of the campaign dynamics, oppinion spreading with respect to beliefs about future business development and respective uncertainties amongst investors might be worth a closer look. \\
+In the following I propose a preliminary scheme of such a model.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width = .7 \textwidth]{Model_Scheme.pdf}
+	\caption{Schematic sketch of the model including four major components: Investors, Firms (grouped by sector), Ecosystem and optional Policy makers.}
+	\label{fig:model}
+\end{figure}
+
+
+\subsection{Investors}
+Investors own capital which they can invest in firms. They decide upon their investment using a heuristic decision model integrating three cue values: expected performance, risk/uncertainty of outcome and positive/negative externalities of investment. Cues are evaluated in a hierarchical manner thereby expressing agents valuation of different aspects of the investment.
+The hierarchical structure is passed on between agents in an adaptive voter like opinion spreading model. \par
+
+\textbf{Open questions are:}
+\begin{itemize}
+	\item specification of cues from model variables such as e.g. high vs low risk,
+	\item specification of ` investment' in terms of when and how much agents invest/divest,
+	\item how do investors get the information? From firms, from neighboring agents, from environment?
+	\item \textit{Take the Best} or \textit{Fast and Frugal Trees}?
+	\item do investors learn the entire cue order from neighbors or only certain features?
+	\item and if they implement Fast and Frugal Trees, how about passing on exit structure?
+\end{itemize}
+
+\subsection{Sectors}
+Since the model aims at invested capital in the fossil/green industries, it makes sense to use sector based modeling for the implementation of the economy. Both sectors produce the same universal good using capital which they retrieves from investors to generate revenue for its owners/investors. Sectors differ in terms of production factors and byproducts/externalities of their production process. The implementations is inspired by sectorial modeling as in the MADIAM model \cite{Weber2005} (but in a simplified form) implementing for instance a LINEX energy dependent production function as proposed by K\"{u}mmel \cite{Kummel1985}. \\
+
+\subsection{The Fossil Sector}
+The fossil sector uses capital $K_1$, labor $L_1$ and exergy from fossil fuel $E_f$ as input factors for its production 
+\begin{equation}
+	Y_1 = f_1(K_1,L_1,E_f).
+\end{equation}
+The subsequent scheme illustrates the different processes and the cash flow of the sector:
+\begin{figure}[H]
+	\centering
+	\includegraphics[width = \textwidth]{Sector_model_grey.pdf}
+	\caption{Production and cash flow of the gray economy sector. Production factors are capital, labor and fossil fuel. Labor is divided between sectors with equal marginal productivities, capital is modeled dynamically increasing through investment and decreasing through depreciation and the fossil fuel uptake is limited by the exploration and exploitation of the available fossil fuel resources. The incoming cash flow after expenses for wages and resource extraction is divided between resource exploitation, investment in capital and dividends to investors.}
+	\label{fig:sector_grey}
+\end{figure}
+
+\textbf{Labour} resource is divided between the two sectors such that marginal returns of labor are equal. 
+\begin{align}
+	&\frac{\partial Y_1}{\partial L_1} = \frac{\partial Y_2}{\partial L_2} \\
+	&\sum\limits_i L_i = L
+\end{align}
+Since both sectors produce the same good with the same price, as a consequence wages (calculated by marginal productivities of labor in monetary units) in both sectors are equal as well. \\
+The \textbf{capital stock} of the sector is subject to depreciation and needs investment (either by the company itself or by its investors) to be kept constant.
+\begin{equation}
+	\dot K = i_e + \kappa - \lambda K
+	\label{capital_stock_dynamics}
+\end{equation}
+It is debatable though, whether investor money is directly invested in the capital stock or if it rather adds to the total cash flow of the firm and might be divided between different positions.\\
+The \textbf{ energy from fossil fuel} $E_f$ that is used in the production process is sort of produced in a subsector that consists of a fossil fuel reserve that is depreciated by energy `harvest' with a rate $r$ and that can be extended by investing in resource exploration.
+\begin{equation}
+	\dot C_r = f_r i_r - r
+	\label{fossil_reserve}
+\end{equation}
+Fossil fuel harvest $r$ is converted into energy for production with a carbon efficiency $f_c$.
+
+\subsection{The Green Sector}
+The green sector could be described analogous to the fossil fuel sector except for its way of producing energy. In this case, one could model installed capacity for production of regenerative energy. Analogous to capital this capacity would be subject to depreciation and has to be invested in. \\ Well, actually, one could just use an energy independent production function with lower capital efficiency.\\
+
+\textbf{Open Questions are:}
+\begin{itemize}
+	\item What is the price for the final good and why?
+	\item What determines the resource extraction rate?
+	\item How is the positive cash flow divided between dividends, investment in production related capital and resource exploration (for the gray sector) and investment in energy producing capital (in the green sector)?
+	\item Is there technology and if so, what does it describe? (K\"{u}mmel suggests that technology increases the amount of energy that is used by the economy as well as the energy efficiency and uses independent variables for both)
+\end{itemize}
+
+\subsection{Ecosystem}
+Ecosystem is the source of resources and the sink for pollution. Minimal implementation would be a fixed carbon stock that is exploited by the fossil fuel sector. Optionally one could implement some sort of climate impact as a consequence of pollution.
+
+\subsection{Policy Makers}
+Policy makers can implement some carbon tax or carbon cap on economy to incentivize green development. The implementation of such measure depends on the prevalence of opinions amongst voters (are investors a representative sample of voters?) and might be appropriately implemented by a Poisson distributed random variable.
+
+\bibliography{PhD-Divestment.bib}{}
+    \bibliographystyle{IEEEtran}
