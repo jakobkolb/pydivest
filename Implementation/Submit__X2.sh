@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --qos=short
-#SBATCH --job-name=X1_computation
-#SBATCH --output=X1__comp_%j.out
-#SBATCH --error=X1__comp_%j.err
+#SBATCH --job-name=X1_postprocessing
+#SBATCH --output=X1__post_%j.out
+#SBATCH --error=X1__post_%j.err
 #SBATCH --nodes=2
 #SBATCH --tasks-per-node=16
 
@@ -14,4 +14,4 @@ echo "SLURM JOB ID: $SLURM_JOBID"
 echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
-srun -n $SLURM_NTASKS python X1_test_experiment.py 0
+srun -n $SLURM_NTASKS python X1_test_experiment.py 1

@@ -2,6 +2,7 @@
 from modelingframework import experiment_handling as eh
 from divestcore import divestment_core as model
 from divestvisuals.data_visualization import plot_economy, plot_network
+from X1_visualization import plot_tau_phi as plt_tau_phi
 
 import numpy as np
 import networkx as nx
@@ -11,10 +12,16 @@ import itertools as it
 import sys
 import getpass
 
+#determine wheter the experiment is run locally or on cluster and
+#define save path accordingly
+
 if getpass.getuser() == "kolb":
     SAVE_PATH = "/home/kolb/Divest_Experiments/divestdata/X1/"
 elif getpass.getuser() == "jakob":
     SAVE_PATH = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X1/"
+
+SAVE_PATH_RAW = SAVE_PATH + "raw_data/"
+SAVE_PATH_RES = SAVE_PATH + "results/"
 
 def RUN_FUNC(tau, phi, link_density, N, L, delta_r, delta_c, C_d, filename):
     """
@@ -127,7 +134,7 @@ def compute():
     I thing this could also be accomplished by calling 
     the eh.compute() function directly during the experiment.
     """
-    eh.compute(RUN_FUNC, PARAM_COMBS, SAMPLE_SIZE, SAVE_PATH)
+    eh.compute(RUN_FUNC, PARAM_COMBS, SAMPLE_SIZE, SAVE_PATH_RAW)
 
 def resave(sample_size=None):
     """
@@ -144,10 +151,12 @@ def resave(sample_size=None):
         size of the ensemble for statistical 
         analysis.
     """
-    EVA={   "<mean_consensus_state>": lambda fnames: np.mean([np.load(f)["consensus_state"] for f in fnames]),
-            "<mean_consensus_time>": lambda fnames: np.mean([np.load(f)["consensus_time"] for f in fnames])}
+    EVA={   "<mean_consensus_state>": 
+            lambda fnames: np.mean([np.load(f)["consensus_state"] for f in fnames]),
+            "<mean_consensus_time>": 
+            lambda fnames: np.mean([np.load(f)["consensus_time"] for f in fnames])}
 
-    eh.resave_data(SAVE_PATH, PARAM_COMBS, INDEX, EVA, NAME, sample_size)
+    eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA, NAME, sample_size, save_path=SAVE_PATH_RES)
 
 
 #get subexperiment from comand line
@@ -157,18 +166,42 @@ else:
     sub_experiment = 0
 
 # Default Experiment tau vs phi for different resource extraction costs
+# Only raw data generation
 if sub_experiment == 0:
 
-    taus = np.arange(0.1, 2, 0.2)
-    phis = np.arange(0.05, 1, 0.1)
+    taus = np.arange(0., 1, 0.02)
+    phis = np.arange(0., 1, 0.1)
 
     N, link_density, L, delta_r, delta_c, C_d = [100], [0.3], [10], [0.01], [0.01], [0.3]
 
-    PARAM_COMBS = list(it.product(taus, phis, link_density, N, L, delta_r, delta_c, C_d))
+    PARAM_COMBS = list(it.product(taus,\
+        phis, link_density, N, L, delta_r, delta_c, C_d))
 
     NAME = "experiment_testing_tau_vs_phi"
     INDEX = {0: "tau", 1: "phi"}
-    SAMPLE_SIZE = 5
+    SAMPLE_SIZE = 10
 
     compute()
-#    resave(SAMPLE_SIZE)
+    resave(SAMPLE_SIZE)
+    plt_tau_phi(SAVE_PATH_RES, NAME)
+
+# Default Experiment tau vs phi for different resource extraction costs
+# Only data post processing/resaving
+if sub_experiment == 1:
+
+    taus = np.arange(0., 1, 0.02)
+    phis = np.arange(0., 1, 0.1)
+
+    N, link_density, L, delta_r, delta_c, C_d = [100], [0.3], [10], [0.01], [0.01], [0.3]
+
+    PARAM_COMBS = list(it.product(taus,\
+        phis, link_density, N, L, delta_r, delta_c, C_d))
+
+    NAME = "experiment_testing_tau_vs_phi"
+    INDEX = {0: "tau", 1: "phi"}
+    SAMPLE_SIZE = 10
+
+#   compute()
+    resave(SAMPLE_SIZE)
+    plt_tau_phi(SAVE_PATH_RES, NAME)
+

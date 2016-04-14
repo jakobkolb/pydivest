@@ -91,8 +91,8 @@ def compute(run_func, parameter_combinations, sample_size, save_path,
     mpi.run(verbose=0, master_func=master)
 
 
-def resave_data(save_path, parameter_combinations, index, eva, name,
-                sample_size=None, badmisskey=None):
+def resave_data(source_path, parameter_combinations, index, eva, name,
+                sample_size=None, badmisskey=None, save_path=None):
     """
     Resaves the computed "micro" data to smaler files that stores only "macro"
     quanteties of interest. The pickle files are saved in the "data" directory
@@ -100,8 +100,11 @@ def resave_data(save_path, parameter_combinations, index, eva, name,
 
     Parameters
     ----------
+    source_path : string
+        The path to the folder where the raw computed results are stored
     save_path : string
-        The path to the folder where the computed results are stored
+        The path to the folder where the processed data will be saved.
+        If save_path it not given, it defaults to source_path
     parameter_combinations : list
         A list of tuples of each parameter combination to resave
     index : dict as {position at parameter_combination : <name>}
@@ -116,11 +119,19 @@ def resave_data(save_path, parameter_combinations, index, eva, name,
     badmisskey : string (optional)
         key that misses in the result dictionaries for badruns (Default: None)
     """
-    # add "/" to save_path if it does not end already with a "/"
-    save_path += "/" if not save_path.endswith("/") else ""
+    # add "/" to source_path if it does not end already with a "/"
+    source_path += "/" if not source_path.endswith("/") else ""
+
+    # default save_path to source_path if no save_path is given
+    if save_path == None:
+        save_path = source_path
+
+    # create save_path if it is not yet existing    
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
 
     # Determine bad runs
-    badruns = find_bad_runs(save_path, badmisskey)
+    badruns = find_bad_runs(source_path, badmisskey)
     print "Badruns:"
     print badruns
 
@@ -129,7 +140,7 @@ def resave_data(save_path, parameter_combinations, index, eva, name,
     lenparams = len(parameter_combinations)
     for ip, p in enumerate(parameter_combinations):
         _progress_report(ip, lenparams, "Determine max. sample size... ")
-        fnames = np.sort(glob.glob(save_path + _get_ID(p, 0)[:-5] + "*"))
+        fnames = np.sort(glob.glob(source_path + _get_ID(p, 0)[:-5] + "*"))
         shortID = fnames[0][fnames[0].rfind("/")+1:fnames[0].rfind("s")]
         NrBadruns = np.sum([badruns[i].startswith(shortID)
                             for i in range(len(badruns))])
@@ -173,6 +184,7 @@ def resave_data(save_path, parameter_combinations, index, eva, name,
         mx = tuple(p[k] for k in index.keys())
         for evakey in eva.keys():
             df.loc[mx, evakey] = eva[evakey](efffnames)
+
 
     df.to_pickle(save_path + name)
 
