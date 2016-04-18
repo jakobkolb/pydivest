@@ -1,5 +1,5 @@
 
-from modelingframework import experiment_handling as eh
+from pymofa import experiment_handling as eh
 from divestcore import divestment_core as model
 from divestvisuals.data_visualization import plot_economy, plot_network
 from X1_visualization import plot_tau_phi as plt_tau_phi
@@ -122,6 +122,7 @@ def RUN_FUNC(tau, phi, link_density, N, L, delta_r, delta_c, C_d, filename):
         cp.dump(res, dumpfile)
     try:
         tmp = np.load(filename)
+        print filename
     except IOError:
         print "writing results failed for " + filename
     
@@ -156,7 +157,7 @@ def resave(sample_size=None):
             "<mean_consensus_time>": 
             lambda fnames: np.mean([np.load(f)["consensus_time"] for f in fnames])}
 
-    eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA, NAME, sample_size, save_path=SAVE_PATH_RES)
+    eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA, NAME, sample_size)
 
 
 #get subexperiment from comand line
@@ -170,7 +171,7 @@ else:
 if sub_experiment == 0:
 
     taus = np.arange(0., 1, 0.02)
-    phis = np.arange(0., 1, 0.1)
+    phis = np.arange(1., 1, 0.1)
 
     N, link_density, L, delta_r, delta_c, C_d = [100], [0.3], [10], [0.01], [0.01], [0.3]
 

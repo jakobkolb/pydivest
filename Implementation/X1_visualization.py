@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import getpass
-from modelingframework import experiment_visualization as ev
+from pymofa import experiment_visualization as ev
 
 def plot_tau_phi(SAVE_PATH, NAME):
     """

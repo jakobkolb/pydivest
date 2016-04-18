@@ -62,7 +62,7 @@ target/
 .ipynb_checkpoints
 
 #Vim swap files
-*.swp
+.*.swp
 
 #output data
 Implementation/divestdata/*
