@@ -14,4 +14,4 @@ echo "SLURM JOB ID: $SLURM_JOBID"
 echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
-srun -n $SLURM_NTASKS python X1_test_experiment.py 0
+srun -n $SLURM_NTASKS python X1_test_experiment.py 1

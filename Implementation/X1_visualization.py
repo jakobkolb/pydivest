@@ -22,6 +22,8 @@ def plot_tau_phi(SAVE_PATH, NAME):
 
     data = np.load(SAVE_PATH + NAME)
 
+    print data.unstack().columns.levels[0]
+
     for level in list(data.unstack().columns.levels[0]):
 
         print level
