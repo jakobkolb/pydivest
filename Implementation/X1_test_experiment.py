@@ -122,7 +122,6 @@ def RUN_FUNC(tau, phi, link_density, N, L, delta_r, delta_c, C_d, filename):
         cp.dump(res, dumpfile)
     try:
         tmp = np.load(filename)
-        print filename
     except IOError:
         print "writing results failed for " + filename
     
@@ -166,31 +165,11 @@ if len(sys.argv)>1:
 else:
     sub_experiment = 0
 
-# Default Experiment tau vs phi for different resource extraction costs
-# Only raw data generation
-if sub_experiment == 0:
+print "Starting experiment No. ", sub_experiment
 
-    taus = np.arange(0., 1, 0.02)
-    phis = np.arange(1., 1, 0.1)
-
-    N, link_density, L, delta_r, delta_c, C_d = [100], [0.3], [10], [0.01], [0.01], [0.3]
-
-    PARAM_COMBS = list(it.product(taus,\
-        phis, link_density, N, L, delta_r, delta_c, C_d))
-
-    NAME = "experiment_testing_tau_vs_phi"
-    INDEX = {0: "tau", 1: "phi"}
-    SAMPLE_SIZE = 10
-
-    compute()
-    resave(SAMPLE_SIZE)
-    plt_tau_phi(SAVE_PATH_RES, NAME)
-
-# Default Experiment tau vs phi for different resource extraction costs
-# Only data post processing/resaving
 if sub_experiment == 1:
 
-    taus = np.arange(0., 1, 0.02)
+    taus = np.arange(0., 1, 0.05)
     phis = np.arange(0., 1, 0.1)
 
     N, link_density, L, delta_r, delta_c, C_d = [100], [0.3], [10], [0.01], [0.01], [0.3]
@@ -200,9 +179,54 @@ if sub_experiment == 1:
 
     NAME = "experiment_testing_tau_vs_phi"
     INDEX = {0: "tau", 1: "phi"}
-    SAMPLE_SIZE = 10
+    SAMPLE_SIZE = 5
 
 #   compute()
     resave(SAMPLE_SIZE)
     plt_tau_phi(SAVE_PATH_RES, NAME)
 
+
+
+# Default Experiment tau vs phi for different resource extraction costs
+# Raw data generation, post processing and experimental plotting
+if sub_experiment == 0:
+
+    taus = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.]
+    phis = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.7, 0.8, 0.9, 1.]
+
+    N, link_density, L, delta_r, delta_c, C_d = [100], [0.3], [10], [0.01], [0.01], [0.3]
+
+    PARAM_COMBS = list(it.product(taus,\
+        phis, link_density, N, L, delta_r, delta_c, C_d))
+
+    print PARAM_COMBS
+
+    NAME = "experiment_testing_tau_vs_phi"
+    INDEX = {0: "tau", 1: "phi"}
+    SAMPLE_SIZE = 5
+
+    compute()
+    resave(SAMPLE_SIZE)
+    plt_tau_phi(SAVE_PATH_RES, NAME)
+
+# Default Experiment tau vs phi for different resource extraction costs
+# Only data post processing/resaving
+if sub_experiment == 1:
+
+    taus = [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.]
+    phis = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.7, 0.8, 0.9, 1.]
+
+    N, link_density, L, delta_r, delta_c, C_d = [100], [0.3], [10], [0.01], [0.01], [0.3]
+
+    PARAM_COMBS = list(it.product(taus,\
+        phis, link_density, N, L, delta_r, delta_c, C_d))
+
+    print PARAM_COMBS
+
+    NAME = "experiment_testing_tau_vs_phi"
+    INDEX = {0: "tau", 1: "phi"}
+    SAMPLE_SIZE = 5
+
+    compute()
+    resave(SAMPLE_SIZE)
+    plt_tau_phi(SAVE_PATH_RES, NAME)
