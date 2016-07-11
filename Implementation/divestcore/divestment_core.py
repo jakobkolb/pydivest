@@ -38,24 +38,24 @@ class divestment_core:
 
         self.N = adjacency.shape[0]                 #number of households
         self.net_birth_rate = .1                    #birth rate for household members
-        self.savings_rate = .23                 #percentage of income consumed
+        self.savings_rate = .23                     #percentage of income consumed
         self.consumption_level = 1. - self.savings_rate
         self.relative_value_of_capital = 0.01       #(fitnes) value of capital over consumption
 
         ## Household variables
 
         ## Individual
-        self.P = P_start                        #members of one household
-        self.investment_dirty = np.ones((self.N))    #household investment in clean capital
-        self.investment_clean = np.ones((self.N))    #household investment in dirty capital
-        self.household_members = np.ones((self.N))   #members of one household
+        self.P = P_start                            #members of one household
+        self.investment_dirty = np.ones((self.N))   #household investment in clean capital
+        self.investment_clean = np.ones((self.N))   #household investment in dirty capital
+        self.household_members = np.ones((self.N))  #members of one household
         self.household_members.fill(P_start)
         self.waiting_times = np.zeros((self.N))      
         self.waiting_times = \
                 np.random.exponential(scale=self.tau, size=self.N)  #waiting times between rewiring events for each household
-        self.neighbors = adjacency              #adjacency matrix between households
-        self.investment_decision = oppinions    #investment decision vector
-        self.income = np.zeros((self.N))             #household income (for social update)
+        self.neighbors = adjacency                  #adjacency matrix between households
+        self.investment_decision = oppinions        #investment decision vector
+        self.income = np.zeros((self.N))            #household income (for social update)
 
         ## Aggregated
         self.K_c = 0    #total clean capital (supply)
@@ -66,7 +66,7 @@ class divestment_core:
 
         self.delta_c = .01              # Clean capital depreciation rate
         self.delta_d = self.delta_c     # Dirty capital depreciation rate
-        self.b_r_present = 1.    # Resource harvest efficiency at present stock. Decreases with decreasing stock
+        self.b_r_present = 1.           # Resource harvest efficiency at present stock. Decreases with decreasing stock
 
         ## Parameters for Cobb Douglas production (preliminary)
 
@@ -148,6 +148,7 @@ class divestment_core:
                 if candidate==-2: return -1
                 self.update_economy(update_time)
                 self.update_oppinion_formation(candidate, neighbor, neighbors)
+                if np.isnan(self.R_stock): return 2
         elif self.mode == 3:
             while self.t<t_max:
                 # Update social and decision making until consensus is reached
@@ -167,7 +168,7 @@ class divestment_core:
     #if stock is depleted, costs are infinite
         if R_stock>0:
             return self.b_r_present*(self.R_start/R_stock)**2
-        if R_stock<=0:
+        else:
             return float('inf')
 
     def economy_dot(self, x0, t):
@@ -176,28 +177,30 @@ class divestment_core:
         investment_clean = x0[self.N:2*self.N]
         investment_dirty = x0[2*self.N:3*self.N]
         R_stock = x0[-1]
-        print 'R_stock = ', R_stock
 
         P = sum(household_members)
         K_c = sum(investment_clean)
         K_d = sum(investment_dirty)
         b_R = self.b_r(R_stock)
 
-        X_c = (self.b_c * K_c**self.kappa_c)**(5./3.)
-        X_d = (self.b_d * K_d**self.kappa_d)**(5./3.)
+        X_c = (self.b_c * K_c**self.kappa_c)**(-5./3.)
+        X_d = (self.b_d * K_d**self.kappa_d)**(-5./3.)
         X_R = ((3. * self.b_d * K_d**self.kappa_d)/(5. * b_R))**(2.)
 
         P_c = (X_d/X_c) * X_R**(-5./4.)
         P_d = P - (X_d/X_c) * X_R**(-5./4.)
         R   = X_R*(P - (X_d/X_c)*X_R**(-5./4.))**(4./5.)
-        
+
+        #Here comes a dirty hack to solve a numerical problem.
+        #Find a better solution if possible some time.
+        if P_d < 0:
+            P_d = 0
+            P_c = P
+            R = 0
+
         self.w   = (2./5.) * X_d**(-3./5.) * X_R**(-3./4.)
         self.r_c = self.kappa_c / (X_c * K_c) * X_d**(2./5.) * X_R**(-2.)
         self.r_d = self.kappa_d / K_d * X_d**(-3./5.) * X_R**(3./4.) * (P - (X_d/X_c) * X_R**(-5./4.))
-
-        print 'checking assumptions:', \
-                b_c * K_c**self.kappa_c * P_c**(-3./5.) - b_d * K_d**self.kappa_c * P_d**(-3./5.) * R**(3./4.), \
-                b_R * (5./4.) * R**(1./4.) - b_d * K_d**self.kappa_d * P_d**(2./5.) * (3./4.) * R**(-1./4.)
 
         self.R = R
         self.K_c = K_c
