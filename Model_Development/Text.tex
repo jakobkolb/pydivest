@@ -26,10 +26,15 @@ Production is assumed to take place in two sectors. One sector $(d)$ employs a d
 	Y_j = F_j(K_j,L,R), \qquad \frac{\partial F_c}{\partial R} = 0 	
 	\label{eq:production}
 \end{equation}
-The total cost for fossil resource extraction $c_R$ (exploration and exploitation) is assumed to scale with the square of the resource uptake. The factor $\rho$ is presumably depending on the remaining Fossil resource and increasing as the remaining resource decreases. Also, for optimal production, resource uptake is adjusted such that the extraction costs are equal to the marginal productivity of the resource:
+The total cost for fossil resource extraction $c_R$ (exploration and exploitation) is assumed to scale with $R^{\varepsilon}$.
 \begin{equation}
-	c_R = \rho R_{d}^{2}, \qquad c_R = \frac{\partial F_d}{\partial R_d}
+	c_R = b_R R_d^{\varepsilon}
 	\label{resource_extraction_cost}
+\end{equation}
+The factor $b_R$ is presumably depending on the remaining Fossil resource and increasing as the remaining resource decreases. Also, for optimal production, resource uptake is adjusted such that the marginal extraction costs are equal to the marginal productivity of the resource:
+\begin{equation}
+	b_R \varepsilon R_{d}^{\varepsilon-1} = \frac{\partial F_d}{\partial R_d}
+	\label{marginal_resource_extraction_cost}
 \end{equation}
 Capital is bound to the respective technology implemented. For high [low] intensity of fossil resource use, i.e. $R \gg 1$ [$R \ll 1$], productivities of other input factors are assumed to be higher [lower] in the dirty sector compared to the clean sector:
 \begin{align}
@@ -65,7 +70,7 @@ where $r_j$ and $\delta_j$ are the rates of return and depreciation of capital o
 	\label{eq:household_capital}
 \end{equation}
 
-\textit{ Until further notice, capital investment is considered irretrievable and capital can not be resold for consumption, e.g. the households decision making is subject to the constraint that its savings rate is bounded from below: $\sum_j r_j K^{(j)}_{i} + wL -c_{i}L_i = s \ge 0$. Down the road, trading of capital amongst households might be considered.} \\
+\textit{ Until further notice, capital investment is considered irretrievable and capital can not be resold for consumption, e.g. the households decision making is subject to the constraint that its savings rate is bounded from below: $\sum_j r_j K^{(j)}_{i} + wL -c_{i}L_i = s \ge 0$. This is in line with empirical data, that suggests a more or less constant savings rate of 23 \%} \\
 
 \textbf{Savings investment - decision making:} \\
 Households have two degrees of freedom that they have to decide upon. They can set their consumption level $c$ and they have to decide in which of the two capital goods they want to invest their savings. These decision processes are assumed to be bounded rational and are implemented in the framework of Fast and Frugal Heuristics.\\
@@ -96,8 +101,7 @@ Technically, this means that households are connected by a social network. House
 	\item then based on the resulting behavioral parameters, decide upon consumption level and the type of capital to invest in during the next `inactive' period.
 \end{itemize}
 
-For now, the fitness parameter will be income. Later, I will try some combination of income and consumption, is likely to prevent the spreading of strategies that lead to over-saving.\\
-So the fitness of household $i$ is equal to
+The fitness parameter is income e.g. the fitness of household $i$ is equal to
 \begin{equation}
 	W_i = \sum_j r_j K^{(j)}_{i} + wL
 	\label{eq:fitness}
@@ -129,7 +133,7 @@ Policy makers can implement some carbon tax or carbon cap on economy to incentiv
 		$r_j(t)$ & Capital return rate in sector $j$, \\
 		$c_R(t)$ & Fossil resource extraction cost, \\
 		$Y_j(t)$ & Output of sector, $j$ \\
-		$L_j(t)$ & total labor employed in sector $j$, \\
+		$P_j(t)$ & total labor employed in sector $j$, \\
 		$K_j(t)$ & Total capital employed in sector $j$, \\
 		$R_j(t)$ & Total amount of resources consumed by sector $j$ during time $[t, t + \Delta t]$. \\
 	\end{tabular}
@@ -154,35 +158,131 @@ Policy makers can implement some carbon tax or carbon cap on economy to incentiv
 
 Lets assume a Cobb Douglas production function:
 \begin{equation}
-	F_j(K_j,L_j,R_j,t) = C(t)K_j^{\alpha_j}L_j^{\beta_j}R_j^{\gamma_j}, \qquad j = c,d.
+	F_j(K_j,L_j,R_j,t) = b_j K_j^{\kappa_j}P_j^{\pi_j}R_j^{\rho_j}, \qquad j = c,d.
 	\label{cobb_douglas}
 \end{equation}
-with $\alpha_j + \beta_j + \gamma_j = 1$ to maintain economies of scale. For the clean sector, $\gamma_c = 0$ since it does not depend on the fossil resource.
+For the clean sector, $\rho_c = 0$ since it does not depend on the fossil resource.
 Then, the economic development is subject to the following equations:\\
 
-Market clearing for labor $L$:
-
-\begin{equation}
-	L_c + L_d = \sum_i L_i, \qquad w = C(t)K_c^{\alpha_c}(1-\alpha_c) L_c^{-\alpha_c}=  C(t)K_d^{\alpha_d}\beta_d L_d^{\beta_d-1}R_d^{1-\alpha_d - \beta_d} 
-	\label{labour_market_clearing}
-\end{equation}
-
-\begin{itemize}
-	\item THESE EQUATIONS NEED TO BE SOLVED EXPLICITLY
-\end{itemize}
-
-Market clearing for capital $K$:
+\textbf{Market clearing for capital $K$:}
 
 \begin{align}
-	&K_c = \sum_i K_i^{(c)}, \quad r_c = C(t)\alpha_c K_c^{\alpha_c-1} L_c^{1-\alpha_c}, \\
-	&K_d = \sum_i K_i^{(d)}, \quad r_d = C(t)\alpha_d K_d^{\alpha_d-1} L_d^{\beta_d}R_d^{1-\alpha_d - \beta_d}.
+	&K_c = \sum_i K_i^{(c)}, \quad r_c = b_c\kappa_c K_c^{\kappa_c-1} P_c^{\pi}, \\
+	&K_d = \sum_i K_i^{(d)}, \quad r_d = b_d\kappa_d K_d^{\kappa_d-1} P_d^{\pi}R_d^{\rho}.
 	\label{capital_market_clearing}
+\end{align}
+
+The capital shares of the two sectors are not subject to an equilibrium solution and can be evaluated independently. For the calculation of the capital rent $r$, the solutions to labor shares and optimal resource use are necessary.
+
+\textbf{Market clearing for labor $L$:}
+
+\begin{equation}
+	P_c + P_d = P = \sum_i P_i, \qquad w = b_c K_c^{\kappa_c}\pi_c P_c^{\pi_c-1}=  b_d K_d^{\kappa_d}\pi_d P_d^{\pi_d-1}R_d^{\rho_d} 
+	\label{labour_market_clearing}
+\end{equation}
+Labor elasticities $\pi_i$ are assumed to be equal in both sectors. 
+Substituting $X_c^{\beta-1} = b_c K_c^{\kappa_c}$ and $X_d^{\pi-1} = b_d K_d^{\kappa_d}$ the labor shares $P_c$ and $P_d$ are equal to
+\begin{align}
+	P_c = P \frac{X_d R^{\frac{\rho}{\pi-1}}}{X_c + X_d R^{\frac{\rho}{\pi-1}}} \label{labor_share_Pc}  \\
+	P_d = P \frac{X_c}{X_c + X_d R^{\frac{\rho}{\pi-1}}} \label{labor_share_Pd}	
+\end{align}
+and the corresponding wage is given by
+\begin{equation}
+	w = \pi \left[ P \frac{X_c X_d}{X_c R^{\frac{-\rho}{\pi-1}} + X_d} \right]^{\pi-1}
+	\label{wage}
+\end{equation}
+
+
+
+\textbf{Optimal Resource use $R$:}
+
+From equation \eqref{resource_extraction_cost} follows that
+\begin{equation}
+	b_R \varepsilon R_d^{\varepsilon-1} = b_d K_d^{\kappa_d}P_d^{\pi}\rho R^{\rho-1}
+	\label{optimal_resource_extraction_condition}
+\end{equation}
+and consequently, the resource use $R$ is equal to
+\begin{equation}
+	R = X_R P_d^{\frac{\pi}{\varepsilon-\rho}}
+	\label{optimal_resource_extraction}
+\end{equation}
+where $X_R$ is given by
+\begin{equation}
+	X_R = \left( \frac{\rho b_d K_d^{\kappa_d}}{ \varepsilon b_R} \right)^{\frac{1}{\varepsilon-\rho}}
+	\label{optimal_resource_XR}
+\end{equation}
+
+
+\textbf{Elimination of algebraic constraints}
+
+To efficiently integrate the system, it is necessary to decouple equations \eqref{labor_share_Pc}, \eqref{labor_share_Pd} and \eqref{optimal_resource_extraction}.
+From \eqref{labor_share_Pc} and \eqref{optimal_resource_extraction} it follows that
+\begin{align}
+	P_d &= P\frac{X_c}{X_c + X_d X_R^{\frac{\rho}{\pi-1}}P_d^{\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho}}} \\
+	P X_c P_d^{-1} &= X_c + X_d X_R^{\frac{\rho}{\pi-1}}P_d^{\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho}} \\
+	0 &= X_d X_R^{\frac{\rho}{\pi-1}}P_d^{\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho}+1} + X_c P_d - P X_c
+\end{align}
+To find a solution for $P_d$ the exponents $\pi$, $\rho$ and $\varepsilon$ need to satisfy
+\begin{align}
+	\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho} &= 1 \\
+	\pi \rho &= \pi\varepsilon - \pi\rho - \varepsilon + \rho \\
+	\rho ( 2\pi-1) &= \varepsilon (\pi-1) \\
+	\rho &= \varepsilon \frac{1-\pi}{1-2\pi},
+\end{align}
+with $P_d$ resulting in 
+\begin{equation}
+	P_d = -\frac{X_c}{2X_d X_R} \pm \sqrt{\left( \frac{X_c}{2 X_d X_R} \right)^{2}-P\frac{X_c}{X_d X_R}}
+\end{equation}
+where only the positive solution is applicable.
+Alternatively
+\begin{align}
+	\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho} &= -1 \\
+	\pi \rho &= -\pi\varepsilon + \pi\rho + \varepsilon - \rho \\
+	\rho &= \varepsilon(1-\pi)
+\end{align}
+and $P_c$, $P_d$ and $R$ resulting in
+\begin{align}
+	P_c &= \frac{X_d }{X_c}X_R ^{\frac{\rho}{\pi-1}} \\
+	P_d &= P - \frac{X_d }{X_c}X_R ^{\frac{\rho}{\pi-1}} \\
+	R &= X_R \left( P-\frac{X_c}{X_d X_R} \right)^{\frac{\pi}{\varepsilon-\rho}}
+	\label{input_share_solution_II}
+\end{align}
+that can be further reduced to
+
+\begin{align}
+	P_c &= \frac{X_d }{X_c}X_R ^{-\varepsilon} \\
+	P_d &= P - \frac{X_d }{X_c}X_R ^{-\varepsilon} \\
+	R &= X_R \left( P-\frac{X_c}{X_d} X_R^{-\varepsilon} \right)^{\frac{1}{\varepsilon}}
+	\label{input_share_solution_IIb}
+\end{align}
+
+$w$, $r_c$ and $r_d$ result in
+
+\begin{align}
+	w &= \pi X_d^{\pi-1} X_R ^{\rho} \\
+	r_c &= \frac{\kappa_c}{K_c X_c}X_d^{\pi}X_R^{-\varepsilon \pi} \\
+	r_d &= \frac{\kappa_d}{K_d}X_d^{\pi-1}X_R^{\rho}\left( P -\frac{X_d}{X_c}X_R^{-\varepsilon}\right)
+\end{align}
+
+For the analysis, we restrict the model to this second solution choosing 
+\begin{equation}
+	\pi = \frac{2}{5}, \qquad \rho = \frac{3}{4}, \qquad \varepsilon = \frac{5}{4}.
+	\label{exponent_values}
+\end{equation}
+With these values and under the assumption that $b_c, b_d, \kappa_c, \kappa_d$ are greater or equal zero, the final form of the equations for labor shares, resource uptake, wages and capital returns are given by:
+\begin{align}
+	P_c &=\frac{25 \sqrt{\frac{5}{3}} b_R^{5/2} K_c^{-\frac{5 \kappa_c}{3}} K_d^{-\frac{5 \kappa_d}{6}}}{9 b_c^{5/3} b_d^{5/6}} \\
+	P_d &=P-\frac{25 \sqrt{\frac{5}{3}} b_R^{5/2} K_c^{-\frac{5 \kappa_c}{3}} K_d^{-\frac{5 \kappa_d}{6}}}{9 b_c^{5/3} b_d^{5/6}} \\
+	R   &=\frac{9 b_d^2 K_d^{2 \kappa_d}}{25 b_R^2}  \left(P-\frac{25 \sqrt{\frac{5}{3}} b_R^{5/2} K_c^{-\frac{5 \kappa_c}{3}} K_d^{-\frac{5 \kappa_d}{6}}}{9 b_c^{5/3} b_d^{5/6}}\right)^{4/5}\\
+	w   &=\frac{6 \sqrt{\frac{3}{5}} K_c^{-\kappa_c} \left(\frac{b_d^2 K_d^{2 \kappa_d}}{b_R^2}\right)^{3/4}}{25 b_c} \\
+	r_c &=\frac{5 b_R \kappa_c K_c^{-\kappa_c-1} K_d^{-\kappa_d}}{3 b_c b_d} \\
+	r_d &=\frac{\kappa_d K_c^{-\kappa_c} K_d^{-\kappa_d-1}}{75 b_c b_d}  \left(\frac{9 \sqrt{15} b_d^{5/2} P K_d^{\frac{5 \kappa_d}{2}}}{b_R^{3/2}}-125 b_R\right)
 \end{align}
 
 The equation for the household income couples the dynamics of the household variables to each other:
 
 \begin{equation}
-	I_i = r_c K_i^{(c)} + r_d K_i^{(d)} + wL_i
+	I_i = r_c K_i^{(c)} + r_d K_i^{(d)} + wP_i
 	\label{household_income}
 \end{equation}
 
@@ -201,20 +301,20 @@ Therefore, I will need to find an efficient way to integrate the given set of or
 If eq. \eqref{household_income} is substituted in eq. \eqref{household_investment}, the combined equations read:
 
 \begin{align}
-	\dot{K}_i^{(c)} &= \delta(x_i-c)(r_c K_i^{(c)} + r_d K_i^{(d)} + wL_i)(1 -c_i) \\
-	\dot{K}_i^{(d)} &= \delta(x_i-d)(r_c K_i^{(c)} + r_d K_i^{(d)} + wL_i)(1 -c_i)
+	\dot{K}_i^{(c)} &= \delta(x_i-c)(r_c K_i^{(c)} + r_d K_i^{(d)} + wP_i)(1 -c_i) \\
+	\dot{K}_i^{(d)} &= \delta(x_i-d)(r_c K_i^{(c)} + r_d K_i^{(d)} + wP_i)(1 -c_i)
 	\label{household_capital_dynamics}
 \end{align}
 
 These equations can be discretized in time:
 
 \begin{align}
-	K_i^{(c)}(t + \Delta t) &= K_{i}^{(c)}(t) + \delta(x_i-c)(r_c K_i^{(c)} + r_d K_i^{(d)} + wL_i)(1 -c_i)\Delta t \\
-	K_i^{(d)}(t + \Delta t) &= K_{i}^{(d)}(t) + \delta(x_i-d)(r_c K_i^{(c)} + r_d K_i^{(d)} + wL_i)(1 -c_i)\Delta t
+	K_i^{(c)}(t + \Delta t) &= K_{i}^{(c)}(t) + \delta(x_i-c)(r_c K_i^{(c)} + r_d K_i^{(d)} + wP_i)(1 -c_i)\Delta t \\
+	K_i^{(d)}(t + \Delta t) &= K_{i}^{(d)}(t) + \delta(x_i-d)(r_c K_i^{(c)} + r_d K_i^{(d)} + wP_i)(1 -c_i)\Delta t
 	\label{household_capital_dynamics_discretized}
 \end{align}
 
-And the system can be integrated by evaluating the market clearing conditions \eqref{labour_market_clearing} and \eqref{capital_market_clearing} at each time step.
+And the system can be integrated using standard ode methods.
 
 \bibliography{PhD-Divestment.bib}{}
     \bibliographystyle{IEEEtran}

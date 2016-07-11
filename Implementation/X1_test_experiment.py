@@ -185,8 +185,8 @@ if sub_experiment == 0:
     INDEX = {0: "tau", 1: "phi"}
     SAMPLE_SIZE = 100
 
-    compute(SAVE_PATH_RAW)
-    resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
+#    compute(SAVE_PATH_RAW)
+#    resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
     plt_tau_phi(SAVE_PATH_RES, NAME)
 
 # Default Experiment tau vs phi for different resource extraction costs
@@ -199,7 +199,7 @@ if sub_experiment == 1:
     if getpass.getuser() == "kolb":
         SAVE_PATH = "/home/kolb/Divest_Experiments/divestdata/X1/"
     elif getpass.getuser() == "jakob":
-        SAVE_PATH = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X2/"
+        SAVE_PATH = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X1/"
 
     SAVE_PATH_RAW = SAVE_PATH + "raw_data/"
     SAVE_PATH_RES = SAVE_PATH + "results/"
@@ -216,8 +216,8 @@ if sub_experiment == 1:
     INDEX = {0: "tau", 1: "phi"}
     SAMPLE_SIZE = 100
 
-    compute(SAVE_PATH_RAW)
-    resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
+#    compute(SAVE_PATH_RAW)
+#    resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
     plt_tau_phi(SAVE_PATH_RES, NAME)
 
 # Default Experiment tau vs phi for different resource extraction costs
@@ -230,7 +230,7 @@ if sub_experiment == 2:
     if getpass.getuser() == "kolb":
         SAVE_PATH = "/home/kolb/Divest_Experiments/divestdata/X2/"
     elif getpass.getuser() == "jakob":
-        SAVE_PATH = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X1/"
+        SAVE_PATH = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X2/"
 
     SAVE_PATH_RAW = SAVE_PATH + "raw_data/"
     SAVE_PATH_RES = SAVE_PATH + "results/"
@@ -247,8 +247,8 @@ if sub_experiment == 2:
     INDEX = {0: "tau", 1: "phi"}
     SAMPLE_SIZE = 100
 
-    compute(SAVE_PATH_RAW)
-    resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
+#    compute(SAVE_PATH_RAW)
+#    resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
     plt_tau_phi(SAVE_PATH_RES, NAME)
 
 # Default Experiment tau vs phi for different resource extraction costs
@@ -261,7 +261,7 @@ if sub_experiment == 3:
     if getpass.getuser() == "kolb":
         SAVE_PATH = "/home/kolb/Divest_Experiments/divestdata/X3/"
     elif getpass.getuser() == "jakob":
-        SAVE_PATH = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X1/"
+        SAVE_PATH = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X3/"
 
     SAVE_PATH_RAW = SAVE_PATH + "raw_data/"
     SAVE_PATH_RES = SAVE_PATH + "results/"
@@ -278,8 +278,8 @@ if sub_experiment == 3:
     INDEX = {0: "tau", 1: "phi"}
     SAMPLE_SIZE = 100
 
-    compute(SAVE_PATH_RAW)
-    resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
+#    compute(SAVE_PATH_RAW)
+#    resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
     plt_tau_phi(SAVE_PATH_RES, NAME)
 
 # Default Experiment tau vs phi for different resource extraction costs

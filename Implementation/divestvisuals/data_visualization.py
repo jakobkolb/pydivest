@@ -83,7 +83,7 @@ def plot_economy(output_loc):
 	#ax6.legend(loc=0)	
 
 
-	fig.savefig(output_loc.strip('.txt')+'.pdf', papertype='a4', orientation='portrait')
+	fig.savefig(output_loc+'.pdf', papertype='a4', orientation='portrait')
 
 def plot_network(loc):
 

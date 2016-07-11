@@ -6,7 +6,8 @@ import csv
 import numpy as np
 import pandas as pd
 import networkx as nx
-from scipy.optimize import fsolve
+from itertools import chain
+from scipy.integrate import odeint
 from scipy.sparse.csgraph import connected_components
 #from data_visualization import plot_economy, plot_network
 
@@ -14,14 +15,17 @@ from scipy.sparse.csgraph import connected_components
 
 class divestment_core:
 
-    def __init__(self, adjacency, oppinions, L_start=10., tau=0.05, phi=.5):
+    def __init__(self, adjacency, oppinions, P_start=10., tau=0.05, phi=.5):
+
+        ## Modes: 1: only economy, 2: + oppinion formation, 3: + decision heuristics
+
+        self.mode = 2
         
         ## General Parameters
 
         self.debug = False              #turn output for debugging on or off
-        self.dt = 0.001                 #stepsize for gaussian integration (time between market clearing)
         self.tau = tau                  #mean waiting time between social updates
-        self.phi = phi                   #rewiring probability for adaptive voter model
+        self.phi = phi                  #rewiring probability for adaptive voter model
 
         ## General Variables
 
@@ -32,19 +36,20 @@ class divestment_core:
 
         ## Household parameters
 
-        self.N = adjacency.shape[0]               #number of households
+        self.N = adjacency.shape[0]                 #number of households
         self.net_birth_rate = .1                    #birth rate for household members
-        self.consumption_level = .5                 #percentage of income consumed
+        self.savings_rate = .23                 #percentage of income consumed
+        self.consumption_level = 1. - self.savings_rate
         self.relative_value_of_capital = 0.01       #(fitnes) value of capital over consumption
 
         ## Household variables
 
         ## Individual
-        self.L = L_start                        #members of one household
+        self.P = P_start                        #members of one household
         self.investment_dirty = np.ones((self.N))    #household investment in clean capital
         self.investment_clean = np.ones((self.N))    #household investment in dirty capital
         self.household_members = np.ones((self.N))   #members of one household
-        self.household_members.fill(L_start)
+        self.household_members.fill(P_start)
         self.waiting_times = np.zeros((self.N))      
         self.waiting_times = \
                 np.random.exponential(scale=self.tau, size=self.N)  #waiting times between rewiring events for each household
@@ -53,38 +58,41 @@ class divestment_core:
         self.income = np.zeros((self.N))             #household income (for social update)
 
         ## Aggregated
-        self.K_c_sup = 0    #total clean capital (supply)
-        self.K_d_sup = 0    #total dirty capital (supply)
-        self.L_sup = 0      #total labor (supply)
+        self.K_c = 0    #total clean capital (supply)
+        self.K_d = 0    #total dirty capital (supply)
 
 
         ## Sector parameters
 
         self.delta_c = .01              # Clean capital depreciation rate
         self.delta_d = self.delta_c     # Dirty capital depreciation rate
-        self.delta_r_present = 0.001    # Resource harvest efficiency at present stock. Decreases with decreasing stock
+        self.b_r_present = 1.    # Resource harvest efficiency at present stock. Decreases with decreasing stock
 
         ## Parameters for Cobb Douglas production (preliminary)
 
-        self.C_c = 1. # solow residual for clean sector
-        self.C_d = 3. # solow residual for dirty sector
+        ## elasticities of labor and resource use are fixed 
+        ## (pi = 2/5, rho = 3/4, epsilon = 5/4) 
+        ## to be able to solve market clearing analytically
 
-        self.a_c = .4
-        self.b_c = 1. - self.a_c
+        self.b_c = 1. # solow residual for clean sector
+        self.b_d = 3. # solow residual for dirty sector
 
-        self.a_d = .4
-        self.b_d = .4
+        self.pi = 2./5.
+        self.kappa_c = 1. - self.pi
+        self.kappa_d = 1. - self.pi
+        self.rho = 3./4.
 
         ## Sector variables
 
-        self.L_c = self.N*L_start/2.
-        self.L_d = self.N*L_start/2.
+        self.P = 0      #total labor (supply)
 
-        self.K_c = 1.
-        self.K_d = 1.
+        self.P_c = self.N*P_start/2.
+        self.P_d = self.N*P_start/2.
 
-        self.R_c = 1.
-        self.R_d = 1.
+        self.K_c = 0.
+        self.K_d = 0.
+
+        self.R = 1.
 
         self.Y_c = 0.
         self.Y_d = 0.
@@ -125,105 +133,127 @@ class divestment_core:
             if exit_status == 0: no consensus reached at t=t_max
             if exit_status ==-1: no consensus & no update candidates found (BAD)
         """
-        self.dt = t_step
 
         self.init_economic_trajectory()
-
-        while self.t<t_max:
-            # Update social until consensus is reached
-            candidate, neighbor, neighbors, update_time = self.find_update_candidates()
-            if candidate==-1: return 1
-            if candidate==-2: return -1
-            self.update_economy(update_time)
-            self.update_oppinion_formation(candidate, neighbor, neighbors)
-            #model.update_decision_making()
+        if self.mode == 1:
+            while self.t<t_max:
+                # Update economy time is up
+                candidate, neighbor, neighbors, update_time = self.find_update_candidates()
+                self.update_economy(update_time)
+        elif self.mode == 2:
+            while self.t<t_max:
+                # Update social until consensus is reached
+                candidate, neighbor, neighbors, update_time = self.find_update_candidates()
+                if candidate==-1: return 1
+                if candidate==-2: return -1
+                self.update_economy(update_time)
+                self.update_oppinion_formation(candidate, neighbor, neighbors)
+        elif self.mode == 3:
+            while self.t<t_max:
+                # Update social and decision making until consensus is reached
+                candidate, neighbor, neighbors, update_time = self.find_update_candidates()
+                if candidate==-1: return 1
+                if candidate==-2: return -1
+                self.update_economy(update_time)
+                self.update_oppinion_formation(candidate, neighbor, neighbors)
+                model.update_decision_making()
         return 0
 
-    def delta_r(self, R_stock):
+    def b_r(self, R_stock):
     #dependence of resource harvest
     #cost on remaining resource stock
-    #starts at delta_r_present and
+    #starts at b_r_present and
     #increases with decreasing stock
     #if stock is depleted, costs are infinite
         if R_stock>0:
-            return self.delta_r_present*(self.R_start/self.R_stock)**2
+            return self.b_r_present*(self.R_start/R_stock)**2
         if R_stock<=0:
             return float('inf')
 
+    def economy_dot(self, x0, t):
 
+        household_members = x0[0:self.N]
+        investment_clean = x0[self.N:2*self.N]
+        investment_dirty = x0[2*self.N:3*self.N]
+        R_stock = x0[-1]
+        print 'R_stock = ', R_stock
 
-    def market_clearing_conditions(self, x, args):
-    #market clearing conditions for labor (out_1, out_2)
-    #and resource uptake (out_3)
-        L_c, L_d, R_d = x
-        L_tot, K_c, K_d, a_c, a_d, b_c, b_d, R_stock = args
-        out_1 = L_tot - L_c - L_d
-        out_2 = self.C_c * K_c**a_c * (1-a_c) * L_c**(-a_c) - self.C_d * K_d**a_d * b_d * L_d**(b_d-1) * R_d**(1-a_d-b_d)
-        out_3 = self.delta_r(self.R_stock) * R_d**2. - self.C_d * K_d**a_d * L_d**b_d * (1-a_d-b_d) * R_d**(-a_d-b_d)
-        return (out_1, out_2, out_3)
+        P = sum(household_members)
+        K_c = sum(investment_clean)
+        K_d = sum(investment_dirty)
+        b_R = self.b_r(R_stock)
+
+        X_c = (self.b_c * K_c**self.kappa_c)**(5./3.)
+        X_d = (self.b_d * K_d**self.kappa_d)**(5./3.)
+        X_R = ((3. * self.b_d * K_d**self.kappa_d)/(5. * b_R))**(2.)
+
+        P_c = (X_d/X_c) * X_R**(-5./4.)
+        P_d = P - (X_d/X_c) * X_R**(-5./4.)
+        R   = X_R*(P - (X_d/X_c)*X_R**(-5./4.))**(4./5.)
+        
+        self.w   = (2./5.) * X_d**(-3./5.) * X_R**(-3./4.)
+        self.r_c = self.kappa_c / (X_c * K_c) * X_d**(2./5.) * X_R**(-2.)
+        self.r_d = self.kappa_d / K_d * X_d**(-3./5.) * X_R**(3./4.) * (P - (X_d/X_c) * X_R**(-5./4.))
+
+        print 'checking assumptions:', \
+                b_c * K_c**self.kappa_c * P_c**(-3./5.) - b_d * K_d**self.kappa_c * P_d**(-3./5.) * R**(3./4.), \
+                b_R * (5./4.) * R**(1./4.) - b_d * K_d**self.kappa_d * P_d**(2./5.) * (3./4.) * R**(-1./4.)
+
+        self.R = R
+        self.K_c = K_c
+        self.K_d = K_d
+        self.P   = P
+        self.P_c = P_c
+        self.P_d = P_d
+
+        self.income = self.r_c*self.investment_clean \
+                + self.r_d*self.investment_dirty \
+                + self.w*self.household_members
+
+        R_stock_dot = -R
+        household_members_dot= self.net_birth_rate * self.household_members
+        investment_clean_dot = self.investment_decision*self.savings_rate*self.income \
+                - self.investment_clean*self.delta_c
+        investment_dirty_dot = np.logical_not(self.investment_decision)*self.savings_rate*self.income \
+                - self.investment_dirty*self.delta_d
+
+        x1 = np.fromiter(chain.from_iterable([list(household_members_dot), 
+            list(investment_clean_dot), 
+            list(investment_dirty_dot), 
+            [R_stock_dot]]), dtype='float')
+
+        return x1
+
 
     def update_economy(self, update_time):
         if self.debug: print 'update_economy'
-        
-        while self.t<update_time:
 
-            self.t += self.dt
+        dt = [self.t, update_time]
+        x0 = np.fromiter(chain.from_iterable([list(self.household_members), list(self.investment_clean), list(self.investment_dirty), [self.R_stock]]), dtype='float')
 
-            #calculate_factor_supply
-            self.K_c_sup = np.sum(self.investment_clean)
-            self.K_d_sup = np.sum(self.investment_dirty)
-            self.L_sup= np.sum(self.household_members)
+        [x0,x1] = odeint(self.economy_dot, x0, dt)
 
-            #clear_factor_markets
-            self.L_c, self.L_d, self.R_d = fsolve(
-                    self.market_clearing_conditions, 
-                    ([self.L_c, self.L_d, self.R_d]), 
-                    args=([self.L_sup, self.K_c_sup, self.K_d_sup, 
-                        self.a_c, self.a_d, self.b_c, self.b_d, self.R_stock]))
+        self.household_members = x1[0:self.N]
+        self.investment_clean = x1[self.N:2*self.N]
+        self.investment_dirty = x1[2*self.N:3*self.N]
+        self.R_stock = x1[-1]
 
-            if self.debug:
-                print 'L_c', 'L_d', 'R_d', 'L_sup'
-                print self.L_c, self.L_d, self.R_d, self.L_sup
+        self.t = update_time
 
-            #calculate_wages
-            self.w = self.K_c_sup**self.a_c * (1-self.a_c) * self.L_c**(-self.a_c)
+        print 'Check some economic parameters:'
+        print 'labor', self.P - self.P_c - self.P_d, self.P_c, self.P_d
+        print 'resources', self.R, self.R_stock
+        print 'capital', self.K_c, self.K_d
 
-            if self.debug:
-                print 'K_c', 'K_d', 'L_c', 'a_c', 'w'
-                print self.K_c_sup, self.K_d_sup, self.L_c, self.a_c, self.w
-
-            #calculate_capital_returns
-            self.r_c = self.C_c * self.a_c * self.K_c_sup**(self.a_c-1) * self.L_c**(1-self.a_c)
-            self.r_d = self.C_d * self.a_d * self.K_d_sup**(self.a_d-1) * self.L_d**self.b_d * self.R_d**(1-self.a_d-self.b_d)
-
-            #calculate resource cost
-            self.R_cost = self.R_d**3*self.delta_r(self.R_stock)
-
-            #calculate_production_output
-            self.Y_c = self.C_c * self.K_c_sup**self.a_c * self.L_c**self.b_c
-            self.Y_d = self.C_d * self.K_d_sup**self.a_d * self.L_d**self.b_d * self.R_d**(1-self.a_d-self.b_d)
-
-            #distribute_wages_and_returns
-            self.income = self.r_c*self.investment_clean + self.r_d*self.investment_dirty + self.w*self.household_members
-            self.investment_clean  += (self.investment_decision*(1-self.consumption_level)*self.income - self.investment_clean*self.delta_c)*self.dt
-            self.investment_dirty  += (np.logical_not(self.investment_decision)*(1-self.consumption_level)*self.income - self.investment_dirty*self.delta_d)*self.dt
-
-
-            #grow population
-            self.household_members += self.household_members*self.net_birth_rate*self.dt
-
-            #deteriorate resource stock
-            self.R_stock -= self.R_d*self.dt
-
-            if self.debug:
-                print 'wage=', self.w, 
-                'clean capital r=', self.r_c, 
-                'dirty capital r=', self.r_d, 
-                'K_c=', self.K_c_sup, 
-                'K_d=', self.K_d_sup, 
-                'R_stock=', self.R_stock
-                print self.Y_c - self.w*self.L_c - self.r_c * self.K_c_sup, 
-                self.Y_d - self.w*self.L_d - self.r_d*self.K_d_sup - self.delta_r(self.R_stock)*self.R_d**3
+        if self.debug:
+            print 'wage=', self.w, 
+            'clean capital r=', self.r_c, 
+            'dirty capital r=', self.r_d, 
+            'K_c=', self.K_c, 
+            'K_d=', self.K_d, 
+            'R_stock=', self.R_stock
+            print self.Y_c - self.w*self.P_c - self.r_c * self.K_c, \
+            self.Y_d - self.w*self.P_d - self.r_d*self.K_d - self.b_r(self.R_stock)*self.R**3
 
         #output economic data
         self.update_economic_trajectory()
@@ -246,14 +276,14 @@ class divestment_core:
         i_max = 1000*self.N
         while i<i_max:
 
-            #find household with min waiting
+            #find household with min waiting time
             candidate = self.waiting_times.argmin()
 
             #remember update_time and incease waiting time of household
             update_time = self.waiting_times[candidate]
             self.waiting_times[candidate] += np.random.exponential(scale=self.tau)
 
-            #chose random neighbor of household i
+            #load neighborhood of household i
             neighbors = self.neighbors[:,candidate].nonzero()[0]
 
             #if candidate has neighbors, chose one at random.
@@ -342,17 +372,17 @@ class divestment_core:
                         self.w,
                         self.r_c, 
                         self.r_d, 
-                        self.K_c_sup, 
-                        self.K_d_sup, 
-                        self.L_c, 
-                        self.L_d, 
+                        self.K_c, 
+                        self.K_d, 
+                        self.P_c, 
+                        self.P_d, 
                         self.R_stock,
                         self.Y_c,
                         self.Y_d,
-                        self.L_c*self.w,
-                        self.L_d*self.w,
-                        self.K_c_sup*self.r_c,
-                        self.K_d_sup*self.r_d,
+                        self.P_c*self.w,
+                        self.P_d*self.w,
+                        self.K_c*self.r_c,
+                        self.K_d*self.r_d,
                         self.R_cost,
                         self.consensus_state])
 
@@ -381,13 +411,13 @@ if __name__ == '__main__':
     functionality
     """
    
-    output_location = datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
+    output_location = 'test_output/' + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
     ## Run Parameters
 
     N = 100                 # number of households
     p = 0.3                 # link density for household network
-    L_start = 10            # initial number of household members
+    P_start = 10            # initial number of household members
     t_max = 100             # max runtime
     stepsize = 0.001        # stepsize for integration of economy
     tau = 0.5               # timescale for social update
@@ -397,7 +427,7 @@ if __name__ == '__main__':
 
     # Initialize Model
 
-    model = divestment_core(adjacency, oppinions, L_start, tau=tau, phi=phi)
+    model = divestment_core(adjacency, oppinions, P_start, tau=tau, phi=phi)
 
     # Run Model
 
