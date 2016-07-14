@@ -1,8 +1,10 @@
 
 from pymofa import experiment_handling as eh
 from divestcore import divestment_core as model
-from divestvisuals.data_visualization import plot_economy, plot_network
 from X1_visualization import plot_tau_phi as plt_tau_phi
+from divestvisuals.data_visualization import plot_trajectories, plot_network
+
+from scipy import interpolate as ip
 
 import numpy as np
 import networkx as nx
@@ -68,26 +70,28 @@ def RUN_FUNC(tau, phi, link_density, N, L, delta_r, delta_c, C_d, filename):
     #storing initial conditions and parameters
 
     res = {}
-    res["initials"] = pd.DataFrame({"Investment decisions": investment_decisions,
-                                    "Investment clean": m.investment_clean,
-                                    "Investment dirty": m.investment_dirty})
+    res["initials"] = \
+            pd.DataFrame({"Investment decisions": investment_decisions,
+                            "Investment clean": m.investment_clean,
+                            "Investment dirty": m.investment_dirty})
 
-    res["parameters"] = pd.Series({"tau": m.tau,
-                                    "phi": m.phi,
-                                    "N": m.N,
-                                    "birth rate": m.net_birth_rate,
-                                    "savings rate": m.savings_rate,
-                                    "clean capital depreciation rate":m.delta_c,
-                                    "dirty capital depreciation rate":m.delta_d,
-                                    "resource extraction efficiency":m.delta_r_present,
-                                    "Solov residual clean":m.b_c,
-                                    "Solov residual dirty":m.b_d,
-                                    "pi clean":m.pi,
-                                    "pi dirty":m.pi,
-                                    "kappa clean":m.kappa_c,
-                                    "kappa dirty":m.kappa_d,
-                                    "rho dirty":m.rho,
-                                    "initial resource stock":m.R_start})
+    res["parameters"] = \
+            pd.Series({ "tau": m.tau,
+                        "phi": m.phi,
+                        "N": m.N,
+                        "birth rate": m.net_birth_rate,
+                        "savings rate": m.savings_rate,
+                        "clean capital depreciation rate":m.delta_c,
+                        "dirty capital depreciation rate":m.delta_d,
+                        "resource extraction efficiency":m.delta_r_present,
+                        "Solov residual clean":m.b_c,
+                        "Solov residual dirty":m.b_d,
+                        "pi clean":m.pi,
+                        "pi dirty":m.pi,
+                        "kappa clean":m.kappa_c,
+                        "kappa dirty":m.kappa_d,
+                        "rho dirty":m.rho,
+                        "initial resource stock":m.R_start})
 
     #run the model
 
@@ -100,14 +104,20 @@ def RUN_FUNC(tau, phi, link_density, N, L, delta_r, delta_c, C_d, filename):
     #store data in case of sucessful run
 
     if exit_status == 1:
-        res["concensus_data"] = pd.DataFrame({"Investment decisions": m.investment_decision,
-                                            "Investment clean": m.investment_clean,
-                                            "Investment dirty": m.investment_dirty})
+        res["concensus_data"] = \
+                pd.DataFrame({"Investment decisions": m.investment_decision,
+                            "Investment clean": m.investment_clean,
+                            "Investment dirty": m.investment_dirty})
         res["consensus_time"] = m.t
         res["consensus_state"] = m.consensus_state
+
+        # interpolate trajectory to get evenly spaced time series.
         trajectory = m.trajectory
         headers = trajectory.pop(0)
-        res["economic_trajectory"] = pd.DataFrame(trajectory, columns=headers)
+
+        df = pd.DataFrame(trajectory, columns=headers).set_index('time')
+        dfo = eh.even_time_series_spacing(df, 101, 0., 100.)
+        res["economic_trajectory"] = dfo
 
     #save data
     with open(filename, 'wb') as dumpfile:
@@ -146,7 +156,8 @@ def resave(SAVE_PATH_RAW, SAVE_PATH_RES, sample_size=None):
     EVA={   "<mean_trajectory>": 
             lambda fnames: pd.concat([np.load(f)["economic_trajectory"] for f in fnames]).groupby(level=0).mean(),
             "<std_trajectory>": 
-            lambda fnames: pd.concat([np.load(f)["economic_trajectory"] for f in fnames]).groupby(level=0).std()}
+            lambda fnames: pd.concat([np.load(f)["economic_trajectory"] - \
+                    pd.concat([np.load(g)["economic_trajectory"] for g in fnames]).groupby(level=0).mean() for f in fnames]).groupby(level=0).std()}
 
     EVA2={  "<mean_consensus_state>":
             lambda fnames: np.mean([np.load(f)["consensus_state"] for f in fnames]),
@@ -198,16 +209,15 @@ if sub_experiment == 0:
 
     compute(SAVE_PATH_RAW)
     resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
-    plt_tau_phi(SAVE_PATH_RES, NAME)
+    plt_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
 
-# Default Experiment tau vs phi for different resource extraction costs
-# Raw data generation, post processing and experimental plotting
+# Plotting only for Default Experiment 
 if sub_experiment == 1:
 
     #determine wheter the experiment is run locally or on cluster and
     #define save path accordingly
 
-    SAVE_PATH = SAVE_PATH + "_1/"
+    SAVE_PATH = SAVE_PATH + "_0/"
 
     SAVE_PATH_RAW = SAVE_PATH + "raw_data/"
     SAVE_PATH_RES = SAVE_PATH + "results/"
@@ -215,15 +225,68 @@ if sub_experiment == 1:
     taus = [0.05, 0.2, 0.35, 0.5, 0.65, 0.8, 0.95]
     phis = [0.1, 0.3, 0.5, 0.7, 0.8, 1.]
 
-    N, link_density, L, delta_r, delta_c, C_d = [100], [0.3], [10], [0.01], [0.1], [0.3]
+    N, link_density, L, delta_r, delta_c, C_d = [100], [0.3], [10], [0.01], [1.], [0.3]
 
     PARAM_COMBS = list(it.product(taus,\
         phis, link_density, N, L, delta_r, delta_c, C_d))
 
-    NAME = "experiment_testing_tau_vs_phi_d_c=0,1"
+    NAME = "experiment_testing_tau_vs_phi_d_c=1"
     INDEX = {0: "tau", 1: "phi"}
     SAMPLE_SIZE = 10
 
+    plt_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
+
+# Post processing and plotting only for Default Experiment 
+if sub_experiment == 2:
+
+    #determine wheter the experiment is run locally or on cluster and
+    #define save path accordingly
+
+    SAVE_PATH = SAVE_PATH + "_0/"
+
+    SAVE_PATH_RAW = SAVE_PATH + "raw_data/"
+    SAVE_PATH_RES = SAVE_PATH + "results/"
+
+    taus = [0.05, 0.2, 0.35, 0.5, 0.65, 0.8, 0.95]
+    phis = [0.1, 0.3, 0.5, 0.7, 0.8, 1.]
+
+    N, link_density, L, delta_r, delta_c, C_d = [100], [0.3], [10], [0.01], [1.], [0.3]
+
+    PARAM_COMBS = list(it.product(taus,\
+        phis, link_density, N, L, delta_r, delta_c, C_d))
+
+    NAME = "experiment_testing_tau_vs_phi_d_c=1"
+    INDEX = {0: "tau", 1: "phi"}
+    SAMPLE_SIZE = 10
+
+    resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
+    plt_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
+
+#Test case for trajectory averaging
+if sub_experiment == 5:
+    
+    print '### TEST CASE ###'
+
+    SAVE_PATH = SAVE_PATH + "_testing/"
+
+    SAVE_PATH_RAW = SAVE_PATH + "raw_data/"
+    SAVE_PATH_RES = SAVE_PATH + "results/"
+
+    taus = [0.05, 0.35, 0.65, 0.95]
+    phis = [0.1, 0.5, 0.8]
+
+    N, link_density, L, delta_r, delta_c, C_d = [100], [0.3], [10], [0.01], [1.], [0.3]
+
+    PARAM_COMBS = list(it.product(taus,\
+        phis, link_density, N, L, delta_r, delta_c, C_d))
+
+    NAME = "experiment_testing_tau_vs_phi_d_c=1"
+    INDEX = {0: "tau", 1: "phi"}
+    SAMPLE_SIZE = 2
+
 #    compute(SAVE_PATH_RAW)
-#    resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
-    plt_tau_phi(SAVE_PATH_RES, NAME)
+    resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
+    plt_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
+    plot_trajectories(SAVE_PATH_RES+NAME+'_trajectory', PARAM_COMBS)
+    
+

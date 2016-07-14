@@ -24,11 +24,7 @@ def plot_tau_phi(SAVE_PATH, NAME):
 
     data = np.load(SAVE_PATH + NAME)
 
-    print data.unstack().columns.levels[0]
-
     for level in list(data.unstack().columns.levels[0]):
-
-        print level
 
         fig = ev.explore_Parameterspace(data.unstack()[level], title = level)
         fig.savefig(SAVE_PATH + '/' + level.strip('<>') + '.jpg' , format='jpg')

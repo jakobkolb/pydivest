@@ -9,7 +9,6 @@ import networkx as nx
 from itertools import chain
 from scipy.integrate import odeint
 from scipy.sparse.csgraph import connected_components
-#from data_visualization import plot_economy, plot_network
 
 
 
@@ -30,6 +29,7 @@ class divestment_core:
         ## General Variables
 
         self.t = 0                  # System Time
+        self.steps = 0              # Step counter for output
         self.consensus = False      # 0 for no consensus, 1 consensus
         self.consensus_state = -1   # -1 for no consensus, 1 for clean consensus, 0 for dirty consensus, in between for fragmentation
         self.trajectory = []        # list to save trajectory of output variables
@@ -64,7 +64,7 @@ class divestment_core:
 
         ## Sector parameters
 
-        self.delta_c = .01              # Clean capital depreciation rate
+        self.delta_c = .06              # Clean capital depreciation rate
         self.delta_d = self.delta_c     # Dirty capital depreciation rate
         self.b_r_present = 1.           # Resource harvest efficiency at present stock. Decreases with decreasing stock
 
@@ -106,13 +106,13 @@ class divestment_core:
 
         ## Ecosystem parameters
 
-        self.R_start = 100. 
+        self.R_start = 10000. 
 
         ## Ecosystem variables
 
         self.R_stock = self.R_start
 
-    def run(self, t_max=1000., t_step=0.001):
+    def run(self, t_max=100.):
         """
         run model for t<t_max or until consensus is reached
         
@@ -122,9 +122,6 @@ class divestment_core:
             The maximum time the system is integrated [Default: 100]
             before run() exits. If the model reaches consensus, or is
             unable to find further update candidated, it ends immediately
-        t_step : float
-            stepsize for time integration of the model e.g. time
-            between market clearing.
 
         Return
         ------
@@ -132,44 +129,65 @@ class divestment_core:
             if exit_status == 1: consensus reached
             if exit_status == 0: no consensus reached at t=t_max
             if exit_status ==-1: no consensus & no update candidates found (BAD)
+            if exit_status ==-2: economic model broken (BAD)
         """
 
         self.init_economic_trajectory()
+
         if self.mode == 1:
             while self.t<t_max:
                 # Update economy time is up
                 candidate, neighbor, neighbors, update_time = self.find_update_candidates()
                 self.update_economy(update_time)
+
         elif self.mode == 2:
             while self.t<t_max:
                 # Update social until consensus is reached
                 candidate, neighbor, neighbors, update_time = self.find_update_candidates()
-                if candidate==-1: return 1
-                if candidate==-2: return -1
                 self.update_economy(update_time)
-                self.update_oppinion_formation(candidate, neighbor, neighbors)
-                if np.isnan(self.R_stock): return 2
+                if candidate >= 0: self.update_oppinion_formation(candidate, neighbor, neighbors)
+
         elif self.mode == 3:
             while self.t<t_max:
                 # Update social and decision making until consensus is reached
                 candidate, neighbor, neighbors, update_time = self.find_update_candidates()
-                if candidate==-1: return 1
-                if candidate==-2: return -1
                 self.update_economy(update_time)
                 self.update_oppinion_formation(candidate, neighbor, neighbors)
                 model.update_decision_making()
-        return 0
+
+        if candidate==-1: 
+            return 1        #good - consensus reached
+        elif candidate==-2: 
+            return -1       #bad run - opinion formation broken
+        elif np.isnan(self.R_stock): 
+            return -2       #bad run - economy broken
+        else: 
+            return 0        # no consensus found during run time
 
     def b_r(self, R_stock):
-    #dependence of resource harvest
-    #cost on remaining resource stock
-    #starts at b_r_present and
-    #increases with decreasing stock
-    #if stock is depleted, costs are infinite
+        """
+        Calculates the dependence of resource harvest cost on 
+        remaining resource stock starts at b_r_present and 
+        increases with decreasing stock if stock is depleted, 
+        costs are infinite
+
+        Parameter
+        ---------
+        R_stock : float
+            The quantity of resource remaining in Stock
+        
+        Return
+        ------
+        b_R     : float
+            The resource extraction efficiency according to the
+            current resource stock
+        """
+        
         if R_stock>0:
-            return self.b_r_present*(self.R_start/R_stock)**2
+            b_R = self.b_r_present*(self.R_start/R_stock)**2
         else:
-            return float('inf')
+            b_R = float('inf')
+        return b_R
 
     def economy_dot(self, x0, t):
 
@@ -229,54 +247,41 @@ class divestment_core:
 
 
     def update_economy(self, update_time):
-        if self.debug: print 'update_economy'
 
         dt = [self.t, update_time]
         x0 = np.fromiter(chain.from_iterable([list(self.household_members), list(self.investment_clean), list(self.investment_dirty), [self.R_stock]]), dtype='float')
 
-        [x0,x1] = odeint(self.economy_dot, x0, dt)
+        #integrate the system unless it crashes.
+        if not np.isnan(self.R):
+            [x0,x1] = odeint(self.economy_dot, x0, dt)
+        else:
+            x1 = x0
 
         self.household_members = x1[0:self.N]
         self.investment_clean = x1[self.N:2*self.N]
         self.investment_dirty = x1[2*self.N:3*self.N]
         self.R_stock = x1[-1]
 
-        self.t = update_time
-
-        print 'Check some economic parameters:'
-        print 'labor', self.P - self.P_c - self.P_d, self.P_c, self.P_d
-        print 'resources', self.R, self.R_stock
-        print 'capital', self.K_c, self.K_d
-
         if self.debug:
-            print 'wage=', self.w, 
-            'clean capital r=', self.r_c, 
-            'dirty capital r=', self.r_d, 
-            'K_c=', self.K_c, 
-            'K_d=', self.K_d, 
-            'R_stock=', self.R_stock
-            print self.Y_c - self.w*self.P_c - self.r_c * self.K_c, \
-            self.Y_d - self.w*self.P_d - self.r_d*self.K_d - self.b_r(self.R_stock)*self.R**3
+            print self.K_c, self.K_d, self.P_c, self.P_d, self.R
+
+        self.t = update_time
+        self.steps += 1
 
         #output economic data
         self.update_economic_trajectory()
 
-        if self.R_stock <= 0:
-            return -1
-        elif self.R_stock > 0:
-            return 0
-
     def find_update_candidates(self):
-        if self.debug: print 'find_update_candidates'
 
-        #For prototyping, use reduced oppinion formation with only
-        #investment decision outcomes as oppinion.
+        #For prototyping, use reduced opinion formation with only
+        #investment decision outcomes as opinion.
 
-        #THIS MUST BE UPDATED IF CUE ORDERS ARE USED AS OPPINIONS
+        #THIS MUST BE UPDATED IF CUE ORDERS ARE USED AS OPINIONS
         oppinions = self.investment_decision
 
         i=0
         i_max = 1000*self.N
+        neighbor = self.N
         while i<i_max:
 
             #find household with min waiting time
@@ -317,7 +322,6 @@ class divestment_core:
         return candidate, neighbor, neighbors, update_time
 
     def update_oppinion_formation(self, candidate, neighbor, neighbors):
-        if self.debug: print 'update_oppinion_formation'
 
         same_unconnected = np.zeros(self.N, dtype=int)
         oppinion = self.investment_decision
@@ -342,7 +346,6 @@ class divestment_core:
         return 0
 
     def update_decision_making(self):
-        if self.debug: print 'update_decision_making'
         #update decision vector for all
         #households depending on their
         #preferences and the state of the
@@ -350,7 +353,6 @@ class divestment_core:
         return 0
 
     def detect_consensus_state(self, oppinions):
-        if self.debug: print 'detect_consensus_state'
         #check if network is split in components with
         #same oppinions/preferences
         #returns 1 if consensus state is detected, 
@@ -408,6 +410,21 @@ class divestment_core:
                     'R_cost_d ',
                     'consensus '])
 
+        dt = [self.t, self.t]
+        x0 = np.fromiter(chain.from_iterable([list(self.household_members), list(self.investment_clean), list(self.investment_dirty), [self.R_stock]]), dtype='float')
+
+        [x0,x1] = odeint(self.economy_dot, x0, dt)
+
+        self.household_members = x1[0:self.N]
+        self.investment_clean = x1[self.N:2*self.N]
+        self.investment_dirty = x1[2*self.N:3*self.N]
+        self.R_stock = x1[-1]
+
+        self.update_economic_trajectory()
+        
+
+
+
 if __name__ == '__main__':
     """
     Perform test run and plot some output to check
@@ -432,16 +449,23 @@ if __name__ == '__main__':
 
     model = divestment_core(adjacency, oppinions, P_start, tau=tau, phi=phi)
 
+    # Turn on debugging
+
+    model.debug = True
+
     # Run Model
 
-    model.run(t_max, stepsize)
+    model.run(t_max)
 
     # Print some output
 
     print connected_components(model.neighbors, directed=False)
+    print 'investment decisions:'
     print model.investment_decision
-    print model.consensus
+    print 'consensus reached?', model.consensus
     print model.consensus_state
+    print 'finish time', model.t
+    print 'steps computed', model.steps
 
     # Save network and oppinion data
 
@@ -455,8 +479,4 @@ if __name__ == '__main__':
         wr.writerows(model.trajectory)
         
 
-    #plot preliminary results 
-
-#   plot_economy(output_location)
-#   plot_network(output_location)
 
