@@ -95,15 +95,16 @@ def RUN_FUNC(tau, phi, link_density, N, L, delta_r, delta_c, C_d, filename):
 
     #run the model
 
-    exit_status = m.run()
+    exit_status = m.run(t_max=50)
 
     #store exit status
 
     res["consensus"] = exit_status
+    print exit_status
 
     #store data in case of sucessful run
 
-    if exit_status == 1:
+    if exit_status in [0,1]:
         res["concensus_data"] = \
                 pd.DataFrame({"Investment decisions": m.investment_decision,
                             "Investment clean": m.investment_clean,
@@ -155,9 +156,8 @@ def resave(SAVE_PATH_RAW, SAVE_PATH_RES, sample_size=None):
     """
     EVA={   "<mean_trajectory>": 
             lambda fnames: pd.concat([np.load(f)["economic_trajectory"] for f in fnames]).groupby(level=0).mean(),
-            "<std_trajectory>": 
-            lambda fnames: pd.concat([np.load(f)["economic_trajectory"] - \
-                    pd.concat([np.load(g)["economic_trajectory"] for g in fnames]).groupby(level=0).mean() for f in fnames]).groupby(level=0).std()}
+            "<sem_trajectory>": 
+            lambda fnames: pd.concat([np.load(f)["economic_trajectory"] for f in fnames]).groupby(level=0).sem()}
 
     EVA2={  "<mean_consensus_state>":
             lambda fnames: np.mean([np.load(f)["consensus_state"] for f in fnames]),
@@ -177,9 +177,9 @@ else:
 
 
 if getpass.getuser() == "kolb":
-    SAVE_PATH = "/p/tmp/kolb/Divest_Experiments/divestdata/X0"
+    SAVE_PATH = "/p/tmp/kolb/Divest_Experiments/divestdata/X2"
 elif getpass.getuser() == "jakob":
-    SAVE_PATH = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X0"
+    SAVE_PATH = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X2"
 
 print "Starting experiment No. ", sub_experiment
 
@@ -205,11 +205,12 @@ if sub_experiment == 0:
 
     NAME = "experiment_testing_tau_vs_phi_d_c=1"
     INDEX = {0: "tau", 1: "phi"}
-    SAMPLE_SIZE = 10
+    SAMPLE_SIZE = 20
 
     compute(SAVE_PATH_RAW)
     resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
     plt_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
+    plot_trajectories(SAVE_PATH_RES, NAME+'_trajectory', PARAM_COMBS, INDEX)
 
 # Plotting only for Default Experiment 
 if sub_experiment == 1:
@@ -232,7 +233,7 @@ if sub_experiment == 1:
 
     NAME = "experiment_testing_tau_vs_phi_d_c=1"
     INDEX = {0: "tau", 1: "phi"}
-    SAMPLE_SIZE = 10
+    SAMPLE_SIZE = 20
 
     plt_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
 
@@ -261,6 +262,7 @@ if sub_experiment == 2:
 
     resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
     plt_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
+    plot_trajectories(SAVE_PATH_RES, NAME+'_trajectory', PARAM_COMBS, INDEX)
 
 #Test case for trajectory averaging
 if sub_experiment == 5:
@@ -273,7 +275,7 @@ if sub_experiment == 5:
     SAVE_PATH_RES = SAVE_PATH + "results/"
 
     taus = [0.05, 0.35, 0.65, 0.95]
-    phis = [0.1, 0.5, 0.8]
+    phis = [0.1, 0.5, 0.9]
 
     N, link_density, L, delta_r, delta_c, C_d = [100], [0.3], [10], [0.01], [1.], [0.3]
 
@@ -282,11 +284,36 @@ if sub_experiment == 5:
 
     NAME = "experiment_testing_tau_vs_phi_d_c=1"
     INDEX = {0: "tau", 1: "phi"}
-    SAMPLE_SIZE = 2
+    SAMPLE_SIZE = 3
 
-#    compute(SAVE_PATH_RAW)
+    compute(SAVE_PATH_RAW)
     resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
     plt_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
-    plot_trajectories(SAVE_PATH_RES+NAME+'_trajectory', PARAM_COMBS)
+    plot_trajectories(SAVE_PATH_RES, NAME+'_trajectory', PARAM_COMBS, INDEX)
     
 
+#Only plotting for Test case for trajectory averaging
+if sub_experiment == 6:
+    
+    print '### TEST CASE ###'
+
+    SAVE_PATH = SAVE_PATH + "_testing/"
+
+    SAVE_PATH_RAW = SAVE_PATH + "raw_data/"
+    SAVE_PATH_RES = SAVE_PATH + "results/"
+
+    taus = [0.05, 0.35, 0.65, 0.95]
+    phis = [0.1, 0.5, 0.9]
+
+    N, link_density, L, delta_r, delta_c, C_d = [100], [0.3], [10], [0.01], [1.], [0.3]
+
+    PARAM_COMBS = list(it.product(taus,\
+        phis, link_density, N, L, delta_r, delta_c, C_d))
+
+    NAME = "experiment_testing_tau_vs_phi_d_c=1"
+    INDEX = {0: "tau", 1: "phi"}
+    SAMPLE_SIZE = 3
+
+    plt_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
+    plot_trajectories(SAVE_PATH_RES, NAME+'_trajectory', PARAM_COMBS, INDEX)
+    

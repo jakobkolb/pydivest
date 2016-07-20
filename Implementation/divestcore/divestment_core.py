@@ -9,6 +9,7 @@ import networkx as nx
 from itertools import chain
 from scipy.integrate import odeint
 from scipy.sparse.csgraph import connected_components
+from stdout_redirected import stdout_redirected
 
 
 
@@ -32,6 +33,7 @@ class divestment_core:
         self.steps = 0              # Step counter for output
         self.consensus = False      # 0 for no consensus, 1 consensus
         self.consensus_state = -1   # -1 for no consensus, 1 for clean consensus, 0 for dirty consensus, in between for fragmentation
+        self.opinion_state = np.mean(oppinions)
         self.trajectory = []        # list to save trajectory of output variables
 
         ## Household parameters
@@ -211,6 +213,10 @@ class divestment_core:
 
         #Here comes a dirty hack to solve a numerical problem.
         #Find a better solution if possible some time.
+        #Well, actually, I am not so sure, if this is a bug.
+        #It might just be the demand for clean labor exceeding the
+        #total labor supply. In this case, this hack would be the 
+        #correct solution to the market clearing equations.
         if P_d < 0:
             P_d = 0
             P_c = P
@@ -218,7 +224,7 @@ class divestment_core:
 
         self.w   = (2./5.) * X_d**(-3./5.) * X_R**(-3./4.)
         self.r_c = self.kappa_c / (X_c * K_c) * X_d**(2./5.) * X_R**(-2.)
-        self.r_d = self.kappa_d / K_d * X_d**(-3./5.) * X_R**(3./4.) * (P - (X_d/X_c) * X_R**(-5./4.))
+        self.r_d = self.kappa_d / K_d * X_d**(-3./5.) * X_R**(3./4.) * (P_d)
 
         self.R = R
         self.K_c = K_c
@@ -253,7 +259,8 @@ class divestment_core:
 
         #integrate the system unless it crashes.
         if not np.isnan(self.R):
-            [x0,x1] = odeint(self.economy_dot, x0, dt)
+            with stdout_redirected():
+                [x0,x1] = odeint(self.economy_dot, x0, dt, mxhnil=1)
         else:
             x1 = x0
 
@@ -262,11 +269,12 @@ class divestment_core:
         self.investment_dirty = x1[2*self.N:3*self.N]
         self.R_stock = x1[-1]
 
-        if self.debug:
-            print self.K_c, self.K_d, self.P_c, self.P_d, self.R
-
         self.t = update_time
         self.steps += 1
+
+        #calculate market shares:
+        self.Y_c = self.b_c*self.K_c**self.kappa_c*self.P_c**self.pi
+        self.Y_d = self.b_c*self.K_d**self.kappa_d*self.P_d**self.pi*self.R**self.rho
 
         #output economic data
         self.update_economic_trajectory()
@@ -278,6 +286,7 @@ class divestment_core:
 
         #THIS MUST BE UPDATED IF CUE ORDERS ARE USED AS OPINIONS
         oppinions = self.investment_decision
+        self.opinion_state = np.mean(oppinions)
 
         i=0
         i_max = 1000*self.N
@@ -382,6 +391,7 @@ class divestment_core:
                         self.P_c, 
                         self.P_d, 
                         self.R_stock,
+                        self.R,
                         self.Y_c,
                         self.Y_d,
                         self.P_c*self.w,
@@ -389,26 +399,29 @@ class divestment_core:
                         self.K_c*self.r_c,
                         self.K_d*self.r_d,
                         self.R_cost,
-                        self.consensus_state])
+                        self.consensus,
+                        self.opinion_state])
 
     def init_economic_trajectory(self):
         self.trajectory.append(['time',
-                    'wage ',
-                    'clean capital r ',  
-                    'dirty capital r ', 
-                    'K_c ', 
-                    'K_d ', 
-                    'L_c ', 
-                    'L_d ', 
-                    'R_stock ',
-                    'Y_c ',
-                    'Y_d ',
-                    'L_cost_c ',
-                    'L_cost_d ',
-                    'K_cost_c ',
-                    'K_cost_d ',
-                    'R_cost_d ',
-                    'consensus '])
+                    'wage',
+                    'K_c_rr',  
+                    'K_c_rr', 
+                    'K_c', 
+                    'K_d', 
+                    'P_c', 
+                    'P_d', 
+                    'R_stock',
+                    'R_uptake',
+                    'Y_c',
+                    'Y_d',
+                    'P_c_cost',
+                    'P_d_cost',
+                    'K_c_cost',
+                    'K_d_cost',
+                    'R_cost',
+                    'consensus',
+                    'opinion state'])
 
         dt = [self.t, self.t]
         x0 = np.fromiter(chain.from_iterable([list(self.household_members), list(self.investment_clean), list(self.investment_dirty), [self.R_stock]]), dtype='float')
