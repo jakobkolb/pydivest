@@ -405,7 +405,7 @@ class divestment_core:
         self.G = x1[-1]
 
         self.update_economic_trajectory()
-      
+        
 def economy_dot(x0, t, prs):
 
     b_c = prs[0]
@@ -498,12 +498,12 @@ if __name__ == '__main__':
 
     ## Run Parameters
 
-    N = 50                 # number of households
+    N = 100                 # number of households
     p = 0.3                 # link density for household network
     P_start = 10            # initial number of household members
     t_max = 10             # max runtime
-    tau = 0.5               # timescale for social update
-    phi = 0.5               # rewiring prob. for social update
+    tau = 0.9               # timescale for social update
+    phi = 0.8               # rewiring prob. for social update
     adjacency = nx.adj_matrix(nx.erdos_renyi_graph(N,p)).toarray()
     oppinions = np.random.randint(2, size=N)
 
@@ -533,10 +533,7 @@ if __name__ == '__main__':
     headers = trj.pop(0)
     df = pd.DataFrame(trj, columns=headers)
     df = df.set_index('time')
-    fig = mp.figure()
-    ax = fig.add_subplot(111)
     df['G'].plot()
-    ax.set_yscale('log')
     mp.show()
 
 

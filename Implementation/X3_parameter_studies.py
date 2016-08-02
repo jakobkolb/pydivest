@@ -1,22 +1,24 @@
 
 from pymofa import experiment_handling as eh
 from divestcore import divestment_core as model
-from X1_visualization import plot_tau_phi as plt_tau_phi
-from divestvisuals.data_visualization import plot_trajectories, plot_network, plot_observables
+from X1_visualization import plot_tau_phi, plot_trj_grid
+from divestvisuals.data_visualization import plot_trajectories, plot_network, plot_observables, plot_obs_grid
 
 from scipy import interpolate as ip
 
 import numpy as np
+import scipy.stats as st
 import networkx as nx
 import pandas as pd
 import cPickle as cp
 import itertools as it
 import sys
 import getpass
+import time
 
 
 
-def RUN_FUNC(tau, phi, link_density, N, L, delta_r, delta_c, b_d, filename):
+def RUN_FUNC(tau, phi, b_r, link_density, N, L, delta_r, delta_c, b_d, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -30,6 +32,9 @@ def RUN_FUNC(tau, phi, link_density, N, L, delta_r, delta_c, b_d, filename):
         the social update timescale
     phi : float \in [0,1]
         the rewiring probability for the network update
+    b_r : float
+        model parameter:
+        prefactor of resource extraction cost
     N : int
         the number of household agents
     L : int
@@ -43,10 +48,10 @@ def RUN_FUNC(tau, phi, link_density, N, L, delta_r, delta_c, b_d, filename):
     delta_c : float \in [0,1)
         capital depreciation rate (is the same in both
         sectors so far)
-    C_d : float
+    b_d : float
         Solov residual for the dirty sector
         should be signifficantly biger than
-        for the clean sector (C_c = 1.)
+        for the clean sector (b_c = 1.)
         to ensure higher productivity of the
         fossil sector in the beginning
 
@@ -63,6 +68,7 @@ def RUN_FUNC(tau, phi, link_density, N, L, delta_r, delta_c, b_d, filename):
     #initializing the model
 
     m = model.divestment_core(adjacency_matrix, investment_decisions, L, tau, phi)
+    m.b_r_present = b_r
     m.delta_r_present = delta_r
     m.delta_c = delta_c
     m.b_d = b_d
@@ -94,15 +100,18 @@ def RUN_FUNC(tau, phi, link_density, N, L, delta_r, delta_c, b_d, filename):
                         "initial resource stock":m.R_start})
 
     #run the model
-
-    exit_status = m.run(t_max=50)
+    
+    start = time.clock()
+    exit_status = m.run(t_max=250*m.tau)
+    end = time.clock()
 
     #store exit status
 
+    res["runtime"] = end-start
+    print end-start
     res["consensus"] = exit_status
-    print exit_status
 
-    #store data in case of sucessful run
+    #store data in case of successful run
 
     if exit_status in [0,1]:
         res["consensus_data"] = \
@@ -116,8 +125,10 @@ def RUN_FUNC(tau, phi, link_density, N, L, delta_r, delta_c, b_d, filename):
         trajectory = m.trajectory
         headers = trajectory.pop(0)
 
-        df = pd.DataFrame(trajectory, columns=headers).set_index('time')
-        dfo = eh.even_time_series_spacing(df, 101, 0., 100.)
+        df = pd.DataFrame(trajectory, columns=headers)
+        df['time'] = df['time']/m.tau
+        df = df.set_index('time')
+        dfo = eh.even_time_series_spacing(df, 101, 0., 250.)
         res["economic_trajectory"] = dfo
 
     #save data
@@ -132,9 +143,9 @@ def RUN_FUNC(tau, phi, link_density, N, L, delta_r, delta_c, b_d, filename):
 
 def compute(SAVE_PATH_RAW):
     """
-    Not quite sure, what this function is god for. 
+    Not quite sure, what this function is good for. 
     copy and pasted it from wbarfuss example experiment.
-    I thing this could also be accomplished by calling 
+    I think this could also be accomplished by calling 
     the eh.compute() function directly during the experiment.
     """
     eh.compute(RUN_FUNC, PARAM_COMBS, SAMPLE_SIZE, SAVE_PATH_RAW)
@@ -160,9 +171,20 @@ def resave(SAVE_PATH_RAW, SAVE_PATH_RES, sample_size=None):
             lambda fnames: pd.concat([np.load(f)["economic_trajectory"] for f in fnames]).groupby(level=0).sem()}
 
     EVA2={  "<mean_consensus_state>":
-            lambda fnames: np.mean([np.load(f)["consensus_state"] for f in fnames]),
+            lambda fnames: np.nanmean([np.load(f)["consensus_state"] for f in fnames]),
             "<mean_consensus_time>":
-            lambda fnames: np.mean([np.load(f)["consensus_time"] for f in fnames])}
+            lambda fnames: np.nanmean([np.load(f)["consensus_time"] for f in fnames]),
+            "<min_consensus_time>":
+            lambda fnames: np.nanmin([np.load(f)["consensus_time"] for f in fnames]),
+            "<max_consensus_time>":
+            lambda fnames: np.max([np.load(f)["consensus_time"] for f in fnames]),
+            "<nanmax_consensus_time>":
+            lambda fnames: np.nanmax([np.load(f)["consensus_time"] for f in fnames]),
+            "<sem_consensus_time>":
+            lambda fnames: st.sem([np.load(f)["consensus_time"] for f in fnames]),
+            "<runtime>":
+            lambda fnames: st.sem([np.load(f)["runtime"] for f in fnames]),
+            }
 
     eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA, NAME + '_trajectory', sample_size, save_path = SAVE_PATH_RES)
 
@@ -177,116 +199,70 @@ else:
 
 
 if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW = "/p/tmp/kolb/Divest_Experiments/divestdata/X2/raw_data"
-    SAVE_PATH_RES = "/home/kolb/Divest_Experiments/divestdata/X2/results"
+    SAVE_PATH_RAW = "/p/tmp/kolb/Divest_Experiments/divestdata/X3/raw_data"
+    SAVE_PATH_RES = "/home/kolb/Divest_Experiments/divestdata/X3/results"
 elif getpass.getuser() == "jakob":
-    SAVE_PATH_RAW = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X2/raw_data"
-    SAVE_PATH_RES = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X2/results"
+    SAVE_PATH_RAW = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X3/raw_data"
+    SAVE_PATH_RES = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X3/results"
 
-print "Starting experiment No. ", sub_experiment
-
-# Default Experiment tau vs phi for different resource extraction costs
-# Raw data generation, post processing and experimental plotting
-if sub_experiment == 0:
-
-    taus = [0.05, 0.2, 0.35, 0.5, 0.65, 0.8, 0.95]
-    phis = [0.1, 0.3, 0.5, 0.7, 0.8, 1.]
-
-    N, link_density, L, delta_r, delta_c, b_d = [100], [0.3], [10], [0.01], [1.], [3.]
-
-    PARAM_COMBS = list(it.product(taus,\
-        phis, link_density, N, L, delta_r, delta_c, b_d))
-
-    NAME = "experiment_testing_tau_vs_phi_d_c=1"
-    INDEX = {0: "tau", 1: "phi"}
-    SAMPLE_SIZE = 20
-
-    compute(SAVE_PATH_RAW)
-    resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
-    plt_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
-    plot_trajectories(SAVE_PATH_RES, NAME+'_trajectory', PARAM_COMBS, INDEX)
-    plot_observables(SAVE_PATH_RES, NAME+'_trajectory', NAME+'_consensus', INDEX)
-
-# Plotting only for Default Experiment 
+# Parameter studies
 if sub_experiment == 1:
 
-    taus = [0.05, 0.2, 0.35, 0.5, 0.65, 0.8, 0.95]
-    phis = [0.1, 0.3, 0.5, 0.7, 0.8, 1.]
+    SAVE_PATH_RAW = SAVE_PATH_RAW + '_1/'
+    SAVE_PATH_RES = SAVE_PATH_RES + '_1/'
+
+    taus = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
+    phis = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
+    b_rs = [round(x,5) for x in list(np.linspace(0.,2.,11))[1:-1]]
 
     N, link_density, L, delta_r, delta_c, b_d = [100], [0.3], [10], [0.01], [1.], [3.]
 
     PARAM_COMBS = list(it.product(taus,\
-        phis, link_density, N, L, delta_r, delta_c, b_d))
+        phis, b_rs, link_density, N, L, delta_r, delta_c, b_d))
 
-    NAME = "experiment_testing_tau_vs_phi_d_c=1"
-    INDEX = {0: "tau", 1: "phi"}
-    SAMPLE_SIZE = 20
+    NAME = "tau_vs_phi_parameter_studies_experimental"
+    INDEX = {0: "tau", 1: "phi", 2: "b_r"}
+    SAMPLE_SIZE = 100
 
-    plt_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
-
-# Post processing and plotting only for Default Experiment 
-if sub_experiment == 2:
-
-    taus = [0.05, 0.2, 0.35, 0.5, 0.65, 0.8, 0.95]
-    phis = [0.1, 0.3, 0.5, 0.7, 0.8, 1.]
-
-    N, link_density, L, delta_r, delta_c, b_d = [100], [0.3], [10], [0.01], [1.], [3.]
-
-    PARAM_COMBS = list(it.product(taus,\
-        phis, link_density, N, L, delta_r, delta_c, b_d))
-
-    NAME = "experiment_testing_tau_vs_phi_d_c=1"
-    INDEX = {0: "tau", 1: "phi"}
-    SAMPLE_SIZE = 10
-
-    #resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
-    #plt_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
-    #plot_trajectories(SAVE_PATH_RES, NAME+'_trajectory', PARAM_COMBS, INDEX)
-    plot_observables(SAVE_PATH_RES, NAME+'_trajectory', NAME+'_consensus', INDEX)
-
-#Test case for trajectory averaging
-if sub_experiment == 5:
-    
-    print '### TEST CASE ###'
-
-    taus = [0.05, 0.35, 0.65, 0.95]
-    phis = [0.1, 0.5, 0.9]
-
-    N, link_density, L, delta_r, delta_c, b_d = [100], [0.3], [10], [0.01], [1.], [3.]
-
-    PARAM_COMBS = list(it.product(taus,\
-        phis, link_density, N, L, delta_r, delta_c, b_d))
-
-    NAME = "experiment_testing_tau_vs_phi_d_c=1"
-    INDEX = {0: "tau", 1: "phi"}
-    SAMPLE_SIZE = 3
+    nodes = 128
+    seconds = 3.5 * len(PARAM_COMBS) * SAMPLE_SIZE / nodes
+    m, s = divmod(seconds, 60)
+    h, m = divmod(m, 60)
+    d, h = divmod(h, 24)
+    print 'ETA: %d:%d:%02d' % (d, h, m) 
 
     compute(SAVE_PATH_RAW)
     resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
-    plt_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
-    plot_trajectories(SAVE_PATH_RES, NAME+'_trajectory', PARAM_COMBS, INDEX)
-    
+    plot_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
 
-#Only plotting for Test case for trajectory averaging
-if sub_experiment == 6:
-    
-    print '### TEST CASE ###'
+# Testing case for parameter studies
+if sub_experiment == 2:
 
-    taus = [round(x,5) for x in list(np.linspace(0.,1,101))[1:-1]]
-    phis = [round(x,5) for x in list(np.linspace(0.,1,101))[1:-1]]
+    SAVE_PATH_RAW = SAVE_PATH_RAW + '_1_test/'
+    SAVE_PATH_RES = SAVE_PATH_RES + '_1_test/'
 
-    print taus
+    taus = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
+    phis = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
+    b_rs = [round(x,5) for x in list(np.linspace(0.,2.,5))[1:-1]]
 
-    N, link_density, L, delta_r, delta_c, b_d = [100], [0.3], [10], [0.01], [1.], [3.]
+    N, link_density, L, delta_r, delta_c, b_d = [40], [0.3], [10], [0.01], [1.], [3.]
 
     PARAM_COMBS = list(it.product(taus,\
-        phis, link_density, N, L, delta_r, delta_c, b_d))
+        phis, b_rs, link_density, N, L, delta_r, delta_c, b_d))
 
-    NAME = "experiment_testing_tau_vs_phi_d_c=1"
-    INDEX = {0: "tau", 1: "phi"}
-    SAMPLE_SIZE = 3
 
-    #plt_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
-    #plot_trajectories(SAVE_PATH_RES, NAME+'_trajectory', PARAM_COMBS, INDEX)
-    #plot_observables(SAVE_PATH_RES, NAME+'_trajectory', NAME+'_consensus', INDEX)
-    
+    NAME = "tau_vs_phi_parameter_studies_experimental"
+    INDEX = {0: "tau", 1: "phi", 2: "b_r"}
+    SAMPLE_SIZE = 100
+
+    nodes = 128
+    seconds = 11.5 * len(PARAM_COMBS) * SAMPLE_SIZE / nodes
+    m, s = divmod(seconds, 60)
+    h, m = divmod(m, 60)
+    d, h = divmod(h, 24)
+    print 'ETA: %d:%d:%02d' % (d, h, m) 
+
+    compute(SAVE_PATH_RAW)
+    resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
+    plot_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
+    plot_obs_grid(SAVE_PATH_RES, NAME+'_trajectory', NAME+'_consensus')

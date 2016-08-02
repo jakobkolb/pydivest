@@ -5,5 +5,12 @@
 \BOOKMARK [2][-]{subsection.1.4}{Ecosystem}{section.1}% 5
 \BOOKMARK [2][-]{subsection.1.5}{Policy Makers}{section.1}% 6
 \BOOKMARK [2][-]{subsection.1.6}{Variables}{section.1}% 7
-\BOOKMARK [2][-]{subsection.1.7}{Parameters}{section.1}% 8
-\BOOKMARK [1][-]{section.2}{Implementation}{}% 9
+\BOOKMARK [3][-]{subsubsection.1.6.1}{Independent variables:}{subsection.1.6}% 8
+\BOOKMARK [3][-]{subsubsection.1.6.2}{Derived Variables}{subsection.1.6}% 9
+\BOOKMARK [2][-]{subsection.1.7}{Parameters}{section.1}% 10
+\BOOKMARK [2][-]{subsection.1.8}{Dynamic equations}{section.1}% 11
+\BOOKMARK [1][-]{section.2}{Implementation}{}% 12
+\BOOKMARK [2][-]{subsection.2.1}{Market clearing for capital K:}{section.2}% 13
+\BOOKMARK [2][-]{subsection.2.2}{Market clearing for labor P:}{section.2}% 14
+\BOOKMARK [2][-]{subsection.2.3}{Optimal Resource use R:}{section.2}% 15
+\BOOKMARK [2][-]{subsection.2.4}{Elimination of algebraic constraints}{section.2}% 16

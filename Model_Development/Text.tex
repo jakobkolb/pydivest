@@ -21,9 +21,9 @@ In the following I propose a preliminary scheme of such a model.
 
 \subsection{Sectors}
 
-Production is assumed to take place in two sectors. One sector $(d)$ employs a dirty technology depending on fossil resources, the other sector $(c)$ employs a clean technology relying on renewable resources. Both sectors use capital $K_j$ and labor $L$ as input factors, the dirty sector additionally uses a fossil resource $R$.
+Production is assumed to take place in two sectors. One sector $(d)$ employs a dirty technology depending on fossil resources, the other sector $(c)$ employs a clean technology relying on renewable resources. The physical capital is assumed to be bound to this technology, e.g. there are two separate capital stocks $K_d$ and $K_c$. Both sectors use capital $K_j$ and labor $P_j$ as input factors, the dirty sector additionally uses a fossil resource $R$.
 \begin{equation}
-	Y_j = F_j(K_j,L,R), \qquad \frac{\partial F_c}{\partial R} = 0 	
+	Y_j = F_j(K_j,P_j,R), \qquad \frac{\partial Y_c}{\partial R} = 0 	
 	\label{eq:production}
 \end{equation}
 The total cost for fossil resource extraction $c_R$ (exploration and exploitation) is assumed to scale with $R^{\varepsilon}$.
@@ -31,27 +31,27 @@ The total cost for fossil resource extraction $c_R$ (exploration and exploitatio
 	c_R = b_R R_d^{\varepsilon}
 	\label{resource_extraction_cost}
 \end{equation}
-The factor $b_R$ is presumably depending on the remaining Fossil resource and increasing as the remaining resource decreases. Also, for optimal production, resource uptake is adjusted such that the marginal extraction costs are equal to the marginal productivity of the resource:
+The factor $b_R$ is presumably depending on the remaining Fossil resource $G$ and increasing as the remaining resource decreases. It is assumed to diverge, as $G$ approaches zero. Also, for optimal production, resource uptake is adjusted such that the marginal extraction costs are equal to the marginal productivity of the resource:
 \begin{equation}
 	b_R \varepsilon R_{d}^{\varepsilon-1} = \frac{\partial F_d}{\partial R_d}
 	\label{marginal_resource_extraction_cost}
 \end{equation}
-Capital is bound to the respective technology implemented. For high [low] intensity of fossil resource use, i.e. $R \gg 1$ [$R \ll 1$], productivities of other input factors are assumed to be higher [lower] in the dirty sector compared to the clean sector:
+For high [low] intensity of fossil resource use, i.e. $R \gg 1$ [$R \ll 1$], productivities of other input factors are assumed to be higher [lower] in the dirty sector compared to the clean sector:
 \begin{align}
-	R \gg 1 \quad \Rightarrow & \quad \frac{\partial F_d}{\partial K_d} > \frac{\partial F_c}{ \partial K_c}, \quad \frac{\partial F_d}{\partial L} > \frac{\partial F_c}{ \partial L}, \\
-	R \ll 1 \quad \Rightarrow & \quad \frac{\partial F_d}{\partial K_d} < \frac{\partial F_c}{ \partial K_c}, \quad \frac{\partial F_d}{\partial L} < \frac{\partial F_c}{ \partial L}.
+	R \gg 1 \quad \Rightarrow & \quad \frac{\partial Y_d}{\partial K_d} > \frac{\partial Y_c}{ \partial K_c}, \quad \frac{\partial Y_d}{\partial P} > \frac{\partial Y_c}{ \partial P}, \\
+	R \ll 1 \quad \Rightarrow & \quad \frac{\partial Y_d}{\partial K_d} < \frac{\partial Y_c}{ \partial K_c}, \quad \frac{\partial Y_d}{\partial P} < \frac{\partial Y_c}{ \partial P}.
 	\label{eq:input_factor_productivities}
 \end{align}
 For the input factor markets, market clearing is assumed. Capital rental rate and wages are thereby determined by marginal factor productivities of the respective input factors.
-For the wage rate, this results in the following conditions:
+For wages, this results in the following conditions:
 \begin{equation}
-	\left. \frac{\partial F_d}{ \partial L} \right|_{L_d} = \left. \frac{\partial F_c}{\partial L}\right|_{L_c} = w, \qquad L_d + L_c = \sum_i L_i
+	\left. \frac{\partial Y_d}{ \partial P} \right|_{P_d} = \left. \frac{\partial Y_c}{\partial P}\right|_{P_c} = w, \qquad P_d + P_c = \sum_i P_i
 	\label{eq:wage_rage}
 \end{equation}
 and for the capital rental rate this results in the following conditions:
 \begin{align}
-	\left. \frac{\partial F_d}{\partial K}\right|_{K_d} &= r_d,\quad K_d = \sum_i K^{(d)}_i \nonumber \\
-	\left. \frac{\partial F_c}{\partial K}\right|_{K_c} &= r_c,\quad K_c = \sum_i K^{(c)}_i 
+	\left. \frac{\partial Y_d}{\partial K}\right|_{K_d} &= r_d,\quad K_d = \sum_i K^{(d)}_i \nonumber \\
+	\left. \frac{\partial Y_c}{\partial K}\right|_{K_c} &= r_c,\quad K_c = \sum_i K^{(c)}_i 
 	\label{eq:capital_rental_rate}
 \end{align}
 
@@ -59,21 +59,16 @@ and for the capital rental rate this results in the following conditions:
 \subsection{Households}
 
 \textbf{Income and savings accounting:} \\
-Households denoted with the Index $i$, $i \in [1, \dots N]$ are are owners of capital $A$ as well as suppliers of labor $L$. A household has $L_i$ members, each supplying one unit of labor per unit of time $t$. The wealth $A_i$ of the household is generated by labor income, capital returns and is diminished by consumption and capital depreciation:
+Households denoted with the Index $i$, $i \in [1, \dots N]$ are are owners of capital $K_j$ as well as suppliers of labor $P_j$. A household has $P_i$ members, each supplying one unit of labor per unit of time $t$. The income of the household comes from capital returns and labor income:
 \begin{equation}
-	\dot{A}_i = \sum_j r_j K^{(j)}_{i} + wL -c_{i}L_i - \sum_j \delta_j K^{(j)}_{i}
-	\label{eq:household_wealth}
+	I_i = \sum_j r_j K^{(j)}_{i} + wP_i 
+	\label{eq:household_income}
 \end{equation}
-where $r_j$ and $\delta_j$ are the rates of return and depreciation of capital of type $K_j$, $w$ is the wage rate and $c_i$ is the consumption per member of household $i$. Capital goods are linked to either clean or dirty technology indicated with the indices $c$ and $d$. Since there is only these two capital goods available,
-\begin{equation}
-	A_i = K^{(c)}_{i} + K^{(d)}_{i}
-	\label{eq:household_capital}
-\end{equation}
-
-\textit{ Until further notice, capital investment is considered irretrievable and capital can not be resold for consumption, e.g. the households decision making is subject to the constraint that its savings rate is bounded from below: $\sum_j r_j K^{(j)}_{i} + wL -c_{i}L_i = s \ge 0$. This is in line with empirical data, that suggests a more or less constant savings rate of 23 \%} \\
+Households are assumed to save at a fixed rate $s$ and reinvest their savings in one of the two types of capital ($K_c$ and $K_d$) available.
+\textit{ For now, capital investment is considered irretrievable and capital can not be traded. Empirical data suggests a more or less constant savings rate of 23 \%} \\
 
 \textbf{Savings investment - decision making:} \\
-Households have two degrees of freedom that they have to decide upon. They can set their consumption level $c$ and they have to decide in which of the two capital goods they want to invest their savings. These decision processes are assumed to be bounded rational and are implemented in the framework of Fast and Frugal Heuristics.\\
+Households have to decide in which of the two capital goods they want to invest their savings. This decision processes is assumed to be bounded rational and are implemented in the framework of Fast and Frugal Heuristics.\\
 Decision cues are:
 \begin{table}[H]
 	\centering
@@ -93,52 +88,86 @@ Decision cues are:
 \end{itemize}
 
 \textbf{Opinion formation and social dynamics:} \\
-The structure of the decision heuristics is interpreted as preferences/opinions resulting from conceptual social dynamic. \\
-Technically, this means that households are connected by a social network. Households are nodes, connections are links. Every household has equal probability per time to become `active' and
-\begin{itemize}
-	\item chose one of his neighbors to compare himself to,
-	\item compare a fitness parameter (some combination of income, wealth and consumption level) if higher, adopt the neighbors decision strategy, if lower cut link and connect to new neighbor with similar fitness.
-	\item then based on the resulting behavioral parameters, decide upon consumption level and the type of capital to invest in during the next `inactive' period.
-\end{itemize}
-
-The fitness parameter is income e.g. the fitness of household $i$ is equal to
+The structure $S$ of the decision heuristics is interpreted as preferences/opinions resulting from conceptual social dynamic. \\
+Technically, this means that households are connected by a social network. Households are nodes, connections are links, links form an unweighted, undirected network that is represented by an adjacency matrix $A_{kl}$.
+The dynamics of and on the network is the following:
+The activity of households is given by a Poisson process e.g. the times $\Delta t$ after which a household becomes active are distributed as
 \begin{equation}
-	W_i = \sum_j r_j K^{(j)}_{i} + wL
-	\label{eq:fitness}
+	p(\Delta t) = \frac{1}{\tau} \rm{exp}\left[-\frac{\Delta t}{\tau} \right].
+	\label{waiting_time_distribution}
 \end{equation}
-
-\textit{Open questions}
+If it becomes active, it does the following:
 \begin{itemize}
-	\item Further definitions of fitness parameter,
-	\item Exact definition of consumption adjustment.
+	\item it chooses one of his neighbors to compare itself to,
+	\item if their preferences differ, one of two things happen:
+	\item with probability $\varphi$ the selected household $k$ cuts
+		the link to the selected neighbor $l$ and establishes a new
+		link to a random neighbor with the same preferences
+	\item with probability $1-\varphi$ they compare a fitness parameter $W_k$
+		which is household income in our case: 
+
+		\begin{equation}
+			W_i = \sum_j r_j K^{(j)}_{i} + wP_i.
+			\label{eq:fitness}
+		\end{equation}
+
+		if if the neighbors fitness is higher, the active household $k$
+		adopts the neighbor $k$'s preferences $(S_k \rightarrow S_l)$ with a sigmoid shaped 
+		probability:
+		\begin{equation}
+			P(S_k \rightarrow S_j) = 1/2 (\rm{tanh}(W_k - W_l)-1)
+			\label{imitation_probability}
+		\end{equation}
 \end{itemize}
 
 \subsection{Ecosystem}
 Ecosystem is the source of resources and the sink for pollution. Minimal implementation would be a fixed carbon stock that is exploited by the fossil fuel sector. Optionally one could implement some sort of climate impact as a consequence of pollution.
 
+In the case under study, we assume a non renewable geological carbon stock $G$, that is exploited by fossil resource uptake of the dirty sector:
+\begin{equation}
+	\dot{G} = -R
+	\label{resource_dynamics}
+\end{equation}
+
 \subsection{Policy Makers}
+\textit{Optional:} \\
 Policy makers can implement some carbon tax or carbon cap on economy to incentivize green development. The implementation of such measure depends on the prevalence of opinions amongst voters (are investors a representative sample of voters?) and might be appropriately implemented by a Poisson distributed random variable.
 
 \subsection{Variables}
+
+\subsubsection{Independent variables:}
 
 \begin{table}[H]
 	\centering
 	\begin{tabular}{r|l}
 		Variable & Description \\\hline
-		$A_i(t)$ & Wealth of household, $i$ \\
-		$L_i(t)$ & Members of household, $i$ \\
-		$a_i(t)$ & Wealth per member of household, $i$ \\
-		$A_i^{(j)} (t)$ & Capital of household $i$ in sector $j$, \\
+		$K^{(c)}_i(t)$ & clean investment of household $i$ \\
+		$K^{(d)}_i(t)$ & dirty investment of household $i$ \\
+		$P_i(t)$ & Members of household, $i$ \\
+		$G(t)$ & Geological carbon stock \\
+		$A_{kl}(t)$ & Adjacency matrix \\
+		$x_i(t) \in [c,d]$ & investment decision of household $i$ 
+	\end{tabular}
+	\caption{Variables of the model with description.}
+	\label{tab:independent_variables}
+\end{table}
+
+\subsubsection{Derived Variables}
+
+\begin{table}[H]
+	\centering
+	\begin{tabular}{r|l}
+		Variable & Description \\\hline
 		$w(t)$   & Wage rate, \\
 		$r_j(t)$ & Capital return rate in sector $j$, \\
 		$c_R(t)$ & Fossil resource extraction cost, \\
 		$Y_j(t)$ & Output of sector, $j$ \\
 		$P_j(t)$ & total labor employed in sector $j$, \\
 		$K_j(t)$ & Total capital employed in sector $j$, \\
-		$R_j(t)$ & Total amount of resources consumed by sector $j$ during time $[t, t + \Delta t]$. \\
+		$R(t)$ & Rate of resource uptake of dirty sector. \\
 	\end{tabular}
 	\caption{Variables of the model with description.}
-	\label{tab:variables}
+	\label{tab:derived_variables}
 \end{table}
 
 \subsection{Parameters}
@@ -147,24 +176,52 @@ Policy makers can implement some carbon tax or carbon cap on economy to incentiv
 	\centering
 	\begin{tabular}{r|l}
 		Parameter & Description \\\hline
-		
+		$\kappa_j$ & Capital elasticity in sector $j$ \\
+		$\pi_j$ & Labor elasticity in sector $j$ \\
+		$\rho$ & Fossil resource elasticity in dirty sector \\
+		$b_j$ & total factor productivity in sector $j$ \\
+		$b_R$ & resource uptake efficiency for fossil resource \\
+		$s$ & savings rate \\
+		$\delta $ & Capital depreciation rate \\
+		$\tau$ & activity rate of households \\
+		$\varphi$ & rewiring rate of households
 	\end{tabular}
 	\caption{Parameters of the model with description.}
 	\label{tab:parameters}
 \end{table}
+
+\subsection{Dynamic equations}
+To wrap up, the economic subsystem of the model can be described by the following ordinary differential equations:
+\begin{align}
+	\dot{K}_i^{(c)} &= s \delta(x_i - c) (r_c K_i^{(c)} + r_d K_i^{(d)} + w P_i) - \delta K_i^{(c)} \nonumber \\
+	\dot{K}_i^{(d)} &= s \delta(x_i - d) (r_c K_i^{(c)} + r_d K_i^{(d)} + w P_i) - \delta K_i^{(d)} \nonumber \\
+	\dot{P}_i &= \alpha P_i \nonumber \\
+	\dot{G} &= - R 
+\end{align}
+that are subject to the following algebraic constraints:
+\begin{align}
+	P_c + P_d &= P \\
+	\left. \frac{\partial Y_c}{\partial P} \right|_{P_c} &= \left. \frac{\partial Y_d}{\partial P} \right|_{P_d} \\
+	\frac{\partial c_R}{\partial R} &= \frac{\partial Y_d}{\partial R} 
+\end{align}
+and $r_c$, $r_d$ and $w$ are given by the respective marginal productivities:
+\begin{equation}
+	r_c = \left. \frac{\partial Y_c}{\partial K} \right|_{K_c}, \qquad r_d = \left. \frac{\partial Y_d}{\partial K} \right|_{K_d}, \qquad w = \left. \frac{Y_c}{\partial P} \right|_{P_c} 
+\end{equation} 
 
 
 \section{Implementation}
 
 Lets assume a Cobb Douglas production function:
 \begin{equation}
-	F_j(K_j,L_j,R_j,t) = b_j K_j^{\kappa_j}P_j^{\pi_j}R_j^{\rho_j}, \qquad j = c,d.
+	F_j(K_j,P_j,R_j,t) = b_j K_j^{\kappa_j}P_j^{\pi_j}R_j^{\rho_j}, \qquad j = c,d.
 	\label{cobb_douglas}
 \end{equation}
-For the clean sector, $\rho_c = 0$ since it does not depend on the fossil resource.
-Then, the economic development is subject to the following equations:\\
+For the clean sector, $\rho_c = 0$ since it does not depend on the fossil resource. We assume equal labor elasticities in both sectors ($\pi_c = \pi_d$).
 
-\textbf{Market clearing for capital $K$:}
+The general equilibrium solution for the input factors for the two sectors pose algebraic constraints for the system of ordinary differential equations that describe the dynamics of the capital stocks $\dot{K}_i^{(j)}$, the resource stock $\dot{G}$ and the population growth $\dot{P}_i$
+
+\subsection{Market clearing for capital $K$:}
 
 \begin{align}
 	&K_c = \sum_i K_i^{(c)}, \quad r_c = b_c\kappa_c K_c^{\kappa_c-1} P_c^{\pi}, \\
@@ -174,13 +231,12 @@ Then, the economic development is subject to the following equations:\\
 
 The capital shares of the two sectors are not subject to an equilibrium solution and can be evaluated independently. For the calculation of the capital rent $r$, the solutions to labor shares and optimal resource use are necessary.
 
-\textbf{Market clearing for labor $L$:}
-
+\subsection{Market clearing for labor $P$:}
+The total supply of labor $P$ is given by the sum of the members of all households. The total supply of labor is divided amongst sectors such that the marginal productivities of labor are equal:
 \begin{equation}
 	P_c + P_d = P = \sum_i P_i, \qquad w = b_c K_c^{\kappa_c}\pi_c P_c^{\pi_c-1}=  b_d K_d^{\kappa_d}\pi_d P_d^{\pi_d-1}R_d^{\rho_d} 
 	\label{labour_market_clearing}
 \end{equation}
-Labor elasticities $\pi_i$ are assumed to be equal in both sectors. 
 Substituting $X_c^{\beta-1} = b_c K_c^{\kappa_c}$ and $X_d^{\pi-1} = b_d K_d^{\kappa_d}$ the labor shares $P_c$ and $P_d$ are equal to
 \begin{align}
 	P_c = P \frac{X_d R^{\frac{\rho}{\pi-1}}}{X_c + X_d R^{\frac{\rho}{\pi-1}}} \label{labor_share_Pc}  \\
@@ -192,9 +248,9 @@ and the corresponding wage is given by
 	\label{wage}
 \end{equation}
 
+These solutions still depend on the uptake of fossil resource $R$.
 
-
-\textbf{Optimal Resource use $R$:}
+\subsection{Optimal Resource use $R$:}
 
 From equation \eqref{resource_extraction_cost} follows that
 \begin{equation}
@@ -212,56 +268,63 @@ where $X_R$ is given by
 	\label{optimal_resource_XR}
 \end{equation}
 
+\subsection{Elimination of algebraic constraints}
 
-\textbf{Elimination of algebraic constraints}
-
-To efficiently integrate the system, it is necessary to decouple equations \eqref{labor_share_Pc}, \eqref{labor_share_Pd} and \eqref{optimal_resource_extraction}.
+To system is easier to handle, if the ordinary differential equations are not subject to algebraic constraints. \\
+Therefore, it is necessary to decouple equations \eqref{labor_share_Pc}, \eqref{labor_share_Pd} and \eqref{optimal_resource_extraction}.
 From \eqref{labor_share_Pc} and \eqref{optimal_resource_extraction} it follows that
 \begin{align}
 	P_d &= P\frac{X_c}{X_c + X_d X_R^{\frac{\rho}{\pi-1}}P_d^{\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho}}} \\
 	P X_c P_d^{-1} &= X_c + X_d X_R^{\frac{\rho}{\pi-1}}P_d^{\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho}} \\
 	0 &= X_d X_R^{\frac{\rho}{\pi-1}}P_d^{\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho}+1} + X_c P_d - P X_c
 \end{align}
-To find a solution for $P_d$ the exponents $\pi$, $\rho$ and $\varepsilon$ need to satisfy
-\begin{align}
-	\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho} &= 1 \\
-	\pi \rho &= \pi\varepsilon - \pi\rho - \varepsilon + \rho \\
-	\rho ( 2\pi-1) &= \varepsilon (\pi-1) \\
-	\rho &= \varepsilon \frac{1-\pi}{1-2\pi},
-\end{align}
-with $P_d$ resulting in 
+To find a solution for $P_d$ the exponents $\pi$, $\rho$ and $\varepsilon$ need to satisfy either \\
+A:
 \begin{equation}
-	P_d = -\frac{X_c}{2X_d X_R} \pm \sqrt{\left( \frac{X_c}{2 X_d X_R} \right)^{2}-P\frac{X_c}{X_d X_R}}
+	\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho} = 1
 \end{equation}
-where only the positive solution is applicable.
-Alternatively
+or B:
+\begin{equation}
+	\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho}= -1
+\end{equation}
+or C:
+\begin{equation}
+	\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho}= 0
+\end{equation}
+For simplicity we assume case B which results in
 \begin{align}
 	\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho} &= -1 \\
 	\pi \rho &= -\pi\varepsilon + \pi\rho + \varepsilon - \rho \\
-	\rho &= \varepsilon(1-\pi)
+	\rho &= \varepsilon(1-\pi).
 \end{align}
-and $P_c$, $P_d$ and $R$ resulting in
+And thus $P_c$, $P_d$ and $R$ result in
 \begin{align}
-	P_c &= \frac{X_d }{X_c}X_R ^{\frac{\rho}{\pi-1}} \\
-	P_d &= P - \frac{X_d }{X_c}X_R ^{\frac{\rho}{\pi-1}} \\
-	R &= X_R \left( P-\frac{X_c}{X_d X_R} \right)^{\frac{\pi}{\varepsilon-\rho}}
-	\label{input_share_solution_II}
-\end{align}
-that can be further reduced to
-
-\begin{align}
-	P_c &= \frac{X_d }{X_c}X_R ^{-\varepsilon} \\
-	P_d &= P - \frac{X_d }{X_c}X_R ^{-\varepsilon} \\
-	R &= X_R \left( P-\frac{X_c}{X_d} X_R^{-\varepsilon} \right)^{\frac{1}{\varepsilon}}
+	P_c &= \frac{X_d }{X_c}X_R ^{-\varepsilon}, \\
+	P_d &= P - \frac{X_d }{X_c}X_R ^{-\varepsilon}, \\
+	R &= X_R \left( P-\frac{X_c}{X_d} X_R^{-\varepsilon} \right)^{\frac{1}{\varepsilon}}.
 	\label{input_share_solution_IIb}
 \end{align}
+These results hold as long as $P_d>0$. Otherwise $P_c = P$, $P_d = 0$ and $R=0$. 
 
-$w$, $r_c$ and $r_d$ result in
+For $P_d>0$, $w$, $r_c$ and $r_d$ result in
 
 \begin{align}
-	w &= \pi X_d^{\pi-1} X_R ^{\rho} \\
-	r_c &= \frac{\kappa_c}{K_c X_c}X_d^{\pi}X_R^{-\varepsilon \pi} \\
-	r_d &= \frac{\kappa_d}{K_d}X_d^{\pi-1}X_R^{\rho}\left( P -\frac{X_d}{X_c}X_R^{-\varepsilon}\right)
+	w &= \pi X_d^{\pi-1} X_R ^{\rho}, \\
+	r_c &= \frac{\kappa_c}{K_c X_c}X_d^{\pi}X_R^{-\varepsilon \pi}, \\
+	r_d &= \frac{\kappa_d}{K_d}X_d^{\pi-1}X_R^{\rho}\left( P -\frac{X_d}{X_c}X_R^{-\varepsilon}\right).
+\end{align}
+Otherwise, 
+
+With these results, we can rewrite the dynamical equations of the system:
+\begin{align}
+	\dot{K}_i^{(c)} = s \delta(x_i - c) \bigg(& C_4 \frac{K_c^{\kappa_c-1}}{G^2 K_d^{\kappa_d}} K_i^{(c)} \nonumber \\
+	&+ C_5 \frac{K_c^{\kappa_c}}{G^2 K_d^{\kappa_d + 1}}\left( C_6 P (g^2 K_d^{\kappa_d})^{1/\pi} -1 \right) K_i^{(d)} \nonumber \\ 
+	&+ C_3 K_c^{\kappa_c}(G^2K_d^{\kappa_d})^{\frac{1-\pi}{\pi}} P_i \bigg) - \delta K_i^{(c)} \\
+	\dot{K}_i^{(d)} = s \delta(x_i - d) \bigg(& C_4 \frac{K_c^{\kappa_c-1}}{G^2 K_d^{\kappa_d}} K_i^{(c)} \nonumber \\
+	&+ C_5 \frac{K_c^{\kappa_c}}{G^2 K_d^{\kappa_d + 1}}\left( C_6 P (g^2 K_d^{\kappa_d})^{1/\pi} -1 \right) K_i^{(d)} \nonumber \\ 
+	&+ C_3 K_c^{\kappa_c}(G^2K_d^{\kappa_d})^{\frac{1-\pi}{\pi}} P_i \bigg) - \delta K_i^{(d)} \\
+	\dot{P}_i &= \alpha P_i \nonumber \\
+	\dot{G} &= - C_1(G^2 K_d^{\kappa_d})^{\frac{1}{\pi \varepsilon}}\left( P - C_2 \frac{K_c^{\frac{\kappa_c}{1-\pi}}}{G^{\frac{2}{\pi}}K_d^{\frac{\kappa_d}{(1-\pi)\pi}}} \right) 
 \end{align}
 
 For the analysis, we restrict the model to this second solution choosing 
@@ -269,52 +332,44 @@ For the analysis, we restrict the model to this second solution choosing
 	\pi = \frac{2}{5}, \qquad \rho = \frac{3}{4}, \qquad \varepsilon = \frac{5}{4}.
 	\label{exponent_values}
 \end{equation}
-With these values and under the assumption that $b_c, b_d, \kappa_c, \kappa_d$ are greater or equal zero, the final form of the equations for labor shares, resource uptake, wages and capital returns are given by:
+
+With $\kappa_c = \kappa_d = 3/5$ the equations that are finally encoded in the model are:
+
 \begin{align}
-	P_c &=\frac{25 \sqrt{\frac{5}{3}} b_R^{5/2} K_c^{-\frac{5 \kappa_c}{3}} K_d^{-\frac{5 \kappa_d}{6}}}{9 b_c^{5/3} b_d^{5/6}} \\
-	P_d &=P-\frac{25 \sqrt{\frac{5}{3}} b_R^{5/2} K_c^{-\frac{5 \kappa_c}{3}} K_d^{-\frac{5 \kappa_d}{6}}}{9 b_c^{5/3} b_d^{5/6}} \\
-	R   &=\frac{9 b_d^2 K_d^{2 \kappa_d}}{25 b_R^2}  \left(P-\frac{25 \sqrt{\frac{5}{3}} b_R^{5/2} K_c^{-\frac{5 \kappa_c}{3}} K_d^{-\frac{5 \kappa_d}{6}}}{9 b_c^{5/3} b_d^{5/6}}\right)^{4/5}\\
-	w   &=\frac{6 \sqrt{\frac{3}{5}} K_c^{-\kappa_c} \left(\frac{b_d^2 K_d^{2 \kappa_d}}{b_R^2}\right)^{3/4}}{25 b_c} \\
-	r_c &=\frac{5 b_R \kappa_c K_c^{-\kappa_c-1} K_d^{-\kappa_d}}{3 b_c b_d} \\
-	r_d &=\frac{\kappa_d K_c^{-\kappa_c} K_d^{-\kappa_d-1}}{75 b_c b_d}  \left(\frac{9 \sqrt{15} b_d^{5/2} P K_d^{\frac{5 \kappa_d}{2}}}{b_R^{3/2}}-125 b_R\right)
+	\dot{K}_i^{(c)} = s \delta(x_i - c) \bigg(&  r_c(K_c, K_d, G)  K_i^{(c)} \nonumber \\
+	&+ r_d(K_c, K_d, G, P) K_i^{(d)} \nonumber \\ 
+	&+w(K_c, K_d, G, P)  P_i \bigg) - \delta K_i^{(c)} \\
+	\dot{K}_i^{(d)} = s \delta(x_i - d) \bigg(&  r_c(K_c, K_d, G)  K_i^{(c)} \nonumber \\
+	&+ r_d(K_c, K_d, G, P) K_i^{(d)} \nonumber \\ 
+	&+  w(K_c, K_d, G, P) P_i \bigg) - \delta K_i^{(d)} \\
+	\dot{P}_i &= \alpha P_i \nonumber \\
+	\dot{G} &= - R(K_c, K_d, G, P) 
+\end{align}
+with coupling functions:
+\begin{align}
+	R(K_c, K_d, G, P) &= C_1G^4 K_d^{6/5}\left( P - C_2 \frac{K_c}{G^5K_d^{5/2}} \right), \\
+	w(K_c, K_d, G, P) &= C_3 G^3 K_c^{3/5}K_d^{9/10} , \\
+	r_c(K_c, K_d, G) \quad &= \frac{C_4}{G^2 K_c^{2/5}K_d^{3/5}} , \\
+	r_d(K_c, K_d, G, P) &= C_5 \frac{K_c^{3/5}}{G^2 K_d^{5/8}} \left( 1-C_6 G^5 K_d^{3/2} P \right) ,
+	\label{final_rates_and_wages}
+\end{align}
+and parameters
+\begin{align}
+	C_1 &= to be written down..\nonumber \\
+	C_2 &= \nonumber \\
+	C_3 &= \nonumber \\
+	C_4 &= \nonumber \\
+	C_5 &= \nonumber \\
 \end{align}
 
-The equation for the household income couples the dynamics of the household variables to each other:
+For first studies, the opinion formation part of the model is reduces to the trivial adaptive voter model as it is implemented in the Copan EXPLOIT model. When a household becomes active, it either rewires with probability $\varphi$, or imitates its neighbors investment decision (clean or dirty) with probability 
 
 \begin{equation}
-	I_i = r_c K_i^{(c)} + r_d K_i^{(d)} + wP_i
-	\label{household_income}
+	P(x_k \rightarrow x_j) = 1/2 (\rm{tanh}(W_k - W_l)-1)
+	\label{primitive_imitation_probability}
 \end{equation}
 
-Capital return rate and wages act as a 'mean field' since they are set by the market clearing conditions according to marginal returns at the cumulated supply of the respective input factors. \\
-
-Household investment is subject to the decision parameter $x_i \in [c,d]$ and the consumption level of the household:
-\begin{align}
-	\dot{K}_i^{(c)} &= \delta(x_i-c)I_i(1-c_i) \\
-	\dot{K}_i^{(d)} &= \delta(x_i-d)I_i(1-c_i)
-	\label{household_investment}
-\end{align}
-
-\textit{If decision parameters are random/fixed, the economic model can be implemented as a stand alone.
-Therefore, I will need to find an efficient way to integrate the given set of ordinary coupled differential equations.}
-
-If eq. \eqref{household_income} is substituted in eq. \eqref{household_investment}, the combined equations read:
-
-\begin{align}
-	\dot{K}_i^{(c)} &= \delta(x_i-c)(r_c K_i^{(c)} + r_d K_i^{(d)} + wP_i)(1 -c_i) \\
-	\dot{K}_i^{(d)} &= \delta(x_i-d)(r_c K_i^{(c)} + r_d K_i^{(d)} + wP_i)(1 -c_i)
-	\label{household_capital_dynamics}
-\end{align}
-
-These equations can be discretized in time:
-
-\begin{align}
-	K_i^{(c)}(t + \Delta t) &= K_{i}^{(c)}(t) + \delta(x_i-c)(r_c K_i^{(c)} + r_d K_i^{(d)} + wP_i)(1 -c_i)\Delta t \\
-	K_i^{(d)}(t + \Delta t) &= K_{i}^{(d)}(t) + \delta(x_i-d)(r_c K_i^{(c)} + r_d K_i^{(d)} + wP_i)(1 -c_i)\Delta t
-	\label{household_capital_dynamics_discretized}
-\end{align}
-
-And the system can be integrated using standard ode methods.
+With the fitness parameter equal to the households income.
 
 \bibliography{PhD-Divestment.bib}{}
     \bibliographystyle{IEEEtran}
