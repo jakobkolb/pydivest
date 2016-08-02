@@ -6,7 +6,6 @@ import csv
 import numpy as np
 import pandas as pd
 import networkx as nx
-from numba import jit
 from itertools import chain
 from scipy.integrate import odeint
 from scipy.sparse.csgraph import connected_components
@@ -27,8 +26,7 @@ class divestment_core:
         self.debug = False              #turn output for debugging on or off
         self.trajectory_output = True   #toggle trajectory output
         self.run_full_time = True       #toggle whether to run full time or only until consensus 
-
-
+        
         ## General Variables
 
         self.t = 0                              # System Time
@@ -71,12 +69,11 @@ class divestment_core:
         self.K_d = 0    #total dirty capital (supply)
         self.K = self.K_c + self.K_d
 
-
         ## Sector parameters
 
         self.delta_c = .06              # Clean capital depreciation rate
         self.delta_d = self.delta_c     # Dirty capital depreciation rate
-        self.b_r = 1.                   # Resource harvest efficiency at present stock. Decreases with decreasing stock
+        self.b_r_present = 1.           # Resource harvest efficiency at present stock. Decreases with decreasing stock
 
         ## Parameters for Cobb Douglas production (preliminary)
 
@@ -116,11 +113,11 @@ class divestment_core:
 
         ## Ecosystem parameters
 
-        self.G_0 = 10000. 
+        self.R_start = 10000. 
 
         ## Ecosystem variables
 
-        self.G = self.G_0
+        self.R_stock = self.R_start
 
     def run(self, t_max=100.):
         """
@@ -155,7 +152,6 @@ class divestment_core:
 
         elif self.mode == 2:
             while self.t<t_max:
-                print self.t
                 # Update social until consensus is reached
                 candidate, neighbor, neighbors, update_time = self.find_update_candidates()
                 self.update_economy(update_time)
@@ -177,44 +173,113 @@ class divestment_core:
             return 1        #good - consensus reached
         elif candidate==-2: 
             return -1       #bad run - opinion formation broken
-        elif np.isnan(self.G): 
+        elif np.isnan(self.R_stock): 
             return -2       #bad run - economy broken
         else: 
             return 0        # no consensus found during run time
 
+    def b_r(self, R_stock):
+        """
+        Calculates the dependence of resource harvest cost on 
+        remaining resource stock starts at b_r_present and 
+        increases with decreasing stock if stock is depleted, 
+        costs are infinite
+
+        Parameter
+        ---------
+        R_stock : float
+            The quantity of resource remaining in Stock
+        
+        Return
+        ------
+        b_R     : float
+            The resource extraction efficiency according to the
+            current resource stock
+        """
+        
+        if R_stock>0:
+            b_R = self.b_r_present*(self.R_start/R_stock)**2
+        else:
+            b_R = float('inf')
+        return b_R
+
+    def economy_dot(self, x0, t):
+
+        household_members = x0[0:self.N]
+        investment_clean = x0[self.N:2*self.N]
+        investment_dirty = x0[2*self.N:3*self.N]
+        R_stock = x0[-1]
+
+        P = sum(household_members)
+        K_c = sum(investment_clean)
+        K_d = sum(investment_dirty)
+        b_R = self.b_r(R_stock)
+
+        X_c = (self.b_c * K_c**self.kappa_c)**(-5./3.)
+        X_d = (self.b_d * K_d**self.kappa_d)**(-5./3.)
+        X_R = ((3. * self.b_d * K_d**self.kappa_d)/(5. * b_R))**(2.)
+
+        P_c = (X_d/X_c) * X_R**(-5./4.)
+        P_d = P - (X_d/X_c) * X_R**(-5./4.)
+        R   = X_R*(P - (X_d/X_c)*X_R**(-5./4.))**(4./5.)
+
+        #Here comes a dirty hack to solve a numerical problem.
+        #Find a better solution if possible some time.
+        #Well, actually, I am not so sure, if this is a bug.
+        #It might just be the demand for clean labor exceeding the
+        #total labor supply. In this case, this hack would be the 
+        #correct solution to the market clearing equations.
+        if P_d < 0:
+            P_d = 0
+            P_c = P
+            R = 0
+
+        self.w   = (2./5.) * X_d**(-3./5.) * X_R**(-3./4.)
+        self.r_c = self.kappa_c / (X_c * K_c) * X_d**(2./5.) * X_R**(-2.)
+        self.r_d = self.kappa_d / K_d * X_d**(-3./5.) * X_R**(3./4.) * (P_d)
+
+        self.R = R
+        self.K_c = K_c
+        self.K_d = K_d
+        self.P   = P
+        self.P_c = P_c
+        self.P_d = P_d
+
+        self.income = self.r_c*self.investment_clean \
+                + self.r_d*self.investment_dirty \
+                + self.w*self.household_members
+
+        R_stock_dot = -R
+        household_members_dot= self.net_birth_rate * self.household_members
+        investment_clean_dot = self.investment_decision*self.savings_rate*self.income \
+                - self.investment_clean*self.delta_c
+        investment_dirty_dot = np.logical_not(self.investment_decision)*self.savings_rate*self.income \
+                - self.investment_dirty*self.delta_d
+
+        x1 = np.fromiter(chain.from_iterable([list(household_members_dot), 
+            list(investment_clean_dot), 
+            list(investment_dirty_dot), 
+            [R_stock_dot]]), dtype='float')
+
+        return x1
+
+
     def update_economy(self, update_time):
 
-        x0 = np.fromiter(chain.from_iterable([
-            list(self.household_members), 
-            list(self.investment_clean), 
-            list(self.investment_dirty), 
-            list(self.investment_decision), 
-            [self.G]
-            ]), dtype='float')
         dt = [self.t, update_time]
-        args = (self.b_c,
-                self.b_d,
-                self.kappa_c,
-                self.kappa_d,
-                self.delta_c,
-                self.delta_d,
-                self.b_r,
-                self.G_0,
-                self.net_birth_rate,
-                self.savings_rate,
-                self.N)
+        x0 = np.fromiter(chain.from_iterable([list(self.household_members), list(self.investment_clean), list(self.investment_dirty), [self.R_stock]]), dtype='float')
 
         #integrate the system unless it crashes.
-        if not np.isnan(self.G):
-            #with stdout_redirected():
-            [x0,x1] = odeint(economy_dot, x0, dt, args=(args,))
+        if not np.isnan(self.R):
+            with stdout_redirected():
+                [x0,x1] = odeint(self.economy_dot, x0, dt, mxhnil=1)
         else:
             x1 = x0
 
         self.household_members = x1[0:self.N]
         self.investment_clean = x1[self.N:2*self.N]
         self.investment_dirty = x1[2*self.N:3*self.N]
-        self.G = x1[-1]
+        self.R_stock = x1[-1]
 
         self.t = update_time
         self.steps += 1
@@ -311,11 +376,9 @@ class divestment_core:
 
     def detect_consensus_state(self, oppinions):
         #check if network is split in components with
-        #same opinions/preferences
+        #same oppinions/preferences
         #returns 1 if consensus state is detected, 
         #returns 0 if NO consensus state is detected.
-        #saves the time at which consensus was first 
-        #detected in self.consensus_time
         
         cc = connected_components(self.neighbors, directed=False)[1]
         self.consensus = all(len(np.unique(oppinions[c]))==1
@@ -331,12 +394,11 @@ class divestment_core:
         return self.consensus
 
     def fitness(self, agent):
-        return self.income[agent]*self.consumption_level #+ \
+        return self.income[agent]#+ \
                 #self.relative_value_of_capital*(self.investment_clean[agent] + self.investment_dirty[agent])
 
     def update_economic_trajectory(self):
-        self.trajectory.append([
-                        self.t, 
+        self.trajectory.append([self.t, 
                         self.w,
                         self.r_c, 
                         self.r_d, 
@@ -344,7 +406,8 @@ class divestment_core:
                         self.K_d, 
                         self.P_c, 
                         self.P_d, 
-                        self.G,
+                        self.P,
+                        self.R_stock,
                         self.R,
                         self.Y_c,
                         self.Y_d,
@@ -360,12 +423,13 @@ class divestment_core:
         self.trajectory.append(['time',
                     'wage',
                     'K_c_r',  
-                    'K_d_r', 
+                    'K_c_r', 
                     'K_c', 
                     'K_d', 
                     'P_c', 
                     'P_d', 
-                    'G',
+                    'P',
+                    'R_stock',
                     'R_uptake',
                     'Y_c',
                     'Y_d',
@@ -377,111 +441,18 @@ class divestment_core:
                     'consensus',
                     'opinion state'])
 
-        x0 = np.fromiter(chain.from_iterable([
-            list(self.household_members), 
-            list(self.investment_clean), 
-            list(self.investment_dirty), 
-            list(self.investment_decision),
-            [self.G]
-            ]), dtype='float')
         dt = [self.t, self.t]
-        args = (self.b_c,
-                self.b_d,
-                self.kappa_c,
-                self.kappa_d,
-                self.delta_c,
-                self.delta_d,
-                self.b_r,
-                self.G_0,
-                self.net_birth_rate,
-                self.savings_rate,
-                self.N)
+        x0 = np.fromiter(chain.from_iterable([list(self.household_members), list(self.investment_clean), list(self.investment_dirty), [self.R_stock]]), dtype='float')
 
-        [x0,x1] = odeint(economy_dot, x0, dt, args=args)
+        [x0,x1] = odeint(self.economy_dot, x0, dt)
 
         self.household_members = x1[0:self.N]
         self.investment_clean = x1[self.N:2*self.N]
         self.investment_dirty = x1[2*self.N:3*self.N]
-        self.G = x1[-1]
+        self.R_stock = x1[-1]
 
         self.update_economic_trajectory()
-      
-def economy_dot(x0, t, prs):
-
-    b_c = prs[0]
-    b_d = prs[1]
-    kappa_c = prs[2]
-    kappa_d = prs[3]
-    delta_c = prs[4]
-    delta_d = prs[5]
-    b_r = prs[5]
-    G_0 = prs[6]
-    net_birth_rate = prs[7]
-    savings_rate = prs[9]
-    N = prs[10]
-
-    household_members = x0[0:N]
-    investment_clean = x0[N:2*N]
-    investment_dirty = x0[2*N:3*N]
-    investment_decision = x0[3*N:4*N]
-    G = x0[-1]
-
-    P = sum(household_members)
-    K_c = sum(investment_clean)
-    K_d = sum(investment_dirty)
-    K = K_c + K_d
-
-    if G>0:
-        b_R = b_r*(G_0/G)**2
-    else:
-        b_R = float('inf')
-
-    X_c = (b_c * K_c**kappa_c)**(-5./3.)
-    X_d = (b_d * K_d**kappa_d)**(-5./3.)
-    X_R = ((3. * b_d * K_d**kappa_d)/(5. * b_R))**(2.)
-
-    P_c = (X_d/X_c) * X_R**(-5./4.)
-    P_d = P - (X_d/X_c) * X_R**(-5./4.)
-    R   = X_R*(P_d)**(4./5.)
-
-
-    #Here comes a dirty hack to solve a numerical problem.
-    #Find a better solution if possible some time.
-    #Well, actually, I am not so sure, if this is a bug.
-    #It might just be the demand for clean labor exceeding the
-    #total labor supply. In this case, this hack would be the 
-    #correct solution to the market clearing equations.
-    if P_d < 0:
-        P_d = 0
-        P_c = P
-        R = 0
-        w = (2./5.) * b_c * P**(-3./5.) * K_c**(kappa_c)
-        r_c = kappa_c * b_c * P**(2./5.) * K_c**(kappa_c - 1.)
-        r_d = 0
-    else:
-        w   = (2./5.) * X_d**(-3./5.) * X_R**(-3./4.)
-        r_c = kappa_c / (X_c * K_c) * X_d**(2./5.) * X_R**(-2.)
-        r_d = kappa_d / K_d * X_d**(-3./5.) * X_R**(3./4.) * (P_d)
-
-    income = r_c*investment_clean \
-            + r_d*investment_dirty \
-            + w*household_members
-
-    G_dot = -R
-    household_members_dot= net_birth_rate * household_members
-    investment_clean_dot = investment_decision*savings_rate*income \
-            - investment_clean*delta_c
-    investment_dirty_dot = np.logical_not(investment_decision)*savings_rate*income \
-            - investment_dirty*delta_d
-
-    x1 = np.fromiter(chain.from_iterable([list(household_members_dot), 
-        list(investment_clean_dot), 
-        list(investment_dirty_dot), 
-        list(investment_decision),
-        [G_dot],
-        ]), dtype='float')
-
-    return x1
+        
 
 
 
@@ -490,20 +461,21 @@ if __name__ == '__main__':
     Perform test run and plot some output to check
     functionality
     """
-
     import pandas as pd
     import matplotlib.pyplot as mp
+   
    
     output_location = 'test_output/' + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
     ## Run Parameters
 
-    N = 50                 # number of households
+    N = 100                 # number of households
     p = 0.3                 # link density for household network
     P_start = 10            # initial number of household members
-    t_max = 10             # max runtime
+    t_max = 100             # max runtime
+    stepsize = 0.001        # stepsize for integration of economy
     tau = 0.5               # timescale for social update
-    phi = 0.5               # rewiring prob. for social update
+    phi = 0.4               # rewiring prob. for social update
     adjacency = nx.adj_matrix(nx.erdos_renyi_graph(N,p)).toarray()
     oppinions = np.random.randint(2, size=N)
 
@@ -513,7 +485,7 @@ if __name__ == '__main__':
 
     # Turn on debugging
 
-    model.debug = False
+    model.debug = True
 
     # Run Model
 
@@ -529,13 +501,15 @@ if __name__ == '__main__':
     print 'finish time', model.t
     print 'steps computed', model.steps
 
+
+
     trj = model.trajectory
     headers = trj.pop(0)
     df = pd.DataFrame(trj, columns=headers)
     df = df.set_index('time')
     fig = mp.figure()
     ax = fig.add_subplot(111)
-    df['G'].plot()
+    df[['P','P_c']].plot(ax = ax)
     ax.set_yscale('log')
     mp.show()
 
