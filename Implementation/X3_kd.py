@@ -17,7 +17,7 @@ import time
 
 
 
-def RUN_FUNC(tau, phi, b_r, link_density, N, L, delta_r, delta_c, b_d, filename):
+def RUN_FUNC(tau, phi, kappa_d, b_r, link_density, N, L, delta_r, delta_c, b_d, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -186,9 +186,9 @@ def resave(SAVE_PATH_RAW, SAVE_PATH_RES, sample_size=None):
             lambda fnames: st.sem([np.load(f)["runtime"] for f in fnames]),
             }
 
-    eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA, NAME + '_trajectory', sample_size, save_path = SAVE_PATH_RES)
+    eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA, NAME + '_trajectory', save_path = SAVE_PATH_RES)
 
-    eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA2, NAME + '_consensus', sample_size, save_path = SAVE_PATH_RES)
+    eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA2, NAME + '_consensus', save_path = SAVE_PATH_RES)
 
 
 
@@ -199,20 +199,20 @@ elif getpass.getuser() == "jakob":
     SAVE_PATH_RAW = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X3/raw_data"
     SAVE_PATH_RES = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X3/results"
 
-SAVE_PATH_RAW = SAVE_PATH_RAW + '_1/'
-SAVE_PATH_RES = SAVE_PATH_RES + '_1/'
+SAVE_PATH_RAW = SAVE_PATH_RAW + '_kappa_d/'
+SAVE_PATH_RES = SAVE_PATH_RES + '_kappa_d/'
 
 taus = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
 phis = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
-b_rs = [round(x,5) for x in list(np.linspace(0.,2.,5))[1:-1]]
+kappa_ds = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
 
-N, link_density, L, delta_r, delta_c, b_d = [100], [0.3], [10], [0.01], [1.], [3.]
+N, link_density, L, delta_r, delta_c, b_d, b_r = [100], [0.3], [10], [0.01], [1.], [3.], [1.]
 
 PARAM_COMBS = list(it.product(taus,\
-    phis, b_rs, link_density, N, L, delta_r, delta_c, b_d))
+    phis, kappa_ds, b_r, link_density, N, L, delta_r, delta_c, b_d))
 
-NAME = "tau_vs_phi_parameter_studies_experimental"
-INDEX = {0: "tau", 1: "phi", 2: "b_r"}
+NAME = "tau_vs_phi_kappa_d_sensitivity"
+INDEX = {0: "tau", 1: "phi", 2: "kappa_d"}
 SAMPLE_SIZE = 100
 
 nodes = 16

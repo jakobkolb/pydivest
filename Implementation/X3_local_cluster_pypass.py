@@ -17,7 +17,7 @@ import time
 
 
 
-def RUN_FUNC(tau, phi, b_r, link_density, N, L, delta_r, delta_c, b_d, filename):
+def RUN_FUNC(tau, phi, b_r, link_density, N, L, delta_c, b_d, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -68,7 +68,6 @@ def RUN_FUNC(tau, phi, b_r, link_density, N, L, delta_r, delta_c, b_d, filename)
 
     m = model.divestment_core(adjacency_matrix, investment_decisions, L, tau, phi)
     m.b_r_present = b_r
-    m.delta_r_present = delta_r
     m.delta_c = delta_c
     m.b_d = b_d
 
@@ -88,7 +87,7 @@ def RUN_FUNC(tau, phi, b_r, link_density, N, L, delta_r, delta_c, b_d, filename)
                         "savings rate": m.savings_rate,
                         "clean capital depreciation rate":m.delta_c,
                         "dirty capital depreciation rate":m.delta_d,
-                        "resource extraction efficiency":m.delta_r_present,
+                        "resource extraction efficiency":m.b_r_present,
                         "Solov residual clean":m.b_c,
                         "Solov residual dirty":m.b_d,
                         "pi clean":m.pi,
@@ -124,7 +123,7 @@ def RUN_FUNC(tau, phi, b_r, link_density, N, L, delta_r, delta_c, b_d, filename)
 
         df = pd.DataFrame(trajectory, columns=headers)
         df = df.set_index('time')
-        dfo = eh.even_time_series_spacing(df, 101, 0., 250*m.tau)
+        dfo = eh.even_time_series_spacing(df, 101, 0., 100)
         res["economic_trajectory"] = dfo
 
     end = time.clock()
@@ -193,30 +192,30 @@ def resave(SAVE_PATH_RAW, SAVE_PATH_RES, sample_size=None):
 
 
 if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW = "/p/tmp/kolb/Divest_Experiments/divestdata/X3/raw_data"
-    SAVE_PATH_RES = "/home/kolb/Divest_Experiments/divestdata/X3/results"
+    SAVE_PATH_RAW = "/p/tmp/kolb/Divest_Experiments/divestdata/X3_local/raw_data"
+    SAVE_PATH_RES = "/home/kolb/Divest_Experiments/divestdata/X3_local/results"
 elif getpass.getuser() == "jakob":
-    SAVE_PATH_RAW = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X3/raw_data"
-    SAVE_PATH_RES = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X3/results"
+    SAVE_PATH_RAW = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X3_local/raw_data"
+    SAVE_PATH_RES = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X3_local/results"
 
 SAVE_PATH_RAW = SAVE_PATH_RAW + '_1/'
 SAVE_PATH_RES = SAVE_PATH_RES + '_1/'
 
 taus = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
 phis = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
-b_rs = [round(x,5) for x in list(np.linspace(0.,2.,5))[1:-1]]
+b_rs = [round(x,5) for x in list(np.linspace(0.,2.,3))[1:-1]]
 
-N, link_density, L, delta_r, delta_c, b_d = [100], [0.3], [10], [0.01], [1.], [3.]
+N, link_density, L, delta_c, b_d = [100], [0.3], [10], [1.], [3.]
 
 PARAM_COMBS = list(it.product(taus,\
-    phis, b_rs, link_density, N, L, delta_r, delta_c, b_d))
+    phis, b_rs, link_density, N, L, delta_c, b_d))
 
 NAME = "tau_vs_phi_parameter_studies_experimental"
 INDEX = {0: "tau", 1: "phi", 2: "b_r"}
-SAMPLE_SIZE = 100
+SAMPLE_SIZE = 5
 
-nodes = 16
-seconds = 3.5 * len(PARAM_COMBS) * SAMPLE_SIZE / nodes
+nodes = 1
+seconds = 6.5 * len(PARAM_COMBS) * SAMPLE_SIZE / nodes
 m, s = divmod(seconds, 60)
 h, m = divmod(m, 60)
 d, h = divmod(h, 24)

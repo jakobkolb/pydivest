@@ -1,8 +1,7 @@
 
 from pymofa import experiment_handling as eh
 from divestcore import divestment_core as model
-from X1_visualization import plot_tau_phi, plot_trj_grid
-from divestvisuals.data_visualization import plot_trajectories, plot_network, plot_observables, plot_obs_grid
+from divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
 
 from scipy import interpolate as ip
 
@@ -104,7 +103,7 @@ def RUN_FUNC(tau, phi, b_r, link_density, N, L, delta_r, delta_c, b_d, filename)
     #run the model
     
     start = time.clock()
-    exit_status = m.run(t_max=300)
+    exit_status = m.run(t_max=300*m.tau)
     end = time.clock()
 
     #store exit status
@@ -173,14 +172,8 @@ def resave(SAVE_PATH_RAW, SAVE_PATH_RES, sample_size=None):
             lambda fnames: st.sem([np.load(f)["runtime"] for f in fnames]),
             }
 
-    eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA2, NAME + '_consensus', sample_size, save_path = SAVE_PATH_RES)
+    eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA2, NAME + '_consensus', save_path = SAVE_PATH_RES)
 
-
-#get subexperiment from comand line
-if len(sys.argv)>1:
-    sub_experiment = int(sys.argv[1])
-else:
-    sub_experiment = 0
 
 
 if getpass.getuser() == "kolb":
@@ -190,36 +183,42 @@ elif getpass.getuser() == "jakob":
     SAVE_PATH_RAW = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X4/raw_data"
     SAVE_PATH_RES = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X4/results"
 
+SAVE_PATH_RAW = SAVE_PATH_RAW + '_1/'
+SAVE_PATH_RES = SAVE_PATH_RES + '_1/'
+
+taus = [round(x,5) for x in list(np.linspace(0.,1.,51))[1:-1]]
+phis = [round(x,5) for x in list(np.linspace(0.,1.,51))[1:-1]]
+b_rs = [round(x,5) for x in list(np.linspace(0.,2.,5))[1:-1]]
+
+N, link_density, L, delta_r, delta_c, b_d = [100], [0.3], [10], [0.01], [1.], [3.]
+
+PARAM_COMBS = list(it.product(taus,\
+    phis, b_rs, link_density, N, L, delta_r, delta_c, b_d))
+
+NAME = "tau_vs_phi_phase_transition"
+INDEX = {0: "tau", 1: "phi", 2: "b_r"}
+SAMPLE_SIZE = 20
+
+nodes = 3
+seconds = 0.75 * len(PARAM_COMBS) * SAMPLE_SIZE / nodes
+m, s = divmod(seconds, 60)
+h, m = divmod(m, 60)
+d, h = divmod(h, 24)
+print len(PARAM_COMBS) * SAMPLE_SIZE
+print 'ETA: %d:%d:%02d' % (d, h, m) 
+
+#get sub experiment from command line
+if len(sys.argv)>1:
+    sub_experiment = int(sys.argv[1])
+else:
+    sub_experiment = 0
 
 # Default Experiment tau vs phi for different resource extraction costs
 # Raw data generation, post processing and experimental plotting
-if sub_experiment == 1:
-
-    SAVE_PATH_RAW = SAVE_PATH_RAW + '_1/'
-    SAVE_PATH_RES = SAVE_PATH_RES + '_1/'
-
-    taus = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
-    phis = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
-    b_rs = [round(x,5) for x in list(np.linspace(0.,2.,5))[1:-1]]
-
-    N, link_density, L, delta_r, delta_c, b_d = [100], [0.3], [10], [0.01], [1.], [3.]
-
-    PARAM_COMBS = list(it.product(taus,\
-        phis, b_rs, link_density, N, L, delta_r, delta_c, b_d))
-
-    NAME = "tau_vs_phi_phase_transition"
-    INDEX = {0: "tau", 1: "phi", 2: "b_r"}
-    SAMPLE_SIZE = 20
-
-    nodes = 1
-    seconds = 2.5 * len(PARAM_COMBS) * SAMPLE_SIZE / nodes
-    m, s = divmod(seconds, 60)
-    h, m = divmod(m, 60)
-    d, h = divmod(h, 24)
-    print len(PARAM_COMBS) * SAMPLE_SIZE
-    print 'ETA: %d:%d:%02d' % (d, h, m) 
-
+if sub_experiment == 0:
     compute(SAVE_PATH_RAW)
     resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
     plot_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
 
+if sub_experiment == 1:
+    plot_tau_phi(SAVE_PATH_RES, NAME+'_consensus')

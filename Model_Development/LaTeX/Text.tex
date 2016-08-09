@@ -11,7 +11,7 @@ In the following I propose a preliminary scheme of such a model.
 
 \begin{figure}[h]
 	\centering
-	\includegraphics[width = .7 \textwidth]{Model_Scheme.pdf}
+	\includegraphics[width = .7 \textwidth]{figures/Model_Scheme.pdf}
 	\caption{Schematic sketch of the model including four major components: Households, Firms (grouped by sector), Ecosystem and optional Policy makers.}
 	\label{fig:model}
 \end{figure}
@@ -304,27 +304,37 @@ And thus $P_c$, $P_d$ and $R$ result in
 	R &= X_R \left( P-\frac{X_c}{X_d} X_R^{-\varepsilon} \right)^{\frac{1}{\varepsilon}}.
 	\label{input_share_solution_IIb}
 \end{align}
-These results hold as long as $P_d>0$. Otherwise $P_c = P$, $P_d = 0$ and $R=0$. 
-
-For $P_d>0$, $w$, $r_c$ and $r_d$ result in
-
+And consequently $w$, $r_c$ and $r_d$ are equal to:
 \begin{align}
 	w &= \pi X_d^{\pi-1} X_R ^{\rho}, \\
 	r_c &= \frac{\kappa_c}{K_c X_c}X_d^{\pi}X_R^{-\varepsilon \pi}, \\
 	r_d &= \frac{\kappa_d}{K_d}X_d^{\pi-1}X_R^{\rho}\left( P -\frac{X_d}{X_c}X_R^{-\varepsilon}\right).
 \end{align}
-Otherwise, 
+These results hold as long as $P_d>0$. 
+Otherwise 
+\begin{align}
+	P_c &= P, \\
+	P_d &= 0, \\
+	R &= 0
+	\label{input_share_solution_IIc}
+\end{align}
+resulting in $w$, $r_c$ and $r_d$ equal to
+\begin{align}
+	w &= \pi P^{\pi-1}K_c^{\kappa_c}, \\
+	r_c &= \frac{\kappa_c}K_c^{\kappa_c-1}P^{\pi}, \\
+	r_d &= 0
+\end{align}
 
 With these results, we can rewrite the dynamical equations of the system:
 \begin{align}
 	\dot{K}_i^{(c)} = s \delta(x_i - c) \bigg(& C_4 \frac{K_c^{\kappa_c-1}}{G^2 K_d^{\kappa_d}} K_i^{(c)} \nonumber \\
 	&+ C_5 \frac{K_c^{\kappa_c}}{G^2 K_d^{\kappa_d + 1}}\left( C_6 P (g^2 K_d^{\kappa_d})^{1/\pi} -1 \right) K_i^{(d)} \nonumber \\ 
-	&+ C_3 K_c^{\kappa_c}(G^2K_d^{\kappa_d})^{\frac{1-\pi}{\pi}} P_i \bigg) - \delta K_i^{(c)} \\
+	&+ C_3 K_c^{\kappa_c}(G^2K_d^{\kappa_d})^{\frac{1-\pi}{\pi}} P_i \bigg) - \delta K_i^{(c)}, \\
 	\dot{K}_i^{(d)} = s \delta(x_i - d) \bigg(& C_4 \frac{K_c^{\kappa_c-1}}{G^2 K_d^{\kappa_d}} K_i^{(c)} \nonumber \\
 	&+ C_5 \frac{K_c^{\kappa_c}}{G^2 K_d^{\kappa_d + 1}}\left( C_6 P (g^2 K_d^{\kappa_d})^{1/\pi} -1 \right) K_i^{(d)} \nonumber \\ 
-	&+ C_3 K_c^{\kappa_c}(G^2K_d^{\kappa_d})^{\frac{1-\pi}{\pi}} P_i \bigg) - \delta K_i^{(d)} \\
-	\dot{P}_i &= \alpha P_i \nonumber \\
-	\dot{G} &= - C_1(G^2 K_d^{\kappa_d})^{\frac{1}{\pi \varepsilon}}\left( P - C_2 \frac{K_c^{\frac{\kappa_c}{1-\pi}}}{G^{\frac{2}{\pi}}K_d^{\frac{\kappa_d}{(1-\pi)\pi}}} \right) 
+	&+ C_3 K_c^{\kappa_c}(G^2K_d^{\kappa_d})^{\frac{1-\pi}{\pi}} P_i \bigg) - \delta K_i^{(d)}, \\
+	\dot{P}_i &= \alpha P_i, \nonumber \\
+	\dot{G} &= - C_1(G^2 K_d^{\kappa_d})^{\frac{1}{\pi \varepsilon}}\left( P - C_2 \frac{K_c^{\frac{\kappa_c}{1-\pi}}}{G^{\frac{2}{\pi}}K_d^{\frac{\kappa_d}{(1-\pi)\pi}}} \right).
 \end{align}
 
 For the analysis, we restrict the model to this second solution choosing 
@@ -338,12 +348,12 @@ With $\kappa_c = \kappa_d = 3/5$ the equations that are finally encoded in the m
 \begin{align}
 	\dot{K}_i^{(c)} = s \delta(x_i - c) \bigg(&  r_c(K_c, K_d, G)  K_i^{(c)} \nonumber \\
 	&+ r_d(K_c, K_d, G, P) K_i^{(d)} \nonumber \\ 
-	&+w(K_c, K_d, G, P)  P_i \bigg) - \delta K_i^{(c)} \\
+	&+w(K_c, K_d, G, P)  P_i \bigg) - \delta K_i^{(c)}, \\
 	\dot{K}_i^{(d)} = s \delta(x_i - d) \bigg(&  r_c(K_c, K_d, G)  K_i^{(c)} \nonumber \\
 	&+ r_d(K_c, K_d, G, P) K_i^{(d)} \nonumber \\ 
-	&+  w(K_c, K_d, G, P) P_i \bigg) - \delta K_i^{(d)} \\
-	\dot{P}_i &= \alpha P_i \nonumber \\
-	\dot{G} &= - R(K_c, K_d, G, P) 
+	&+  w(K_c, K_d, G, P) P_i \bigg) - \delta K_i^{(d)}, \\
+	\dot{P}_i &= \alpha P_i, \nonumber \\
+	\dot{G} &= - R(K_c, K_d, G, P) .
 \end{align}
 with coupling functions:
 \begin{align}
@@ -371,5 +381,118 @@ For first studies, the opinion formation part of the model is reduces to the tri
 
 With the fitness parameter equal to the households income.
 
+\section{Preliminary Results}
+
+To get a feel for the model, I did parameter studies. 
+If not stated otherwise, parameter values are the following:
+\begin{table}[H]
+	\centering
+	\begin{tabular}{r|l}
+		Parameter & Default Value \\\hline
+		$\kappa_c$ & 3/5 \\
+		$\kappa_d$ & 3/5 \\
+		$\pi$ & 2/5 \\
+		$\rho$ & 3/4 \\
+		$\varepsilon$ & 5/4 \\
+		$b_c$ & 1 \\
+		$b_d$ & 3 \\
+		$b_R$ & 1 \\
+		$s$ & 0.23 \\
+		$\delta $ & 0.06 \\
+	\end{tabular}
+	\caption{Parameters of the model with description.}
+	\label{tab:parameter_values}
+\end{table}
+
+\newpage
+
+The following results (figures \ref{fig:figA}, \ref{fig:figB}, \ref{fig:figC} ) depict the mean investment decision once consensus amongst households is reached. A value of 1 signifies clean investment, a values of 0 signifies dirty investment.
+
+\begin{minipage}{.55 \textwidth}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width = \linewidth]{figures/mean_consensus_stateb_r0o5.pdf}
+
+	\end{figure}
+\end{minipage}\begin{minipage}{.33 \textwidth}
+	\begin{figure}[H]
+		\caption{$b_R = 0.5$\label{fig:figA}}
+		
+	\end{figure}
+\end{minipage}
+\vspace{-1cm}
+
+
+\begin{minipage}{.55 \textwidth}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width = \linewidth]{figures/mean_consensus_stateb_r1o0.pdf}
+	\end{figure}
+\end{minipage}\begin{minipage}{.33 \textwidth}
+	\begin{figure}[H]
+		\caption{$b_R = 1.0$\label{fig:figB}}
+		
+	\end{figure}
+\end{minipage}
+\vspace{-1cm}
+
+
+\begin{minipage}{.55 \textwidth}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width = \linewidth]{figures/mean_consensus_stateb_r1o5.pdf}
+
+	\end{figure}
+\end{minipage}\begin{minipage}{.33 \textwidth}
+	\begin{figure}[H]
+		\caption{$b_R = 1.5$\label{fig:figC}}
+	\end{figure}
+\end{minipage}
+To get a better understanding for the dynamics of the model for these parameters, I plotted trajectories for each of the pixels in the plots \ref{fig:figA} to \ref{fig:figC} 
+
+The following figures are some representatives for $b_R=1$:
+
+\newpage
+\begin{figure}[H]
+	\centering
+	\includegraphics[width = \linewidth]{figures/K_c'b_r'=1o0.pdf}
+	\caption{Clean capital stock $K_c$}
+	\label{K_c}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width = \linewidth]{figures/K_d'b_r'=1o0.pdf}
+	\caption{Dirty capital stock $K_d$}
+	\label{K_d}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width = \linewidth]{figures/K_c_r'b_r'=1o0.pdf}
+	\caption{Clean capital rent $r_c$}
+	\label{r_c}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width = \linewidth]{figures/K_d_r'b_r'=1o0.pdf}
+	\caption{Dirty capital rent $r_d$}
+	\label{r_d}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width = \linewidth]{figures/K_c_cost'b_r'=1o0.pdf}
+	\caption{Clean capital cost $r_c K_c$}
+	\label{K_c_cost}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\includegraphics[width = \linewidth]{figures/K_d_cost'b_r'=1o0.pdf}
+	\caption{Dirty capital cost $r_d K_d$}
+	\label{K_d_cost}
+\end{figure}
 \bibliography{PhD-Divestment.bib}{}
     \bibliographystyle{IEEEtran}

@@ -186,32 +186,32 @@ def resave(SAVE_PATH_RAW, SAVE_PATH_RES, sample_size=None):
             lambda fnames: st.sem([np.load(f)["runtime"] for f in fnames]),
             }
 
-    eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA, NAME + '_trajectory', sample_size, save_path = SAVE_PATH_RES)
+    eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA, NAME + '_trajectory', save_path = SAVE_PATH_RES)
 
-    eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA2, NAME + '_consensus', sample_size, save_path = SAVE_PATH_RES)
+    eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA2, NAME + '_consensus', save_path = SAVE_PATH_RES)
 
 
 
 if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW = "/p/tmp/kolb/Divest_Experiments/divestdata/X3/raw_data"
+    SAVE_PATH_RAW = "/p/tmp/kolb/Divest_Experiments/divestdata/X3/raw_data" 
     SAVE_PATH_RES = "/home/kolb/Divest_Experiments/divestdata/X3/results"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_RAW = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X3/raw_data"
     SAVE_PATH_RES = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X3/results"
 
-SAVE_PATH_RAW = SAVE_PATH_RAW + '_1/'
-SAVE_PATH_RES = SAVE_PATH_RES + '_1/'
+SAVE_PATH_RAW = SAVE_PATH_RAW + '_b_r/'
+SAVE_PATH_RES = SAVE_PATH_RES + '_b_r/'
 
 taus = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
 phis = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
-b_rs = [round(x,5) for x in list(np.linspace(0.,2.,5))[1:-1]]
+b_rs = [round(x,5) for x in list(np.linspace(0.,10.,11))[1:-1]]
 
 N, link_density, L, delta_r, delta_c, b_d = [100], [0.3], [10], [0.01], [1.], [3.]
 
 PARAM_COMBS = list(it.product(taus,\
     phis, b_rs, link_density, N, L, delta_r, delta_c, b_d))
 
-NAME = "tau_vs_phi_parameter_studies_experimental"
+NAME = "tau_vs_phi_b_r_sensitivity"
 INDEX = {0: "tau", 1: "phi", 2: "b_r"}
 SAMPLE_SIZE = 100
 

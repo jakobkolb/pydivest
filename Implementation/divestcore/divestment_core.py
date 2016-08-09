@@ -146,6 +146,8 @@ class divestment_core:
             while self.t<t_max:
                 # Update economy time is up
                 candidate, neighbor, neighbors, update_time = self.find_update_candidates()
+                if self.run_full_time and self.consensus:
+                    update_time = t_max
                 self.update_economy(update_time)
                 if not self.run_full_time and self.consensus:
                     break
@@ -154,6 +156,8 @@ class divestment_core:
             while self.t<t_max:
                 # Update social until consensus is reached
                 candidate, neighbor, neighbors, update_time = self.find_update_candidates()
+                if self.run_full_time and self.consensus:
+                    update_time = t_max
                 self.update_economy(update_time)
                 if candidate >= 0: self.update_oppinion_formation(candidate, neighbor, neighbors)
                 if not self.run_full_time and self.consensus:
@@ -267,7 +271,11 @@ class divestment_core:
     def update_economy(self, update_time):
 
         dt = [self.t, update_time]
-        x0 = np.fromiter(chain.from_iterable([list(self.household_members), list(self.investment_clean), list(self.investment_dirty), [self.R_stock]]), dtype='float')
+        x0 = np.fromiter(chain.from_iterable([
+            list(self.household_members), 
+            list(self.investment_clean), 
+            list(self.investment_dirty), 
+            [self.R_stock]]), dtype='float')
 
         #integrate the system unless it crashes.
         if not np.isnan(self.R):
@@ -329,6 +337,10 @@ class divestment_core:
 
             if neighbor<self.N:
                 #update candidate found (GOD)
+                break
+            elif self.consensus == True:
+                candidate = -1
+                update_time = self.t + self.tau
                 break
             else:
                 i += 1
@@ -423,7 +435,7 @@ class divestment_core:
         self.trajectory.append(['time',
                     'wage',
                     'K_c_r',  
-                    'K_c_r', 
+                    'K_d_r', 
                     'K_c', 
                     'K_d', 
                     'P_c', 
@@ -442,7 +454,11 @@ class divestment_core:
                     'opinion state'])
 
         dt = [self.t, self.t]
-        x0 = np.fromiter(chain.from_iterable([list(self.household_members), list(self.investment_clean), list(self.investment_dirty), [self.R_stock]]), dtype='float')
+        x0 = np.fromiter(chain.from_iterable([
+            list(self.household_members), 
+            list(self.investment_clean), 
+            list(self.investment_dirty), 
+            [self.R_stock]]), dtype='float')
 
         [x0,x1] = odeint(self.economy_dot, x0, dt)
 
@@ -503,14 +519,14 @@ if __name__ == '__main__':
 
 
 
-    trj = model.trajectory
-    headers = trj.pop(0)
-    df = pd.DataFrame(trj, columns=headers)
-    df = df.set_index('time')
-    fig = mp.figure()
-    ax = fig.add_subplot(111)
-    df[['P','P_c']].plot(ax = ax)
-    ax.set_yscale('log')
-    mp.show()
-
+#   trj = model.trajectory
+#   headers = trj.pop(0)
+#   df = pd.DataFrame(trj, columns=headers)
+#   df = df.set_index('time')
+#   fig = mp.figure()
+#   ax = fig.add_subplot(111)
+#   df[['P','P_c']].plot(ax = ax)
+#   ax.set_yscale('log')
+#   mp.show()
+#
 
