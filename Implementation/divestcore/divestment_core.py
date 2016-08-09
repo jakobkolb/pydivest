@@ -15,7 +15,7 @@ from stdout_redirected import stdout_redirected
 
 class divestment_core:
 
-    def __init__(self, adjacency, oppinions, P_start=10., tau=0.05, phi=.5):
+    def __init__(self, adjacency, oppinions, P_start=1000., tau=0.05, phi=.5):
 
         ## Modes: 1: only economy, 2: + oppinion formation, 3: + decision heuristics
 
@@ -44,7 +44,7 @@ class divestment_core:
         self.phi = phi                  #rewiring probability for adaptive voter model
 
         self.N = adjacency.shape[0]                 #number of households
-        self.net_birth_rate = .1                    #birth rate for household members
+        self.net_birth_rate = .01                    #birth rate for household members
         self.savings_rate = .23                     #percentage of income consumed
         self.consumption_level = 1. - self.savings_rate
         self.relative_value_of_capital = 0.01       #(fitnes) value of capital over consumption
@@ -52,11 +52,9 @@ class divestment_core:
         ## Household variables
 
         ## Individual
-        self.P = P_start                            #members of one household
+        self.P = P_start                            #members of ALL household = population
         self.investment_dirty = np.ones((self.N))   #household investment in clean capital
         self.investment_clean = np.ones((self.N))   #household investment in dirty capital
-        self.household_members = np.ones((self.N))  #members of one household
-        self.household_members.fill(P_start)
         self.waiting_times = np.zeros((self.N))      
         self.waiting_times = \
                 np.random.exponential(scale=self.tau, size=self.N)  #waiting times between rewiring events for each household
@@ -74,6 +72,7 @@ class divestment_core:
         self.delta_c = .06              # Clean capital depreciation rate
         self.delta_d = self.delta_c     # Dirty capital depreciation rate
         self.b_r_present = 1.           # Resource harvest efficiency at present stock. Decreases with decreasing stock
+        self.e = 100.                      # fossil->energy->output conversion efficiency
 
         ## Parameters for Cobb Douglas production (preliminary)
 
@@ -91,10 +90,8 @@ class divestment_core:
 
         ## Sector variables
 
-        self.P = 0      #total labor (supply)
-
-        self.P_c = self.N*P_start/2.
-        self.P_d = self.N*P_start/2.
+        self.P_c = P_start/2.
+        self.P_d = P_start/2.
 
         self.K_c = 0.
         self.K_d = 0.
@@ -147,7 +144,7 @@ class divestment_core:
                 # Update economy time is up
                 candidate, neighbor, neighbors, update_time = self.find_update_candidates()
                 if self.run_full_time and self.consensus:
-                    update_time = t_max
+                    update_time += t_max/100.
                 self.update_economy(update_time)
                 if not self.run_full_time and self.consensus:
                     break
@@ -157,11 +154,14 @@ class divestment_core:
                 # Update social until consensus is reached
                 candidate, neighbor, neighbors, update_time = self.find_update_candidates()
                 if self.run_full_time and self.consensus:
-                    update_time = t_max
+                    update_time += t_max/100.
                 self.update_economy(update_time)
                 if candidate >= 0: self.update_oppinion_formation(candidate, neighbor, neighbors)
                 if not self.run_full_time and self.consensus:
                     break
+                if np.isnan(self.P_d):
+                    break
+
 
         elif self.mode == 3:
             while self.t<t_max:
@@ -209,12 +209,11 @@ class divestment_core:
 
     def economy_dot(self, x0, t):
 
-        household_members = x0[0:self.N]
-        investment_clean = x0[self.N:2*self.N]
-        investment_dirty = x0[2*self.N:3*self.N]
+        investment_clean = x0[0:self.N]
+        investment_dirty = x0[self.N:2*self.N]
+        P = x0[-2]
         R_stock = x0[-1]
 
-        P = sum(household_members)
         K_c = sum(investment_clean)
         K_d = sum(investment_dirty)
         b_R = self.b_r(R_stock)
@@ -251,42 +250,147 @@ class divestment_core:
 
         self.income = self.r_c*self.investment_clean \
                 + self.r_d*self.investment_dirty \
-                + self.w*self.household_members
+                + self.w*P/self.N
 
         R_stock_dot = -R
-        household_members_dot= self.net_birth_rate * self.household_members
+        P_dot= self.net_birth_rate * P
         investment_clean_dot = self.investment_decision*self.savings_rate*self.income \
                 - self.investment_clean*self.delta_c
         investment_dirty_dot = np.logical_not(self.investment_decision)*self.savings_rate*self.income \
                 - self.investment_dirty*self.delta_d
 
-        x1 = np.fromiter(chain.from_iterable([list(household_members_dot), 
+        x1 = np.fromiter(chain.from_iterable([ 
             list(investment_clean_dot), 
             list(investment_dirty_dot), 
-            [R_stock_dot]]), dtype='float')
+            [P_dot, R_stock_dot]]), dtype='float')
 
         return x1
 
+    def economy_dot_leontief(self, x0, t):
+
+        """
+        economic model assuming Cobb-Douglas production
+        for the clean sector and Leontief/Cobb-Douglas
+        production for the dirty sector:
+
+            Y_c = b_c P_c^pi_c K_c^kappa_c,
+            Y_d = min(b_d P_d^pi_d K_d^kappa_d, e R).
+
+        and linear resource extraction costs:
+
+            c_R = b_R R
+
+        where b_R depends on the remaining resource stock.
+        It is also assumed that there is no profits e.g.
+
+            Y_c - w P_c - r_c K_c = 0,
+            Y_d - w P_d - r_d K_d - c_R = 0,
+
+        and that labor elasticities are equal, e.g.
+
+            pi_c = pi_d.
+
+        Parameters:
+        -----------
+
+        x0  : list[float]
+            state vector of the system of length
+            2N + 2. First 2N entries are
+            clean household investments [0:N] and
+            dirty household investments [N:2N].
+            Second last entry is total population
+            The last entry is the remaining fossil 
+            reserves.
+
+        t   : float
+            the system time.
+
+        Returns:
+        --------
+        x1  : list[floats]
+            updated state vector of the system of length
+            3N + 1. First 3N entries are numbers
+            of household members (depreciated) [0:N]
+            clean household investments [N:2N] and
+            dirty household investments [2N:3N].
+            The last entry is the remaining fossil 
+            reserves.
+        """
+
+        investment_clean = x0[0:self.N]
+        investment_dirty = x0[self.N:2*self.N]
+        P = x0[-2]
+        R_stock = x0[-1]
+
+        K_c = sum(investment_clean)
+        K_d = sum(investment_dirty)
+        b_R = self.b_r(R_stock)
+
+        X_c = (self.b_c * K_c**self.kappa_c)**(1./(1.-self.pi))
+        X_d = (self.b_d * K_d**self.kappa_d)**(1./(1.-self.pi))
+        X_R = (1. - b_R/self.e)**(1./(1.-self.pi))
+
+        P_c = P*X_c/(X_c + X_d*X_R)
+        P_d = P*X_d*X_R/(X_c + X_d*X_R)
+        R   = 1./self.e * self.b_d * K_d**self.kappa_c * P_d**self.pi
+
+        self.w   = self.pi * P**(self.pi - 1) * (X_c + X_d*X_R)**(1.-self.pi)
+        self.r_c = self.kappa_c / K_c * X_c * P**self.pi * (X_c + X_d*X_R)**(-self.pi)
+        self.r_d = self.kappa_d / K_d * X_d * X_R * P**self.pi * (X_c + X_d*X_R)**(-self.pi)
+
+        # check if dirty sector is profitable (P_d > 0).
+        # if not, shut it down.
+        if P_d < 0 or np.isnan(X_R):
+            P_d = 0
+            P_c = P
+            R = 0
+            self.w = self.b_c * K_c**self.kappa_c * self.pi * P**(self.pi - 1.)
+            self.r_c = self.b_c * self.kappa_c * K_c**(self.kappa_c - 1.) * P**self.pi
+            self.r_d = 0
+
+        self.R = R
+        self.K_c = K_c
+        self.K_d = K_d
+        self.P   = P
+        self.P_c = P_c
+        self.P_d = P_d
+
+        self.income = self.r_c*self.investment_clean \
+                + self.r_d*self.investment_dirty \
+                + self.w*P/self.N
+
+        R_stock_dot = -R
+        P_dot= self.net_birth_rate * P
+        investment_clean_dot = self.investment_decision*self.savings_rate*self.income \
+                - self.investment_clean*self.delta_c
+        investment_dirty_dot = np.logical_not(self.investment_decision)*self.savings_rate*self.income \
+                - self.investment_dirty*self.delta_d
+
+        x1 = np.fromiter(chain.from_iterable([ 
+            list(investment_clean_dot), 
+            list(investment_dirty_dot), 
+            [P_dot, R_stock_dot]]), dtype='float')
+
+        return x1
 
     def update_economy(self, update_time):
 
         dt = [self.t, update_time]
         x0 = np.fromiter(chain.from_iterable([
-            list(self.household_members), 
             list(self.investment_clean), 
             list(self.investment_dirty), 
-            [self.R_stock]]), dtype='float')
+            [self.P, self.R_stock]]), dtype='float')
 
         #integrate the system unless it crashes.
         if not np.isnan(self.R):
-            with stdout_redirected():
-                [x0,x1] = odeint(self.economy_dot, x0, dt, mxhnil=1)
+            #with stdout_redirected():
+            [x0,x1] = odeint(self.economy_dot_leontief, x0, dt, mxhnil=1)
         else:
             x1 = x0
 
-        self.household_members = x1[0:self.N]
-        self.investment_clean = x1[self.N:2*self.N]
-        self.investment_dirty = x1[2*self.N:3*self.N]
+        self.investment_clean = x1[0:self.N]
+        self.investment_dirty = x1[self.N:2*self.N]
+        self.P = x1[-2]
         self.R_stock = x1[-1]
 
         self.t = update_time
@@ -455,16 +559,15 @@ class divestment_core:
 
         dt = [self.t, self.t]
         x0 = np.fromiter(chain.from_iterable([
-            list(self.household_members), 
             list(self.investment_clean), 
             list(self.investment_dirty), 
-            [self.R_stock]]), dtype='float')
+            [self.P, self.R_stock]]), dtype='float')
 
-        [x0,x1] = odeint(self.economy_dot, x0, dt)
+        [x0,x1] = odeint(self.economy_dot_leontief, x0, dt)
 
-        self.household_members = x1[0:self.N]
-        self.investment_clean = x1[self.N:2*self.N]
-        self.investment_dirty = x1[2*self.N:3*self.N]
+        self.investment_clean = x1[0:self.N]
+        self.investment_dirty = x1[self.N:2*self.N]
+        self.P = x1[-2]
         self.R_stock = x1[-1]
 
         self.update_economic_trajectory()
@@ -487,11 +590,11 @@ if __name__ == '__main__':
 
     N = 100                 # number of households
     p = 0.3                 # link density for household network
-    P_start = 10            # initial number of household members
-    t_max = 100             # max runtime
-    stepsize = 0.001        # stepsize for integration of economy
+    P_start = 1000.         # initial population
+    t_max = 300             # max runtime
+    stepsize = 0.001        # step size for integration of economy
     tau = 0.5               # timescale for social update
-    phi = 0.4               # rewiring prob. for social update
+    phi = 0.9               # rewiring prob. for social update
     adjacency = nx.adj_matrix(nx.erdos_renyi_graph(N,p)).toarray()
     oppinions = np.random.randint(2, size=N)
 
@@ -519,14 +622,22 @@ if __name__ == '__main__':
 
 
 
-#   trj = model.trajectory
-#   headers = trj.pop(0)
-#   df = pd.DataFrame(trj, columns=headers)
-#   df = df.set_index('time')
-#   fig = mp.figure()
-#   ax = fig.add_subplot(111)
-#   df[['P','P_c']].plot(ax = ax)
-#   ax.set_yscale('log')
-#   mp.show()
-#
+    trj = model.trajectory
+    headers = trj.pop(0)
+    df = pd.DataFrame(trj, columns=headers)
+    df = df.set_index('time')
+    fig = mp.figure()
+    ax1 = fig.add_subplot(211)
+    df[['K_d', 'K_c']].plot(ax = ax1)
+    mp.axvline(model.consensus_time)
+    ax1.set_yscale('log')
+   
+    ax2 = fig.add_subplot(212)
+    df[['P_d', 'P_c']].plot(ax = ax2)
+    mp.axvline(model.consensus_time)
+    ax2.set_yscale('log')
 
+    mp.show()
+    print df[['P_c', 'P_d', 'R_stock']]
+ 
+ 
