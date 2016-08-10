@@ -68,7 +68,6 @@ def RUN_FUNC(tau, phi, kappa_d, b_r, link_density, N, L, delta_r, delta_c, b_d, 
 
     m = model.divestment_core(adjacency_matrix, investment_decisions, L, tau, phi)
     m.b_r_present = b_r
-    m.delta_r_present = delta_r
     m.delta_c = delta_c
     m.b_d = b_d
 
@@ -88,7 +87,7 @@ def RUN_FUNC(tau, phi, kappa_d, b_r, link_density, N, L, delta_r, delta_c, b_d, 
                         "savings rate": m.savings_rate,
                         "clean capital depreciation rate":m.delta_c,
                         "dirty capital depreciation rate":m.delta_d,
-                        "resource extraction efficiency":m.delta_r_present,
+                        "resource extraction efficiency":m.b_r_present,
                         "Solov residual clean":m.b_c,
                         "Solov residual dirty":m.b_d,
                         "pi clean":m.pi,
@@ -206,7 +205,7 @@ taus = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
 phis = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
 kappa_ds = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
 
-N, link_density, L, delta_r, delta_c, b_d, b_r = [100], [0.3], [10], [0.01], [1.], [3.], [1.]
+N, link_density, L, delta_r, delta_c, b_d, b_r = [100], [0.125], [10], [0.01], [1.], [3.], [1.]
 
 PARAM_COMBS = list(it.product(taus,\
     phis, kappa_ds, b_r, link_density, N, L, delta_r, delta_c, b_d))

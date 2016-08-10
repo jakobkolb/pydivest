@@ -251,7 +251,7 @@ def plot_trajectories(loc, name, params, indices):
         fig.tight_layout()
         fig.savefig(loc+'testfigure_'+`round(jval,4)`+'.pdf')
 
-def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS):
+def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, file_extention='.png'):
 
     """
     Loads the dataframe NAME of postprocessed data
@@ -269,6 +269,8 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS):
     NAME_CNS : string
         the name of the datafile containing the processed
         consensus data
+    file_extention : string
+        file type for images.
     """
 
     print 'plotting observable grid'
@@ -289,9 +291,9 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS):
         cns_d_slice = cns_data.xs(key=p, level=levels)
         save_name = zip(parameter_level_names, p)
 
-        plot_observables(trj_d_slice, cns_d_slice, SAVE_PATH, save_name)
+        plot_observables(trj_d_slice, cns_d_slice, SAVE_PATH, save_name, file_extention)
 
-def plot_observables(t_data_in, c_data_in, loc, save_name):
+def plot_observables(t_data_in, c_data_in, loc, save_name, file_extention='.png'):
     """
     function to create a grid of plots of the values of
     the observable for the values of the parameters given in
@@ -451,7 +453,7 @@ def plot_observables(t_data_in, c_data_in, loc, save_name):
 
         #adjust the grid layout to avoid overlapping plots and save the figure
         fig.tight_layout()
-        fig.savefig(loc+observable+`save_name[0]`.strip('()').replace(', ', '=').replace('.','o')+'.pdf', facecolor=fig.get_facecolor())
+        fig.savefig(loc+observable+`save_name[0]`.strip('()').replace(', ', '=').replace('.','o')+file_extention, facecolor=fig.get_facecolor())
         fig.clf()
         plt.close()
 

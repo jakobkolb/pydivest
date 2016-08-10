@@ -26,42 +26,37 @@ Production is assumed to take place in two sectors. One sector $(d)$ employs a d
 	Y_j = F_j(K_j,P_j,R), \qquad \frac{\partial Y_c}{\partial R} = 0 	
 	\label{eq:production}
 \end{equation}
+For the inputs of labor $P$ and capital $K_j$, a Cobb-Douglas type production function is assumed. For the fossil resource input, a Leontief type production function is assumed, since energy (coming from the fossil resource) can only poorly be substituted in general. This results in the following production functions:
+\begin{align}
+	Y_c &= b_c K_c^{\kappa_c} P_c^{\pi_c} \\
+	Y_d &= {\rm min}(b_d K_d^{\kappa_d} P_d ^{\pi_d}, e R)
+\end{align}
+where $e$ is the fossil resource efficiency.
 The total cost for fossil resource extraction $c_R$ (exploration and exploitation) is assumed to scale with $R^{\varepsilon}$.
 \begin{equation}
 	c_R = b_R R_d^{\varepsilon}
 	\label{resource_extraction_cost}
 \end{equation}
-The factor $b_R$ is presumably depending on the remaining Fossil resource $G$ and increasing as the remaining resource decreases. It is assumed to diverge, as $G$ approaches zero. Also, for optimal production, resource uptake is adjusted such that the marginal extraction costs are equal to the marginal productivity of the resource:
+The factor $b_R$ is presumably depending on the remaining Fossil resource $G$ and increasing as the remaining resource decreases. It is assumed to diverge, as $G$ approaches zero. Also, efficient allocation of resource is assumed, e.g. there are no idle resources in the dirty sector. Consequently, :
 \begin{equation}
-	b_R \varepsilon R_{d}^{\varepsilon-1} = \frac{\partial F_d}{\partial R_d}
-	\label{marginal_resource_extraction_cost}
+	Y_d = b_d K_d^{\kappa_d} P_d^{\pi_d} = e R
+	\label{efficient_resource_extraction}
 \end{equation}
-For high [low] intensity of fossil resource use, i.e. $R \gg 1$ [$R \ll 1$], productivities of other input factors are assumed to be higher [lower] in the dirty sector compared to the clean sector:
-\begin{align}
-	R \gg 1 \quad \Rightarrow & \quad \frac{\partial Y_d}{\partial K_d} > \frac{\partial Y_c}{ \partial K_c}, \quad \frac{\partial Y_d}{\partial P} > \frac{\partial Y_c}{ \partial P}, \\
-	R \ll 1 \quad \Rightarrow & \quad \frac{\partial Y_d}{\partial K_d} < \frac{\partial Y_c}{ \partial K_c}, \quad \frac{\partial Y_d}{\partial P} < \frac{\partial Y_c}{ \partial P}.
-	\label{eq:input_factor_productivities}
-\end{align}
-For the input factor markets, market clearing is assumed. Capital rental rate and wages are thereby determined by marginal factor productivities of the respective input factors.
+We assume perfect labor mobility, resulting in equal wages in both sectors. We also assume that on the labor and capital market, sectors are price takers, meaning, that wages and capital rental rates are equal to the marginal increase in output per unit input. (Note that in the dirty sector, increase in input factors also result in increasing resource costs $c_R$):
 For wages, this results in the following conditions:
-\begin{equation}
-	\left. \frac{\partial Y_d}{ \partial P} \right|_{P_d} = \left. \frac{\partial Y_c}{\partial P}\right|_{P_c} = w, \qquad P_d + P_c = \sum_i P_i
-	\label{eq:wage_rage}
-\end{equation}
-and for the capital rental rate this results in the following conditions:
 \begin{align}
-	\left. \frac{\partial Y_d}{\partial K}\right|_{K_d} &= r_d,\quad K_d = \sum_i K^{(d)}_i \nonumber \\
-	\left. \frac{\partial Y_c}{\partial K}\right|_{K_c} &= r_c,\quad K_c = \sum_i K^{(c)}_i 
-	\label{eq:capital_rental_rate}
+	w &= \frac{\partial Y_c}{ \partial P_c} = \frac{\partial Y_d}{\partial P_d} - \frac{\partial c_R}{\partial P_d} \\
+	r_c &= \frac{\partial Y_c}{\partial K_c} \\
+	r_d &= \frac{\partial Y_d}{\partial K_d} - \frac{\partial c_R}{\partial K_d}
+	\label{wage_and_rent_conditions}
 \end{align}
-
 
 \subsection{Households}
 
 \textbf{Income and savings accounting:} \\
 Households denoted with the Index $i$, $i \in [1, \dots N]$ are are owners of capital $K_j$ as well as suppliers of labor $P_j$. A household has $P_i$ members, each supplying one unit of labor per unit of time $t$. The income of the household comes from capital returns and labor income:
 \begin{equation}
-	I_i = \sum_j r_j K^{(j)}_{i} + wP_i 
+	I_i = \sum_j r_j K^{(j)}_{i} + w\frac{P}{N}
 	\label{eq:household_income}
 \end{equation}
 Households are assumed to save at a fixed rate $s$ and reinvest their savings in one of the two types of capital ($K_c$ and $K_d$) available.
@@ -107,7 +102,7 @@ If it becomes active, it does the following:
 		which is household income in our case: 
 
 		\begin{equation}
-			W_i = \sum_j r_j K^{(j)}_{i} + wP_i.
+			W_i = \sum_j r_j K^{(j)}_{i} + w\frac{P}{N}.
 			\label{eq:fitness}
 		\end{equation}
 
@@ -128,6 +123,11 @@ In the case under study, we assume a non renewable geological carbon stock $G$, 
 	\dot{G} = -R
 	\label{resource_dynamics}
 \end{equation}
+For the resource extraction efficiency $b_R$, we assume the following dependency on $G$:
+\begin{equation}
+	b_R = \tilde{b}_R \left( \frac{G_0}{G} \right)^{2}
+	\label{extraction_efficiency}
+\end{equation}
 
 \subsection{Policy Makers}
 \textit{Optional:} \\
@@ -135,7 +135,7 @@ Policy makers can implement some carbon tax or carbon cap on economy to incentiv
 
 \subsection{Variables}
 
-\subsubsection{Independent variables:}
+\subsubsection{Dynamic Variables:}
 
 \begin{table}[H]
 	\centering
@@ -143,7 +143,7 @@ Policy makers can implement some carbon tax or carbon cap on economy to incentiv
 		Variable & Description \\\hline
 		$K^{(c)}_i(t)$ & clean investment of household $i$ \\
 		$K^{(d)}_i(t)$ & dirty investment of household $i$ \\
-		$P_i(t)$ & Members of household, $i$ \\
+		$P(t)$ & Total population \\
 		$G(t)$ & Geological carbon stock \\
 		$A_{kl}(t)$ & Adjacency matrix \\
 		$x_i(t) \in [c,d]$ & investment decision of household $i$ 
@@ -195,183 +195,83 @@ To wrap up, the economic subsystem of the model can be described by the followin
 \begin{align}
 	\dot{K}_i^{(c)} &= s \delta(x_i - c) (r_c K_i^{(c)} + r_d K_i^{(d)} + w P_i) - \delta K_i^{(c)} \nonumber \\
 	\dot{K}_i^{(d)} &= s \delta(x_i - d) (r_c K_i^{(c)} + r_d K_i^{(d)} + w P_i) - \delta K_i^{(d)} \nonumber \\
-	\dot{P}_i &= \alpha P_i \nonumber \\
+	\dot{P} &= \alpha P \nonumber \\
 	\dot{G} &= - R 
 \end{align}
 that are subject to the following algebraic constraints:
 \begin{align}
-	P_c + P_d &= P \\
-	\left. \frac{\partial Y_c}{\partial P} \right|_{P_c} &= \left. \frac{\partial Y_d}{\partial P} \right|_{P_d} \\
-	\frac{\partial c_R}{\partial R} &= \frac{\partial Y_d}{\partial R} 
+	P_c + P_d &= P \label{population}\\
+	\frac{\partial Y_c}{\partial P_c} &= \frac{\partial Y_d}{\partial P_d} - \frac{\partial c_R}{\partial P_d} \label{wages}\\
+	e R &= Y_d = b_d K_d ^{\kappa_d} P_d^{\pi_d}
+	\label{resources}
 \end{align}
 and $r_c$, $r_d$ and $w$ are given by the respective marginal productivities:
 \begin{equation}
-	r_c = \left. \frac{\partial Y_c}{\partial K} \right|_{K_c}, \qquad r_d = \left. \frac{\partial Y_d}{\partial K} \right|_{K_d}, \qquad w = \left. \frac{Y_c}{\partial P} \right|_{P_c} 
+	r_c = \frac{\partial Y_c}{\partial K_c}, \qquad r_d = \frac{\partial Y_d}{\partial K_d} - \frac{\partial c_R}{\partial K_d}, \qquad w = \frac{\partial Y_c}{\partial P_c} \label{wages_and_rents}
 \end{equation} 
 
 
 \section{Implementation}
 
-Lets assume a Cobb Douglas production function:
+We assume equal labor elasticities in both sectors ($\pi_c = \pi_d$), linear resource extraction costs ($\varepsilon=1$) and no profits.
+
+The conditions for labor shares and wages as well as optimal resource uptake pose algebraic constraints for the system of ordinary differential equations that describe the dynamics of the capital stocks $\dot{K}_i^{(j)}$, the resource stock $\dot{G}$ and the population growth $\dot{P}$
+
+\subsection{Calculation of wages, resource uptake and capital rent}
+
+To calculate labor shares $P_c$ and $P_d$ as well as wages in the two sectors, we use equations \eqref{wages} and \eqref{population} resulting in
+\begin{align}
+	w &= \frac{\partial Y_d}{\partial P_d} - \frac{\partial c_R}{\partial P_c} \nonumber \\
+	&= \frac{\partial Y_d}{\partial P_d} - \frac{\partial c_R}{\partial R} \frac{\partial R}{\partial P_d} \nonumber \\
+	&= \frac{\partial Y_d}{\partial P_d} - \frac{\partial c_R}{\partial R} \frac{\partial}{\partial P_d} \frac{Y_d}{e} \nonumber \\
+	&= \frac{\partial Y_d}{\partial P_d} - b_R \frac{\partial}{\partial P_d} \frac{Y_d}{e} \nonumber \\
+	&= b_d K_d^{\kappa_d} \pi P_d^{\pi-1}\left( 1-\frac{b_R}{e} \right) \\
+	\label{dirty_wages}
+\end{align}
+for the dirty sector and
 \begin{equation}
-	F_j(K_j,P_j,R_j,t) = b_j K_j^{\kappa_j}P_j^{\pi_j}R_j^{\rho_j}, \qquad j = c,d.
-	\label{cobb_douglas}
+	w = b_c K_c^{\kappa_c} \pi P_c^{\pi-1}
+	\label{clean_wages}
 \end{equation}
-For the clean sector, $\rho_c = 0$ since it does not depend on the fossil resource. We assume equal labor elasticities in both sectors ($\pi_c = \pi_d$).
-
-The general equilibrium solution for the input factors for the two sectors pose algebraic constraints for the system of ordinary differential equations that describe the dynamics of the capital stocks $\dot{K}_i^{(j)}$, the resource stock $\dot{G}$ and the population growth $\dot{P}_i$
-
-\subsection{Market clearing for capital $K$:}
-
-\begin{align}
-	&K_c = \sum_i K_i^{(c)}, \quad r_c = b_c\kappa_c K_c^{\kappa_c-1} P_c^{\pi}, \\
-	&K_d = \sum_i K_i^{(d)}, \quad r_d = b_d\kappa_d K_d^{\kappa_d-1} P_d^{\pi}R_d^{\rho}.
-	\label{capital_market_clearing}
-\end{align}
-
-The capital shares of the two sectors are not subject to an equilibrium solution and can be evaluated independently. For the calculation of the capital rent $r$, the solutions to labor shares and optimal resource use are necessary.
-
-\subsection{Market clearing for labor $P$:}
-The total supply of labor $P$ is given by the sum of the members of all households. The total supply of labor is divided amongst sectors such that the marginal productivities of labor are equal:
+for the clean sector. Combining these results via equation \eqref{population} results in
 \begin{equation}
-	P_c + P_d = P = \sum_i P_i, \qquad w = b_c K_c^{\kappa_c}\pi_c P_c^{\pi_c-1}=  b_d K_d^{\kappa_d}\pi_d P_d^{\pi_d-1}R_d^{\rho_d} 
-	\label{labour_market_clearing}
+	P = \left( \frac{w}{\pi} \right)^{\frac{1}{1-\pi}}\left( \left( b_c K_c^{\kappa_c} \right)^{\frac{1}{1-\pi}} + \left( b_d K_d^{\kappa_d} \left( 1 - \frac{b_R}{e} \right)^{\frac{1}{1-\pi}} \right) \right)
 \end{equation}
-Substituting $X_c^{\beta-1} = b_c K_c^{\kappa_c}$ and $X_d^{\pi-1} = b_d K_d^{\kappa_d}$ the labor shares $P_c$ and $P_d$ are equal to
-\begin{align}
-	P_c = P \frac{X_d R^{\frac{\rho}{\pi-1}}}{X_c + X_d R^{\frac{\rho}{\pi-1}}} \label{labor_share_Pc}  \\
-	P_d = P \frac{X_c}{X_c + X_d R^{\frac{\rho}{\pi-1}}} \label{labor_share_Pd}	
-\end{align}
-and the corresponding wage is given by
+substituting 
 \begin{equation}
-	w = \pi \left[ P \frac{X_c X_d}{X_c R^{\frac{-\rho}{\pi-1}} + X_d} \right]^{\pi-1}
-	\label{wage}
+	X_c = (b_c K_c^{\kappa_c})^{\frac{1}{1-\pi}}, \qquad X_d = (b_d K_d^{\kappa_d})^{\frac{1}{1-\pi}}, \qquad X_R = \left( 1 - \frac{b_R}{e} \right)^{\frac{1}{1-\pi}}
+	\label{substitutions}
 \end{equation}
-
-These solutions still depend on the uptake of fossil resource $R$.
-
-\subsection{Optimal Resource use $R$:}
-
-From equation \eqref{resource_extraction_cost} follows that
+holds the following result for $w$:
 \begin{equation}
-	b_R \varepsilon R_d^{\varepsilon-1} = b_d K_d^{\kappa_d}P_d^{\pi}\rho R^{\rho-1}
-	\label{optimal_resource_extraction_condition}
+	w = \pi P^{\pi-1}\left( X_c + X_d X_R \right)^{1-\pi}.
+	\label{wage_result}
 \end{equation}
-and consequently, the resource use $R$ is equal to
+Plugging this into equations \eqref{dirty_wages} and \eqref{clean_wages} results in 
+\begin{align}
+	P_c &= P \frac{X_c}{X_c + X_d X_R} \label{clean_labor} \\
+	P_d &= P \frac{X_d X_R}{X_c + X_d X_R} \label{dirty_labor}
+\end{align}
+and plugging this into \eqref{resources} results in
 \begin{equation}
-	R = X_R P_d^{\frac{\pi}{\varepsilon-\rho}}
-	\label{optimal_resource_extraction}
+	R = \frac{b_d}{e}K_d^{\kappa_d}P^{\pi}\left( \frac{X_d X_R}{X_c + X_d X_R} \right)^{\pi}.
+	\label{R_result}
 \end{equation}
-where $X_R$ is given by
+Using the results for $P_c$ and $P_d$ together with equations \eqref{wages_and_rents}, the capital rental rates result in
+\begin{align}
+	r_c &= \frac{\kappa_c}{K_c}X_c P^{\pi}\left( X_c + X_d X_R \right)^{-\pi}, \label{r_c_result}\\
+	r_d &= \frac{\kappa_d}{K_d}X_d X_R P^{\pi}\left( X_c + X_d X_R \right)^{-\pi}. \label{r_d_result}
+\end{align}
+It is also worth noting, that the assumption of zero profits, e.g.
+\begin{align}
+	Y_c &= w P_c + r_c K_c \nonumber \\
+	Y_d &= w P_d + r_d K_d + c_R \nonumber
+\end{align}
+results in the following restraints for the capital and labor elasticities $\pi$, $\kappa_c$ and $\kappa_d$:
 \begin{equation}
-	X_R = \left( \frac{\rho b_d K_d^{\kappa_d}}{ \varepsilon b_R} \right)^{\frac{1}{\varepsilon-\rho}}
-	\label{optimal_resource_XR}
+	\kappa_c = \kappa_d = 1-\pi.
+	\label{elasticities_restriction}
 \end{equation}
-
-\subsection{Elimination of algebraic constraints}
-
-To system is easier to handle, if the ordinary differential equations are not subject to algebraic constraints. \\
-Therefore, it is necessary to decouple equations \eqref{labor_share_Pc}, \eqref{labor_share_Pd} and \eqref{optimal_resource_extraction}.
-From \eqref{labor_share_Pc} and \eqref{optimal_resource_extraction} it follows that
-\begin{align}
-	P_d &= P\frac{X_c}{X_c + X_d X_R^{\frac{\rho}{\pi-1}}P_d^{\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho}}} \\
-	P X_c P_d^{-1} &= X_c + X_d X_R^{\frac{\rho}{\pi-1}}P_d^{\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho}} \\
-	0 &= X_d X_R^{\frac{\rho}{\pi-1}}P_d^{\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho}+1} + X_c P_d - P X_c
-\end{align}
-To find a solution for $P_d$ the exponents $\pi$, $\rho$ and $\varepsilon$ need to satisfy either \\
-A:
-\begin{equation}
-	\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho} = 1
-\end{equation}
-or B:
-\begin{equation}
-	\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho}= -1
-\end{equation}
-or C:
-\begin{equation}
-	\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho}= 0
-\end{equation}
-For simplicity we assume case B which results in
-\begin{align}
-	\frac{\rho}{\pi-1}\frac{\pi}{\varepsilon-\rho} &= -1 \\
-	\pi \rho &= -\pi\varepsilon + \pi\rho + \varepsilon - \rho \\
-	\rho &= \varepsilon(1-\pi).
-\end{align}
-And thus $P_c$, $P_d$ and $R$ result in
-\begin{align}
-	P_c &= \frac{X_d }{X_c}X_R ^{-\varepsilon}, \\
-	P_d &= P - \frac{X_d }{X_c}X_R ^{-\varepsilon}, \\
-	R &= X_R \left( P-\frac{X_c}{X_d} X_R^{-\varepsilon} \right)^{\frac{1}{\varepsilon}}.
-	\label{input_share_solution_IIb}
-\end{align}
-And consequently $w$, $r_c$ and $r_d$ are equal to:
-\begin{align}
-	w &= \pi X_d^{\pi-1} X_R ^{\rho}, \\
-	r_c &= \frac{\kappa_c}{K_c X_c}X_d^{\pi}X_R^{-\varepsilon \pi}, \\
-	r_d &= \frac{\kappa_d}{K_d}X_d^{\pi-1}X_R^{\rho}\left( P -\frac{X_d}{X_c}X_R^{-\varepsilon}\right).
-\end{align}
-These results hold as long as $P_d>0$. 
-Otherwise 
-\begin{align}
-	P_c &= P, \\
-	P_d &= 0, \\
-	R &= 0
-	\label{input_share_solution_IIc}
-\end{align}
-resulting in $w$, $r_c$ and $r_d$ equal to
-\begin{align}
-	w &= \pi P^{\pi-1}K_c^{\kappa_c}, \\
-	r_c &= \frac{\kappa_c}K_c^{\kappa_c-1}P^{\pi}, \\
-	r_d &= 0
-\end{align}
-
-With these results, we can rewrite the dynamical equations of the system:
-\begin{align}
-	\dot{K}_i^{(c)} = s \delta(x_i - c) \bigg(& C_4 \frac{K_c^{\kappa_c-1}}{G^2 K_d^{\kappa_d}} K_i^{(c)} \nonumber \\
-	&+ C_5 \frac{K_c^{\kappa_c}}{G^2 K_d^{\kappa_d + 1}}\left( C_6 P (g^2 K_d^{\kappa_d})^{1/\pi} -1 \right) K_i^{(d)} \nonumber \\ 
-	&+ C_3 K_c^{\kappa_c}(G^2K_d^{\kappa_d})^{\frac{1-\pi}{\pi}} P_i \bigg) - \delta K_i^{(c)}, \\
-	\dot{K}_i^{(d)} = s \delta(x_i - d) \bigg(& C_4 \frac{K_c^{\kappa_c-1}}{G^2 K_d^{\kappa_d}} K_i^{(c)} \nonumber \\
-	&+ C_5 \frac{K_c^{\kappa_c}}{G^2 K_d^{\kappa_d + 1}}\left( C_6 P (g^2 K_d^{\kappa_d})^{1/\pi} -1 \right) K_i^{(d)} \nonumber \\ 
-	&+ C_3 K_c^{\kappa_c}(G^2K_d^{\kappa_d})^{\frac{1-\pi}{\pi}} P_i \bigg) - \delta K_i^{(d)}, \\
-	\dot{P}_i &= \alpha P_i, \nonumber \\
-	\dot{G} &= - C_1(G^2 K_d^{\kappa_d})^{\frac{1}{\pi \varepsilon}}\left( P - C_2 \frac{K_c^{\frac{\kappa_c}{1-\pi}}}{G^{\frac{2}{\pi}}K_d^{\frac{\kappa_d}{(1-\pi)\pi}}} \right).
-\end{align}
-
-For the analysis, we restrict the model to this second solution choosing 
-\begin{equation}
-	\pi = \frac{2}{5}, \qquad \rho = \frac{3}{4}, \qquad \varepsilon = \frac{5}{4}.
-	\label{exponent_values}
-\end{equation}
-
-With $\kappa_c = \kappa_d = 3/5$ the equations that are finally encoded in the model are:
-
-\begin{align}
-	\dot{K}_i^{(c)} = s \delta(x_i - c) \bigg(&  r_c(K_c, K_d, G)  K_i^{(c)} \nonumber \\
-	&+ r_d(K_c, K_d, G, P) K_i^{(d)} \nonumber \\ 
-	&+w(K_c, K_d, G, P)  P_i \bigg) - \delta K_i^{(c)}, \\
-	\dot{K}_i^{(d)} = s \delta(x_i - d) \bigg(&  r_c(K_c, K_d, G)  K_i^{(c)} \nonumber \\
-	&+ r_d(K_c, K_d, G, P) K_i^{(d)} \nonumber \\ 
-	&+  w(K_c, K_d, G, P) P_i \bigg) - \delta K_i^{(d)}, \\
-	\dot{P}_i &= \alpha P_i, \nonumber \\
-	\dot{G} &= - R(K_c, K_d, G, P) .
-\end{align}
-with coupling functions:
-\begin{align}
-	R(K_c, K_d, G, P) &= C_1G^4 K_d^{6/5}\left( P - C_2 \frac{K_c}{G^5K_d^{5/2}} \right), \\
-	w(K_c, K_d, G, P) &= C_3 G^3 K_c^{3/5}K_d^{9/10} , \\
-	r_c(K_c, K_d, G) \quad &= \frac{C_4}{G^2 K_c^{2/5}K_d^{3/5}} , \\
-	r_d(K_c, K_d, G, P) &= C_5 \frac{K_c^{3/5}}{G^2 K_d^{5/8}} \left( 1-C_6 G^5 K_d^{3/2} P \right) ,
-	\label{final_rates_and_wages}
-\end{align}
-and parameters
-\begin{align}
-	C_1 &= to be written down..\nonumber \\
-	C_2 &= \nonumber \\
-	C_3 &= \nonumber \\
-	C_4 &= \nonumber \\
-	C_5 &= \nonumber \\
-\end{align}
-
 For first studies, the opinion formation part of the model is reduces to the trivial adaptive voter model as it is implemented in the Copan EXPLOIT model. When a household becomes active, it either rewires with probability $\varphi$, or imitates its neighbors investment decision (clean or dirty) with probability 
 
 \begin{equation}
@@ -392,8 +292,7 @@ If not stated otherwise, parameter values are the following:
 		$\kappa_c$ & 3/5 \\
 		$\kappa_d$ & 3/5 \\
 		$\pi$ & 2/5 \\
-		$\rho$ & 3/4 \\
-		$\varepsilon$ & 5/4 \\
+		$e$ & 100 \\
 		$b_c$ & 1 \\
 		$b_d$ & 3 \\
 		$b_R$ & 1 \\
