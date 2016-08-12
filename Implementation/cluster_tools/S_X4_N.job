@@ -1,11 +1,12 @@
 #!/bin/bash
 #SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
 #SBATCH --qos=short
-#SBATCH --job-name=X3_trial
-#SBATCH --output=X3_trial_%j.out
-#SBATCH --error=X3_trial_%j.err
+#SBATCH --array=0-3
+#SBATCH --job-name=X4
+#SBATCH --output=%A_X4_%a_.out
+#SBATCH --error=%A_X4_%a_.err
 #SBATCH --time=0-12
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 #SBATCH --tasks-per-node=16
 
 
@@ -18,4 +19,4 @@ echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
 cd ../
-srun -n $SLURM_NTASKS python X3_parameter_studies.py
+srun -n $SLURM_NTASKS python X4_Noise.py $SLURM_ARRAY_TASK_ID 0

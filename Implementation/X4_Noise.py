@@ -17,7 +17,7 @@ import time
 
 
 
-def RUN_FUNC(tau, phi, kappa_d, b_r, link_density, N, L, delta_r, delta_c, b_d, filename):
+def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -36,7 +36,7 @@ def RUN_FUNC(tau, phi, kappa_d, b_r, link_density, N, L, delta_r, delta_c, b_d, 
         prefactor of resource extraction cost
     N : int
         the number of household agents
-    L : int
+    P : int
         the initial number of members per household
     delta_r : float
         the resource extraction efficiency for the 
@@ -58,7 +58,7 @@ def RUN_FUNC(tau, phi, kappa_d, b_r, link_density, N, L, delta_r, delta_c, b_d, 
     #building initial conditions
 
     while True:
-        net = nx.erdos_renyi_graph(N, link_density)
+        net = nx.erdos_renyi_graph(N, p)
         if len(list(net)) > 1:
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
@@ -66,9 +66,11 @@ def RUN_FUNC(tau, phi, kappa_d, b_r, link_density, N, L, delta_r, delta_c, b_d, 
     
     #initializing the model
 
-    m = model.divestment_core(adjacency_matrix, investment_decisions, L, tau, phi)
-    m.b_r_present = b_r
-    m.delta_c = delta_c
+    m = model.divestment_core(adjacency_matrix, investment_decisions, P, tau, phi)
+    m.e = e
+    m.eps = eps
+    m.b_R = b_R
+    m.d_c = d_c
     m.b_d = b_d
 
     #storing initial conditions and parameters
@@ -83,24 +85,26 @@ def RUN_FUNC(tau, phi, kappa_d, b_r, link_density, N, L, delta_r, delta_c, b_d, 
             pd.Series({ "tau": m.tau,
                         "phi": m.phi,
                         "N": m.N,
+                        "p": p,
+                        "P": m.P,
                         "birth rate": m.net_birth_rate,
-                        "savings rate": m.savings_rate,
-                        "clean capital depreciation rate":m.delta_c,
-                        "dirty capital depreciation rate":m.delta_d,
-                        "resource extraction efficiency":m.b_r_present,
+                        "savings rate": m.s,
+                        "clean capital depreciation rate":m.d_c,
+                        "dirty capital depreciation rate":m.d_d,
+                        "resource extraction efficiency":m.b_R,
                         "Solov residual clean":m.b_c,
                         "Solov residual dirty":m.b_d,
-                        "pi clean":m.pi,
-                        "pi dirty":m.pi,
-                        "kappa clean":m.kappa_c,
-                        "kappa dirty":m.kappa_d,
+                        "pi":m.pi,
+                        "kappa":m.kappa_c,
                         "rho dirty":m.rho,
-                        "initial resource stock":m.R_start})
+                        "e":m.e,
+                        "epsilon":m.eps,
+                        "initial resource stock":m.G_0})
 
     #run the model
     
     start = time.clock()
-    exit_status = m.run(t_max=250*m.tau)
+    exit_status = m.run(t_max=250)
 
     #store exit status
 
@@ -109,7 +113,7 @@ def RUN_FUNC(tau, phi, kappa_d, b_r, link_density, N, L, delta_r, delta_c, b_d, 
 
     #store data in case of successful run
 
-    if exit_status in [1]:
+    if exit_status in [0,1]:
         res["consensus_data"] = \
                 pd.DataFrame({"Investment decisions": m.investment_decision,
                             "Investment clean": m.investment_clean,
@@ -128,7 +132,6 @@ def RUN_FUNC(tau, phi, kappa_d, b_r, link_density, N, L, delta_r, delta_c, b_d, 
 
     end = time.clock()
     res["runtime"] = end-start
-    print exit_status, end-start, m.tau, m.phi
 
     #save data
     with open(filename, 'wb') as dumpfile:
@@ -191,49 +194,80 @@ def resave(SAVE_PATH_RAW, SAVE_PATH_RES, sample_size=None):
 
 
 
-if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW = "/p/tmp/kolb/Divest_Experiments/divestdata/X3/raw_data"
-    SAVE_PATH_RES = "/home/kolb/Divest_Experiments/divestdata/X3/results"
-elif getpass.getuser() == "jakob":
-    SAVE_PATH_RAW = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X3/raw_data"
-    SAVE_PATH_RES = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/X3/results"
 
-SAVE_PATH_RAW = SAVE_PATH_RAW + '_kappa_d/'
-SAVE_PATH_RES = SAVE_PATH_RES + '_kappa_d/'
+#get sub experiment and mode from command line
+if len(sys.argv)>1:
+    input_int = int(sys.argv[1])
+else:
+    input_int = 0
+if len(sys.argv)>2:
+    mode = int(sys.argv[2])
+else:
+    mode = 1
+
+experiments = ['b_d', 'b_R', 'e', 'p']
+sub_experiment = experiments[input_int]
+
+#check if cluster or local
+if getpass.getuser() == "kolb":
+    SAVE_PATH_RAW = "/p/tmp/kolb/Divest_Experiments/divestdata/Noise/raw_data" + '_' + sub_experiment + '/'
+    SAVE_PATH_RES = "/home/kolb/Divest_Experiments/divestdata/Noise/results" + '_' + sub_experiment + '/'
+elif getpass.getuser() == "jakob":
+    SAVE_PATH_RAW = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/Noise/raw_data" + '_' + sub_experiment + '/'
+    SAVE_PATH_RES = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/Noise/results" + '_' + sub_experiment + '/'
 
 taus = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
 phis = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
-kappa_ds = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
 
-N, link_density, L, delta_r, delta_c, b_d, b_r = [100], [0.125], [10], [0.01], [1.], [3.], [1.]
+b_ds = [round(x,5) for x in list(1 + 10**(np.linspace(-4,0,5)))]
+b_Rs = [round(x,5) for x in list(10**np.linspace(-2.,2.,5))]
+es   = [round(x,5) for x in list(10**np.linspace(0.,4.,5))]
+ps  = [round(x,5) for x in list(np.linspace(0.,5.,6))]
 
-PARAM_COMBS = list(it.product(taus,\
-    phis, kappa_ds, b_r, link_density, N, L, delta_r, delta_c, b_d))
 
-NAME = "tau_vs_phi_kappa_d_sensitivity"
-INDEX = {0: "tau", 1: "phi", 2: "kappa_d"}
-SAMPLE_SIZE = 100
+parameters = {'tau':0, 'phi':1, 'eps':2, 'N':3, 'p':4, 'P':5, 'b_d':6, 'b_R':7, 'e':8, 'd_c':9}
+tau, phi, eps, N, p, P, b_d, b_R, e, d_c =[.8], [8], [0.0], [100], [0.125], [1000], [3.], [1.], [10], [0.06]
 
-nodes = 16
-seconds = 3.5 * len(PARAM_COMBS) * SAMPLE_SIZE / nodes
-m, s = divmod(seconds, 60)
-h, m = divmod(m, 60)
-d, h = divmod(h, 24)
-print 'ETA: %d:%d:%02d' % (d, h, m) 
+NAME = 'tau_vs_phi_' + sub_experiment + '_sensitivity'
+INDEX = {0: "tau", 1: "phi", parameters[sub_experiment]: sub_experiment}
 
-#get subexperiment from comand line
-if len(sys.argv)>1:
-    sub_experiment = int(sys.argv[1])
+if sub_experiment == 'b_d':
+    PARAM_COMBS = list(it.product(taus,\
+        phis, eps, N, p, P, b_ds, b_R, e, d_c))
+
+elif sub_experiment == 'b_R':
+    PARAM_COMBS = list(it.product(taus,\
+        phis, eps, N, p, P, b_d, b_Rs, e, d_c))
+
+elif sub_experiment == 'e':
+    PARAM_COMBS = list(it.product(taus,\
+        phis, eps, N, p, P, b_d, b_R, es, d_c))
+
+elif sub_experiment =='p':
+    PARAM_COMBS = list(it.product(taus,\
+        phis, eps, N, ps, P, b_d, b_R, e, d_c))
+
 else:
-    sub_experiment = 0
+    print sub_experiment, ' is not in the list of possible experiments'
+    sys.exit()
 
-# Parameter studies
-if sub_experiment == 0:
+
+
+
+# full run
+if mode == 0:
+    print 'production mode'
+    SAMPLE_SIZE = 100
     compute(SAVE_PATH_RAW)
-    resave(SAVE_PATH_RAW, SAVE_PATH_RES, SAMPLE_SIZE)
+    resave(SAVE_PATH_RAW, SAVE_PATH_RES)
     plot_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
+    plot_obs_grid(SAVE_PATH_RES, NAME+'_trajectory', NAME+'_consensus')
 
-# Testing case for parameter studies
-if sub_experiment == 1:
+# test run
+if mode == 1:
+    print 'test mode'
+    SAMPLE_SIZE = 2
+    compute(SAVE_PATH_RAW)
+    resave(SAVE_PATH_RAW, SAVE_PATH_RES)
     plot_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
     plot_obs_grid(SAVE_PATH_RES, NAME+'_trajectory', NAME+'_consensus')

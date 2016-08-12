@@ -12,7 +12,7 @@ import getpass
 import re
 
 
-def plot_tau_phi(SAVE_PATH, NAME):
+def plot_tau_phi(SAVE_PATH, NAME, fextention = '.png'):
     """
     Loads the dataframe NAME of postprocessed data
     from the location given by SAVE_PATH
@@ -44,7 +44,7 @@ def plot_tau_phi(SAVE_PATH, NAME):
     
     for p in parameter_combinations:
         d_slice = data.xs(key=p, level=levels).dropna()
-        save_name = zip(parameter_level_names, p)
+        save_name = zip(parameter_level_names, [round(x,1) for x in p])
 
         for level in list(d_slice.unstack().columns.levels[0]):
             TwoDFrame = d_slice[level].unstack()
@@ -67,7 +67,10 @@ def plot_tau_phi(SAVE_PATH, NAME):
                     .replace(', ', '')\
                     .replace('.','o')
             print target
-            fig.savefig(target + '.pdf' , format='pdf')
+            fig.savefig(target + fextention)
+            fig.clf()
+            plt.close()
+
 
 
 def explore_Parameterspace(TwoDFrame, title="",
@@ -250,6 +253,9 @@ def plot_trajectories(loc, name, params, indices):
         #adjust the grid layout to avoid overlapping plots and save the figure
         fig.tight_layout()
         fig.savefig(loc+'testfigure_'+`round(jval,4)`+'.pdf')
+        fig.clf()
+        plt.close()
+
 
 def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, file_extention='.png'):
 
