@@ -435,7 +435,7 @@ class divestment_core:
                 candidate = -1
                 break
             #sometimes, they also make new friends at random
-            elif rdn > 1.-self.eps * self.phi:
+            elif rdn > 1.-self.eps * self.phi and len(neighbors)>0:
                 unconnected = np.zeros(self.N, dtype=int)
                 for i in range(self.N):
                     if i not in neighbors:
