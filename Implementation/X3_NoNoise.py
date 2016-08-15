@@ -104,7 +104,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
     #run the model
     
     start = time.clock()
-    exit_status = m.run(t_max=250)
+    exit_status = m.run(t_max=400)
 
     #store exit status
 
@@ -127,7 +127,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
 
         df = pd.DataFrame(trajectory, columns=headers)
         df = df.set_index('time')
-        dfo = eh.even_time_series_spacing(df, 101, 0., 250*m.tau)
+        dfo = even_time_series_spacing(df, 101, 0., 400)
         res["economic_trajectory"] = dfo
 
     end = time.clock()
@@ -142,58 +142,6 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
         print "writing results failed for " + filename
     
     return exit_status
-
-def compute(SAVE_PATH_RAW):
-    """
-    Not quite sure, what this function is good for. 
-    copy and pasted it from wbarfuss example experiment.
-    I think this could also be accomplished by calling 
-    the eh.compute() function directly during the experiment.
-    """
-    eh.compute(RUN_FUNC, PARAM_COMBS, SAMPLE_SIZE, SAVE_PATH_RAW)
-
-def resave(SAVE_PATH_RAW, SAVE_PATH_RES, sample_size=None):
-    """
-    dictionary of lambda functions to calculate 
-    the average consensus state and consensus time from all
-    runs given in the list of filenames (fnames) 
-    that is handled internally by resave_data.
-
-    Parameters:
-    -----------
-    sample_size : int
-        the number of runs computed for one 
-        combination of parameters e.g. the 
-        size of the ensemble for statistical 
-        analysis.
-    """
-    EVA={   "<mean_trajectory>": 
-            lambda fnames: pd.concat([np.load(f)["economic_trajectory"] for f in fnames]).groupby(level=0).mean(),
-            "<sem_trajectory>": 
-            lambda fnames: pd.concat([np.load(f)["economic_trajectory"] for f in fnames]).groupby(level=0).sem()}
-
-    EVA2={  "<mean_consensus_state>":
-            lambda fnames: np.nanmean([np.load(f)["consensus_state"] for f in fnames]),
-            "<mean_consensus_time>":
-            lambda fnames: np.nanmean([np.load(f)["consensus_time"] for f in fnames]),
-            "<min_consensus_time>":
-            lambda fnames: np.nanmin([np.load(f)["consensus_time"] for f in fnames]),
-            "<max_consensus_time>":
-            lambda fnames: np.max([np.load(f)["consensus_time"] for f in fnames]),
-            "<nanmax_consensus_time>":
-            lambda fnames: np.nanmax([np.load(f)["consensus_time"] for f in fnames]),
-            "<sem_consensus_time>":
-            lambda fnames: st.sem([np.load(f)["consensus_time"] for f in fnames]),
-            "<runtime>":
-            lambda fnames: st.sem([np.load(f)["runtime"] for f in fnames]),
-            }
-
-    eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA, NAME + '_trajectory', save_path = SAVE_PATH_RES)
-
-    eh.resave_data(SAVE_PATH_RAW, PARAM_COMBS, INDEX, EVA2, NAME + '_consensus', save_path = SAVE_PATH_RES)
-
-
-
 
 #get sub experiment and mode from command line
 if len(sys.argv)>1:
@@ -219,7 +167,7 @@ elif getpass.getuser() == "jakob":
 taus = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
 phis = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
 
-b_ds = [round(x,5) for x in list(1 + 10**(np.linspace(-4,0,5)))]
+b_ds = [round(x,5) for x in list(1 + (np.linspace(0.,1.,9)))]
 b_Rs = [round(x,5) for x in list(10**np.linspace(-2.,2.,5))]
 es   = [round(x,5) for x in list(10**np.linspace(0.,4.,5))]
 ps  = [round(x,5) for x in list(np.linspace(0.,5.,6))]
@@ -251,23 +199,49 @@ else:
     print sub_experiment, ' is not in the list of possible experiments'
     sys.exit()
 
+#names and function dictionaries for post processing:
 
+NAME1 = NAME+'_trajectory'
+EVA1={   "<mean_trajectory>": 
+        lambda fnames: pd.concat([np.load(f)["economic_trajectory"] for f in fnames]).groupby(level=0).mean(),
+        "<sem_trajectory>": 
+        lambda fnames: pd.concat([np.load(f)["economic_trajectory"] for f in fnames]).groupby(level=0).sem()}
 
+NAME2 = NAME+'_consensus'
+EVA2={  "<mean_consensus_state>":
+        lambda fnames: np.nanmean([np.load(f)["consensus_state"] for f in fnames]),
+        "<mean_consensus_time>":
+        lambda fnames: np.nanmean([np.load(f)["consensus_time"] for f in fnames]),
+        "<min_consensus_time>":
+        lambda fnames: np.nanmin([np.load(f)["consensus_time"] for f in fnames]),
+        "<max_consensus_time>":
+        lambda fnames: np.max([np.load(f)["consensus_time"] for f in fnames]),
+        "<nanmax_consensus_time>":
+        lambda fnames: np.nanmax([np.load(f)["consensus_time"] for f in fnames]),
+        "<sem_consensus_time>":
+        lambda fnames: st.sem([np.load(f)["consensus_time"] for f in fnames]),
+        "<runtime>":
+        lambda fnames: st.sem([np.load(f)["runtime"] for f in fnames]),
+        }
 
 # full run
 if mode == 0:
     print 'production mode'
     SAMPLE_SIZE = 100
-    compute(SAVE_PATH_RAW)
-    resave(SAVE_PATH_RAW, SAVE_PATH_RES)
-    plot_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
-    plot_obs_grid(SAVE_PATH_RES, NAME+'_trajectory', NAME+'_consensus')
+    handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+    handle.compute(RUN_FUNC)
+    handle.resave(EVA1, NAME1)
+    handle.resave(EVA2, NAME2)
+    plot_tau_phi(SAVE_PATH_RES, NAME1)
+    plot_obs_grid(SAVE_PATH_RES, NAME2, NAME1)
 
 # test run
 if mode == 1:
     print 'test mode'
     SAMPLE_SIZE = 2
-    compute(SAVE_PATH_RAW)
-    resave(SAVE_PATH_RAW, SAVE_PATH_RES)
-    plot_tau_phi(SAVE_PATH_RES, NAME+'_consensus')
-    plot_obs_grid(SAVE_PATH_RES, NAME+'_trajectory', NAME+'_consensus')
+    handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+    handle.compute(RUN_FUNC)
+    handle.resave(EVA1, NAME1)
+    handle.resave(EVA2, NAME2)
+    plot_tau_phi(SAVE_PATH_RES, NAME1)
+    plot_obs_grid(SAVE_PATH_RES, NAME2, NAME1)
