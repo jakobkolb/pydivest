@@ -1,12 +1,11 @@
 
-from pymofa import experiment_handling as eh
+from pymofa.experiment_handling import experiment_handle, even_time_series_spacing
 from divestcore import divestment_core as model
 from divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
 
 from scipy import interpolate as ip
 
 import numpy as np
-import scipy.stats as st
 import networkx as nx
 import pandas as pd
 import cPickle as cp

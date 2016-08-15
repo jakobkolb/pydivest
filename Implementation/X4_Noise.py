@@ -6,7 +6,6 @@ from divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
 from scipy import interpolate as ip
 
 import numpy as np
-import scipy.stats as st
 import networkx as nx
 import pandas as pd
 import cPickle as cp
