@@ -434,7 +434,7 @@ class divestment_core:
                 self.opinions[candidate] = np.random.choice(self.possible_opinions)
                 candidate = -1
                 break
-            #sometimes, they also make new friends at random
+            #noise in rewiring (sometimes they make new friends at random..)
             elif rdn > 1.-self.eps * self.phi and len(neighbors)>0:
                 unconnected = np.zeros(self.N, dtype=int)
                 for i in range(self.N):

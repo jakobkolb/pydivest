@@ -6,6 +6,7 @@ from divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
 from scipy import interpolate as ip
 
 import numpy as np
+import scipy.stats as st
 import networkx as nx
 import pandas as pd
 import cPickle as cp
@@ -173,7 +174,7 @@ ps  = [round(x,5) for x in list(np.linspace(0.,5.,6))]
 
 
 parameters = {'tau':0, 'phi':1, 'eps':2, 'N':3, 'p':4, 'P':5, 'b_d':6, 'b_R':7, 'e':8, 'd_c':9}
-tau, phi, eps, N, p, P, b_d, b_R, e, d_c =[.8], [8], [0.0], [100], [0.125], [1000], [3.], [1.], [10], [0.06]
+tau, phi, eps, N, p, P, b_d, b_R, e, d_c =[.8], [8], [0.05], [100], [0.125], [1000], [3.], [1.], [10], [0.06]
 
 NAME = 'tau_vs_phi_' + sub_experiment + '_sensitivity'
 INDEX = {0: "tau", 1: "phi", parameters[sub_experiment]: sub_experiment}
@@ -227,22 +228,20 @@ EVA2={  "<mean_consensus_state>":
 
 # full run
 if mode == 0:
-    print 'production mode'
     SAMPLE_SIZE = 100
     handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
-    plot_tau_phi(SAVE_PATH_RES, NAME1)
-    plot_obs_grid(SAVE_PATH_RES, NAME2, NAME1)
+    plot_tau_phi(SAVE_PATH_RES, NAME2)
+    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2)
 
 # test run
 if mode == 1:
-    print 'test mode'
     SAMPLE_SIZE = 2
     handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
-    plot_tau_phi(SAVE_PATH_RES, NAME1)
-    plot_obs_grid(SAVE_PATH_RES, NAME2, NAME1)
+    plot_tau_phi(SAVE_PATH_RES, NAME2)
+    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2)

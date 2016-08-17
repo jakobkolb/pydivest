@@ -29,12 +29,8 @@ def plot_tau_phi(SAVE_PATH, NAME, fextention = '.png'):
     """
 
     data = np.load(SAVE_PATH + NAME)
-    seconds = data['<runtime>'].sum()*10
-    print data['<runtime>'].mean()
-    m, s = divmod(seconds, 60)
-    h, m = divmod(m, 60)
-    d, h = divmod(h, 24)
-    print 'total runtime in d:h:m= %d:%d:%02d' % (d, h, m) 
+
+    print data
     
     parameter_levels = [list(p.values) for p in data.index.levels[2:]]
     parameter_level_names = [name for name in data.index.names[2:]]
@@ -48,8 +44,9 @@ def plot_tau_phi(SAVE_PATH, NAME, fextention = '.png'):
 
         for level in list(d_slice.unstack().columns.levels[0]):
             TwoDFrame = d_slice[level].unstack()
-            vmax = np.nanmax(TwoDFrame.values)
-            vmin = np.nanmin(TwoDFrame.values)
+            print TwoDFrame
+            vmax = np.max(TwoDFrame.values)
+            vmin = np.min(TwoDFrame.values)
             TwoDFrame.replace(np.nan, np.inf)
             cmap = cm.get_cmap('RdBu')
             cmap.set_under('yellow')
@@ -280,6 +277,7 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, file_extention='.png'):
     """
 
     print 'plotting observable grid'
+    print SAVE_PATH
 
     trj_data = np.load(SAVE_PATH + NAME_TRJ)
     cns_data = np.load(SAVE_PATH + NAME_CNS)
