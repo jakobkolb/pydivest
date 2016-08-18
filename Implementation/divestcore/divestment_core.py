@@ -32,13 +32,15 @@ class divestment_core:
 
         self.t = 0                              # System Time
         self.steps = 0                          # Step counter for output
-        self.consensus = False                  # 0 for no consensus, 1 consensus
-        self.consensus_state = -1               # -1 for no consensus, 1 for clean consensus, 
+        self.converged = False                  # 0 for no consensus, 1 consensus
+        self.convergence_time = float('NaN')    # safes the system time at which consensus is reached
+        self.convergence_state = -1               # -1 for no consensus, 1 for clean consensus, 
                                                 # 0 for dirty consensus, in between for fragmentation
-        self.consensus_time = float('NaN')      # safes the system time at which consensus is reached
         self.opinions = opinions
         self.opinion_state = np.mean(opinions) # to keep track of the current ration of opinions
         self.possible_opinions = possible_opinions
+
+        self.audic=0                            #  (transient measure)
         self.trajectory = []                    # list to save trajectory of output variables
 
         ## Household parameters
@@ -151,11 +153,11 @@ class divestment_core:
             while self.t<t_max:
                 # Update economy time is up
                 candidate, neighbor, neighbors, update_time = self.find_update_candidates()
-                if self.run_full_time and self.consensus:
+                if self.run_full_time and self.converged:
                     update_time += t_max/100.
                 self.update_economy(update_time)
 
-                if not self.run_full_time and self.consensus:
+                if not self.run_full_time and self.converged:
                     break
 
         elif self.mode == 2:
@@ -163,14 +165,20 @@ class divestment_core:
                 # Update economy, social and decision making
                 candidate, neighbor, neighbors, update_time = self.find_update_candidates()
 
+                if self.debug == True and self.steps%1000==0:
+                    print self.converged, self.t
+
+                #check for convergence and update convergence measure:
+                self.audic_convergence(self.investment_decision, update_time-self.t)
+
                 self.update_economy(update_time)
                 if candidate >= 0: self.update_opinion_formation(candidate, neighbor, neighbors)
                 self.update_decision_making()
 
-                if not self.run_full_time and self.consensus:
+                if not self.run_full_time and self.converged:
                     break
 
-        if candidate==-1: 
+        if self.converged: 
             return 1        #good - consensus reached
         elif candidate==-2: 
             return -1       #bad run - opinion formation broken
@@ -381,6 +389,8 @@ class divestment_core:
             list(self.investment_dirty), 
             [self.P, self.G]]), dtype='float')
 
+
+
         #integrate the system unless it crashes.
         if not np.isnan(self.R):
             #with stdout_redirected():
@@ -465,7 +475,7 @@ class divestment_core:
             if neighbor<self.N:
                 #update candidate found (GOD)
                 break
-            elif self.consensus == True:
+            elif self.converged == True:
                 candidate = -1
                 update_time = self.t + self.tau
                 break
@@ -529,14 +539,48 @@ class divestment_core:
         self.consensus = all(len(np.unique(opinions[c]))==1
                 for c in ((cc==i).nonzero()[0]
                 for i in np.unique(cc)))
+        if self.eps == 0:
+            if self.consensus and self.consensus_state == -1:
+                self.convergence_state = np.mean(opinions)
+                self.convergence_time = self.t
+                self.converged = True
 
-        if self.consensus and self.consensus_state == -1:
-            self.consensus_time = self.t
+        return self.converged
+    def audic_convergence(self, opinions, dt):
+        """
+        check, if the system converged
+        to eps/2(1-phi) which is the equilibrium state
+        if all imitation events are d->c.
+        If the system converged, set convergence time.
 
-        if self.consensus:
-            self.consensus_state = np.mean(opinions)
+        Parameters:
+        -----------
+        opinions: [int]
+            list of opinions. 
+            opinion==1 : clean
+            opinion==0 : dirty
 
-        return self.consensus
+        Return:
+        -------
+        dist : float
+            distance from attractor
+            1: far
+            0: reached
+        """
+
+        state = float(sum(opinions))/float(len(opinions))
+
+        attractor =  1. - self.eps/((1.-self.phi))
+        dist = attractor - state
+        self.audic += dist*dt if dist > 0 else 0
+
+
+        if self.eps>0 and dist<0. and np.isnan(self.convergence_time):
+            self.convergence_state = self.audic
+            self.convergence_time = self.t
+            self.convergence = True
+
+        return dist if dist>0. else 0.
 
     def fitness(self, agent):
         return self.income[agent]
@@ -560,8 +604,9 @@ class divestment_core:
                         self.K_c*self.r_c,
                         self.K_d*self.r_d,
                         self.c_R,
-                        self.consensus,
-                        self.opinion_state])
+                        self.converged,
+                        self.opinion_state,
+                        self.audic])
 
     def init_economic_trajectory(self):
         self.trajectory.append(['time',
@@ -583,7 +628,8 @@ class divestment_core:
                     'K_d_cost',
                     'c_R',
                     'consensus',
-                    'opinion state'])
+                    'opinion state',
+                    'AUDIC'])
 
         dt = [self.t, self.t]
         x0 = np.fromiter(chain.from_iterable([
@@ -619,15 +665,17 @@ if __name__ == '__main__':
     N = 100                 # number of households
     p = 0.125                 # link density for household network
     P_start = 1000.         # initial population
-    t_max = 100             # max runtime
-    tau = 1.               # timescale for social update
-    phi = 0.5               # rewiring prob. for social update
+    t_max = 300             # max runtime
+    tau = 0.8               # timescale for social update
+    phi = 0.1               # rewiring prob. for social update
     adjacency = nx.adj_matrix(nx.erdos_renyi_graph(N,p)).toarray()
     opinions = np.random.randint(2, size=N)
 
     # Initialize Model
 
     model = divestment_core(adjacency, opinions, P_start, tau=tau, phi=phi)
+    model.eps = 0.05
+    model.b_d = 1.1
 
     # Turn on debugging
 
@@ -642,8 +690,8 @@ if __name__ == '__main__':
     print connected_components(model.neighbors, directed=False)
     print 'investment decisions:'
     print model.investment_decision
-    print 'consensus reached?', model.consensus
-    print model.consensus_state
+    print 'consensus reached?', model.converged
+    print model.convergence_state
     print 'finish time', model.t
     print 'steps computed', model.steps
 
@@ -655,32 +703,31 @@ if __name__ == '__main__':
     df = df.set_index('time')
     fig = mp.figure()
     ax1 = fig.add_subplot(231)
-    df[['K_d']].plot(ax = ax1)
-    #mp.axvline(model.consensus_time)
+    df[['K_d', 'K_c']].plot(ax = ax1)
     ax1.set_yscale('log')
    
     ax2 = fig.add_subplot(232)
     df[['P_d', 'P_c']].plot(ax = ax2)
-    mp.axvline(model.consensus_time)
+    mp.axvline(model.convergence_time)
     ax2.set_yscale('log')
 
     ax3 = fig.add_subplot(233)
     df[['G']].plot(ax = ax3)
-    mp.axvline(model.consensus_time)
+    mp.axvline(model.convergence_time)
 
     ax4 = fig.add_subplot(234)
     df[['opinion state']].plot(ax = ax4)
-    mp.axvline(model.consensus_time)
+    mp.axvline(model.convergence_time)
     ax4.set_yscale('log')
 
     ax5 = fig.add_subplot(235)
     df[['r_d', 'r_c']].plot(ax = ax5)
-    mp.axvline(model.consensus_time)
+    mp.axvline(model.convergence_time)
     ax5.set_yscale('log')
 
     ax6 = fig.add_subplot(236)
-    df[['R']].plot(ax = ax6)
-    mp.axvline(model.consensus_time)
+    df[['AUDIC']].plot(ax = ax6)
+    mp.axvline(model.convergence_time)
     ax6.set_yscale('log')
 
     mp.show()

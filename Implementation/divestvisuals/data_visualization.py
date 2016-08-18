@@ -30,8 +30,6 @@ def plot_tau_phi(SAVE_PATH, NAME, fextention = '.png'):
 
     data = np.load(SAVE_PATH + NAME)
 
-    print data
-    
     parameter_levels = [list(p.values) for p in data.index.levels[2:]]
     parameter_level_names = [name for name in data.index.names[2:]]
     levels = tuple(i+2 for i in range(len(parameter_levels)))
@@ -44,7 +42,6 @@ def plot_tau_phi(SAVE_PATH, NAME, fextention = '.png'):
 
         for level in list(d_slice.unstack().columns.levels[0]):
             TwoDFrame = d_slice[level].unstack()
-            print TwoDFrame
             vmax = np.max(TwoDFrame.values)
             vmin = np.min(TwoDFrame.values)
             TwoDFrame.replace(np.nan, np.inf)
@@ -281,7 +278,7 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, file_extention='.png'):
 
     trj_data = np.load(SAVE_PATH + NAME_TRJ)
     cns_data = np.load(SAVE_PATH + NAME_CNS)
-    
+
     parameter_levels = [list(p.values) for p in trj_data.index.levels[2:-2]]
     parameter_level_names = [name for name in trj_data.index.names[2:-2]]
     levels = tuple(i+2 for i in range(len(parameter_levels)))
@@ -290,7 +287,6 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, file_extention='.png'):
 
     
     for p in parameter_combinations:
-        print '(p, levels)', p, levels
         trj_d_slice = trj_data.xs(key=p, level=levels).dropna()
         cns_d_slice = cns_data.xs(key=p, level=levels)
         save_name = zip(parameter_level_names, p)
@@ -329,15 +325,15 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, file_extention='.png'
     #clean trajectory data
     t_data = t_data_in.where(t_data_in<10**300, np.nan)
 
-    #split consensus data
-    c_values = c_data_in['<mean_consensus_state>'] 
-    c_times  = c_data_in['<mean_consensus_time>']
-    c_times_min = c_data_in['<min_consensus_time>']
-    c_times_max = c_data_in['<max_consensus_time>']
-    c_times_nanmax = c_data_in['<nanmax_consensus_time>']
-    c_times_sem = c_data_in['<sem_consensus_time>']
+    #split convergence data
+    c_values = c_data_in['<mean_convergence_state>'] 
+    c_times  = c_data_in['<mean_convergence_time>']
+    c_times_min = c_data_in['<min_convergence_time>']
+    c_times_max = c_data_in['<max_convergence_time>']
+    c_times_nanmax = c_data_in['<nanmax_convergence_time>']
+    c_times_sem = c_data_in['<sem_convergence_time>']
 
-    norm = cl.Normalize(vmin = 0, vmax = 1)
+    norm = cl.Normalize(vmin = min(c_values), vmax = max(c_values))
     cmap = cm.get_cmap('RdBu')
     cmap.set_under('yellow')
 

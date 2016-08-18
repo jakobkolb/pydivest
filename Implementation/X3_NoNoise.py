@@ -17,7 +17,7 @@ import time
 
 
 
-def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
+def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, dummy, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -104,7 +104,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
     #run the model
     
     start = time.clock()
-    exit_status = m.run(t_max=400*m.phi)
+    exit_status = m.run(t_max=300)
 
     #store exit status
 
@@ -118,8 +118,8 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
                 pd.DataFrame({"Investment decisions": m.investment_decision,
                             "Investment clean": m.investment_clean,
                             "Investment dirty": m.investment_dirty})
-        res["consensus_state"] = m.consensus_state
-        res["consensus_time"] = m.consensus_time
+        res["convergence_state"] = m.convergence_state
+        res["convergence_time"] = m.convergence_time
 
         # interpolate trajectory to get evenly spaced time series.
         trajectory = m.trajectory
@@ -147,13 +147,13 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
 if len(sys.argv)>1:
     input_int = int(sys.argv[1])
 else:
-    input_int = 0
+    input_int = -1
 if len(sys.argv)>2:
     mode = int(sys.argv[2])
 else:
     mode = None
 
-experiments = ['b_d', 'b_R', 'e', 'p']
+experiments = ['b_d', 'b_R', 'e', 'p', 'dummy']
 sub_experiment = experiments[input_int]
 
 #check if cluster or local
@@ -171,29 +171,35 @@ b_ds = [round(x,5) for x in list(1 + (np.linspace(0.,1.,9)))]
 b_Rs = [round(x,5) for x in list(10**np.linspace(-2.,2.,5))]
 es   = [round(x,5) for x in list(10**np.linspace(0.,4.,5))]
 ps  = [round(x,5) for x in list(np.linspace(0.,5.,6))]
+dummies = [1]
 
 
-parameters = {'tau':0, 'phi':1, 'eps':2, 'N':3, 'p':4, 'P':5, 'b_d':6, 'b_R':7, 'e':8, 'd_c':9}
-tau, phi, eps, N, p, P, b_d, b_R, e, d_c =[.8], [8], [0.0], [100], [0.125], [1000], [3.], [1.], [10], [0.06]
+parameters = {'tau':0, 'phi':1, 'eps':2, 'N':3, 'p':4, 'P':5, 'b_d':6, 'b_R':7, 'e':8, 'd_c':9, 'dummy':10}
+tau, phi, eps, N, p, P, b_d, b_R, e, d_c, dummy =[.8], [8], [0.0], [100], [0.125], [1000], [1.1], [1.], [10], [0.06], [0]
 
 NAME = 'tau_vs_phi_' + sub_experiment + '_sensitivity'
 INDEX = {0: "tau", 1: "phi", parameters[sub_experiment]: sub_experiment}
 
 if sub_experiment == 'b_d':
     PARAM_COMBS = list(it.product(taus,\
-        phis, eps, N, p, P, b_ds, b_R, e, d_c))
+        phis, eps, N, p, P, b_ds, b_R, e, d_c, dummy))
 
 elif sub_experiment == 'b_R':
     PARAM_COMBS = list(it.product(taus,\
-        phis, eps, N, p, P, b_d, b_Rs, e, d_c))
+        phis, eps, N, p, P, b_d, b_Rs, e, d_c, dummy))
 
 elif sub_experiment == 'e':
     PARAM_COMBS = list(it.product(taus,\
-        phis, eps, N, p, P, b_d, b_R, es, d_c))
+        phis, eps, N, p, P, b_d, b_R, es, d_c, dummy))
 
 elif sub_experiment =='p':
     PARAM_COMBS = list(it.product(taus,\
-        phis, eps, N, ps, P, b_d, b_R, e, d_c))
+        phis, eps, N, ps, P, b_d, b_R, e, d_c, dummy))
+
+elif sub_experiment == 'dummy':
+    PARAM_COMBS = list(it.product(taus,\
+        phis, eps, N, p, P, b_d, b_R, e, d_c, dummies))
+
 
 else:
     print sub_experiment, ' is not in the list of possible experiments'
@@ -207,19 +213,19 @@ EVA1={   "<mean_trajectory>":
         "<sem_trajectory>": 
         lambda fnames: pd.concat([np.load(f)["economic_trajectory"] for f in fnames]).groupby(level=0).sem()}
 
-NAME2 = NAME+'_consensus'
-EVA2={  "<mean_consensus_state>":
-        lambda fnames: np.nanmean([np.load(f)["consensus_state"] for f in fnames]),
-        "<mean_consensus_time>":
-        lambda fnames: np.nanmean([np.load(f)["consensus_time"] for f in fnames]),
-        "<min_consensus_time>":
-        lambda fnames: np.nanmin([np.load(f)["consensus_time"] for f in fnames]),
-        "<max_consensus_time>":
-        lambda fnames: np.max([np.load(f)["consensus_time"] for f in fnames]),
-        "<nanmax_consensus_time>":
-        lambda fnames: np.nanmax([np.load(f)["consensus_time"] for f in fnames]),
-        "<sem_consensus_time>":
-        lambda fnames: st.sem([np.load(f)["consensus_time"] for f in fnames]),
+NAME2 = NAME+'_convergence'
+EVA2={  "<mean_convergence_state>":
+        lambda fnames: np.nanmean([np.load(f)["convergence_state"] for f in fnames]),
+        "<mean_convergence_time>":
+        lambda fnames: np.nanmean([np.load(f)["convergence_time"] for f in fnames]),
+        "<min_convergence_time>":
+        lambda fnames: np.nanmin([np.load(f)["convergence_time"] for f in fnames]),
+        "<max_convergence_time>":
+        lambda fnames: np.max([np.load(f)["convergence_time"] for f in fnames]),
+        "<nanmax_convergence_time>":
+        lambda fnames: np.nanmax([np.load(f)["convergence_time"] for f in fnames]),
+        "<sem_convergence_time>":
+        lambda fnames: st.sem([np.load(f)["convergence_time"] for f in fnames]),
         "<runtime>":
         lambda fnames: st.sem([np.load(f)["runtime"] for f in fnames]),
         }
@@ -246,10 +252,10 @@ if mode == 1:
 
 # debug and mess around mode:
 if mode == None:
-    SAMPLE_SIZE = 100
-    #handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
-    #handle.compute(RUN_FUNC)
-    #handle.resave(EVA1, NAME1)
-    #handle.resave(EVA2, NAME2)
-    #plot_tau_phi(SAVE_PATH_RES, NAME2)
+    SAMPLE_SIZE = 2
+    handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+    handle.compute(RUN_FUNC)
+    handle.resave(EVA1, NAME1)
+    handle.resave(EVA2, NAME2)
+    plot_tau_phi(SAVE_PATH_RES, NAME2)
     plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2)

@@ -5,7 +5,7 @@
 #SBATCH --job-name=X3
 #SBATCH --output=%A_X3_%a_.out
 #SBATCH --error=%A_X3_%a_.err
-#SBATCH --time=0-12
+#SBATCH --time=0-24
 #SBATCH --nodes=2
 #SBATCH --tasks-per-node=16
 
