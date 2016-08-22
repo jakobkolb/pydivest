@@ -166,10 +166,10 @@ elif getpass.getuser() == "jakob":
 taus = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
 phis = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
 
-b_ds = [round(x,5) for x in list(1 + (np.linspace(0.,1.,9)))]
-b_Rs = [round(x,5) for x in list(10**np.linspace(-2.,2.,5))]
-es   = [round(x,5) for x in list(10**np.linspace(0.,4.,5))]
-ps  = [round(x,5) for x in list(np.linspace(0.,5.,6))]
+b_ds = [round(x,5) for x in list(1 + np.linspace( 0.0,1.0,9))]
+b_Rs = [round(x,5) for x in list(10**np.linspace(-2.0,2.0,5))]
+es   = [round(x,5) for x in list(10**np.linspace( 0.0,4.0,5))]
+ps  =  [round(x,5) for x in list(    np.linspace( 0.0,0.4,5))]
 dummies = [1]
 
 
@@ -253,10 +253,10 @@ if mode == 1:
 
 # debug and mess around mode:
 if mode == None:
-    SAMPLE_SIZE = 2
+    SAMPLE_SIZE = 100
     handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
-    handle.compute(RUN_FUNC)
-    handle.resave(EVA1, NAME1)
-    handle.resave(EVA2, NAME2)
-    plot_tau_phi(SAVE_PATH_RES, NAME2)
+    #handle.compute(RUN_FUNC)
+    #handle.resave(EVA1, NAME1)
+    #handle.resave(EVA2, NAME2)
+    #plot_tau_phi(SAVE_PATH_RES, NAME2)
     plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2)

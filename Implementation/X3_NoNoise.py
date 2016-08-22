@@ -55,6 +55,9 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, dummy, filename):
         fossil sector in the beginning
 
     """
+
+    t_max = 300
+
     #building initial conditions
 
     while True:
@@ -104,7 +107,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, dummy, filename):
     #run the model
     
     start = time.clock()
-    exit_status = m.run(t_max=300)
+    exit_status = m.run(t_max=t_max)
 
     #store exit status
 
@@ -127,7 +130,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, dummy, filename):
 
         df = pd.DataFrame(trajectory, columns=headers)
         df = df.set_index('time')
-        dfo = even_time_series_spacing(df, 101, 0., 400)
+        dfo = even_time_series_spacing(df, 101, 0., t_max)
         res["economic_trajectory"] = dfo
 
     end = time.clock()
@@ -167,10 +170,10 @@ elif getpass.getuser() == "jakob":
 taus = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
 phis = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
 
-b_ds = [round(x,5) for x in list(1 + (np.linspace(0.,1.,9)))]
-b_Rs = [round(x,5) for x in list(10**np.linspace(-2.,2.,5))]
-es   = [round(x,5) for x in list(10**np.linspace(0.,4.,5))]
-ps  = [round(x,5) for x in list(np.linspace(0.,5.,6))]
+b_ds = [round(x,5) for x in list(1 + np.linspace( 0.0,1.0,9))]
+b_Rs = [round(x,5) for x in list(10**np.linspace(-2.0,2.0,5))]
+es   = [round(x,5) for x in list(10**np.linspace( 0.0,4.0,5))]
+ps  =  [round(x,5) for x in list(    np.linspace( 0.0,0.4,5))]
 dummies = [1]
 
 
@@ -252,10 +255,10 @@ if mode == 1:
 
 # debug and mess around mode:
 if mode == None:
-    SAMPLE_SIZE = 2
+    SAMPLE_SIZE = 100
     handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
-    handle.compute(RUN_FUNC)
-    handle.resave(EVA1, NAME1)
-    handle.resave(EVA2, NAME2)
+    #handle.compute(RUN_FUNC)
+    #handle.resave(EVA1, NAME1)
+    #handle.resave(EVA2, NAME2)
     plot_tau_phi(SAVE_PATH_RES, NAME2)
     plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2)

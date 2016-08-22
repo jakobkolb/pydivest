@@ -416,6 +416,10 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, file_extention='.png'
                 plt.axvspan(c_time - c_time_sem, c_time + c_time_sem, \
                         alpha = 0.2, color = 'grey')
 
+                #plot attractor for opinion state:
+                if observable == 'opinion_state':
+                    plt.axhline(1.-0.05/(1.-jval), color = 'black')
+
                 #mark areas where data was negative
                 if len(paint)>0:
                     plt.axvspan(paint[0], paint[-1], alpha=0.2, color = 'red')

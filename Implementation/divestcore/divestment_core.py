@@ -13,6 +13,112 @@ from stdout_redirected import stdout_redirected
 from math import exp
 
 
+def cue_1(i):
+    """
+    evaluation of cue 1 for household i:
+    Which rate of return is significantly higher?
+
+    Parameters:
+    -----------
+    i : int
+        index of the household that evaluates
+        the cue
+    Return:
+    -------
+    dec : int in [-1,0,1]
+        decision output:
+        -1 no decision, evaluate next cue
+         0 decide for dirty investment
+         1 decide for clean investment
+    """
+    if self.r_c>self.r_d*1.1:
+        dec = 1
+    elif self.r_d>self.r_c*1.1:
+        dec = 0
+    else:
+        dec = -1
+
+    return dec
+
+def cue_2(i):
+    """
+    evaluation of cue 2 for household i:
+    do the trends of the rats differ?
+
+    Parameters:
+    -----------
+    i : int
+        index of the household that evaluates
+        the cue
+    Return:
+    -------
+    dec : int in [-1,0,1]
+        decision output:
+        -1 no decision, evaluate next cue
+         0 decide for dirty investment
+         1 decide for clean investment
+    """
+    if self.r_c_dot>self.r_d_dot*1.1:
+        dec = 1
+    elif self.r_d_dot>self.r_c_dot*1.1:
+        dec = 0
+    else:
+        dec = -1
+
+
+    return dec
+
+def cue_3(i):
+    """
+    evaluation of cue 3 for household i:
+    What does the majority of the neighbors do?
+
+    Parameters:
+    -----------
+    i : int
+        index of the household that evaluates
+        the cue
+    Return:
+    -------
+    dec : int in [-1,0,1]
+        decision output:
+        -1 no decision, evaluate next cue
+         0 decide for dirty investment
+         1 decide for clean investment
+    """
+    neighbors = self.neighbors[:,candidate].nonzero()[0]
+    n_ops = self.investment_decisions[neighbors]/float(len(neighbors))
+    if n_ops - threshold > 0.5:
+        dec = 1
+    elif n_ops + threshold < 0.5:
+        dec = 0
+    else:
+        dec = -1
+
+    return dec
+
+def cue_4(i):
+    """
+    evaluation of cue 4 for household i:
+    Always decide for the green investment
+
+    Parameters:
+    -----------
+    i : int
+        index of the household that evaluates
+        the cue
+    Return:
+    -------
+    dec : int in [-1,0,1]
+        decision output:
+        -1 no decision, evaluate next cue
+         0 decide for dirty investment
+         1 decide for clean investment
+    """
+
+    dec = 1
+
+    return dec
 
 class divestment_core:
 
@@ -21,6 +127,8 @@ class divestment_core:
         ## Modes: 1: only economy, 2: + opinion formation, 3: + decision heuristics
 
         self.mode = 2
+        self.FFH = False                # whether opinions are actions or cue orders for decision
+                                        # heuristics
         
         ## General Parameters
 
@@ -34,11 +142,14 @@ class divestment_core:
         self.steps = 0                          # Step counter for output
         self.converged = False                  # 0 for no consensus, 1 consensus
         self.convergence_time = float('NaN')    # safes the system time at which consensus is reached
-        self.convergence_state = -1               # -1 for no consensus, 1 for clean consensus, 
+        self.convergence_state = -1             # -1 for no consensus, 1 for clean consensus, 
                                                 # 0 for dirty consensus, in between for fragmentation
         self.opinions = opinions
-        self.opinion_state = np.mean(opinions) # to keep track of the current ration of opinions
+        self.opinion_state = np.mean(opinions)  # to keep track of the current ration of opinions
         self.possible_opinions = possible_opinions
+
+        self.cues = {1:cue_1, 2:cue_2, 
+                3:cue_3, 4:cue_4}               # dictionary of decision cues
 
         self.audic=0                            #  (transient measure)
         self.trajectory = []                    # list to save trajectory of output variables
@@ -113,7 +224,9 @@ class divestment_core:
 
         self.w = 0.
         self.r_c = 0.
+        self.r_c_dot = 0.
         self.r_d = 0.
+        self.r_d_dot = 0.
         self.c_R = 0
 
         ## Ecosystem parameters
@@ -540,7 +653,7 @@ class divestment_core:
                 for c in ((cc==i).nonzero()[0]
                 for i in np.unique(cc)))
         if self.eps == 0:
-            if self.consensus and self.consensus_state == -1:
+            if self.consensus and self.convergence_state == -1:
                 self.convergence_state = np.mean(opinions)
                 self.convergence_time = self.t
                 self.converged = True
