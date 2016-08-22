@@ -55,6 +55,8 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
         fossil sector in the beginning
 
     """
+    t_max = 300
+
     #building initial conditions
 
     while True:
@@ -104,7 +106,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
     #run the model
     
     start = time.clock()
-    exit_status = m.run(t_max=400*m.phi)
+    exit_status = m.run(t_max=t_max)
 
     #store exit status
 
@@ -127,7 +129,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
 
         df = pd.DataFrame(trajectory, columns=headers)
         df = df.set_index('time')
-        dfo = even_time_series_spacing(df, 101, 0., 400)
+        dfo = even_time_series_spacing(df, 101, 0., t_max)
         res["economic_trajectory"] = dfo
 
     end = time.clock()
@@ -164,17 +166,17 @@ elif getpass.getuser() == "jakob":
     SAVE_PATH_RAW = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/NoNoise/raw_data" + '_' + sub_experiment + '/'
     SAVE_PATH_RES = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/NoNoise/results" + '_' + sub_experiment + '/'
 
-taus = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
-phis = [round(x,5) for x in list(np.linspace(0.,1.,11))[1:-1]]
+taus = [round(x,5) for x in list(np.linspace(0.0,1.0,11))[1:-1]]
+phis = [round(x,5) for x in list(np.linspace(0.0,1.0,11))[1:-1]]
 
-b_ds = [round(x,5) for x in list(1 + (np.linspace(0.,1.,9)))]
-b_Rs = [round(x,5) for x in list(10**np.linspace(-2.,2.,5))]
-es   = [round(x,5) for x in list(10**np.linspace(0.,4.,5))]
-ps  = [round(x,5) for x in list(np.linspace(0.,5.,6))]
+b_ds = [round(x,5) for x in list(1 + np.linspace( 0.0, 1.0, 9))]
+b_Rs = [round(x,5) for x in list(10**np.linspace(-2.0, 2.0, 5))]
+es   = [round(x,5) for x in list(10**np.linspace( 0.0, 4.0, 5))]
+ps  =  [round(x,5) for x in list(    np.linspace( 0.0, 0.4, 5))]
 
 
 parameters = {'tau':0, 'phi':1, 'eps':2, 'N':3, 'p':4, 'P':5, 'b_d':6, 'b_R':7, 'e':8, 'd_c':9}
-tau, phi, eps, N, p, P, b_d, b_R, e, d_c =[.8], [8], [0.0], [100], [0.125], [1000], [3.], [1.], [10], [0.06]
+tau, phi, eps, N, p, P, b_d, b_R, e, d_c =[.8], [.8], [0.0], [100], [0.125], [1000], [3.], [1.], [10], [0.06]
 
 NAME = 'tau_vs_phi_' + sub_experiment + '_sensitivity'
 INDEX = {0: "tau", 1: "phi", parameters[sub_experiment]: sub_experiment}
