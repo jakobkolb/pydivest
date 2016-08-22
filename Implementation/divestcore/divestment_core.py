@@ -13,7 +13,6 @@ from stdout_redirected import stdout_redirected
 from math import exp
 
 
-
 class divestment_core:
 
     def __init__(self, adjacency, opinions, P_start=1000., tau=0.8, phi=.7, eps=0.05, possible_opinions = [0,1]):
