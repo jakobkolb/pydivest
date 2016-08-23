@@ -22,7 +22,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, test, filename):
     Set up the model for various parameters and determine
     which parts of the output are saved where.
     Output is saved in pickled dictionaries including the 
-    initial values, parameters and consensus state and time 
+    initial values, parameters and convergence state and time 
     for each run.
 
     Parameters:
@@ -117,17 +117,17 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, test, filename):
     #store exit status
     print exit_status, m.convergence_state
 
-    res["consensus"] = exit_status
+    res["convergence"] = exit_status
 
     #store data in case of successful run
 
     if exit_status in [0,1]:
-        res["consensus_data"] = \
+        res["convergence_data"] = \
                 pd.DataFrame({"Investment decisions": m.investment_decision,
                             "Investment clean": m.investment_clean,
                             "Investment dirty": m.investment_dirty})
-        res["consensus_state"] = m.consensus_state
-        res["consensus_time"] = m.consensus_time
+        res["convergence_state"] = m.convergence_state
+        res["convergence_time"] = m.convergence_time
 
         # interpolate trajectory to get evenly spaced time series.
         trajectory = m.trajectory
@@ -228,19 +228,19 @@ EVA1={   "<mean_trajectory>":
         "<sem_trajectory>": 
         lambda fnames: pd.concat([np.load(f)["economic_trajectory"] for f in fnames]).groupby(level=0).sem()}
 
-NAME2 = NAME+'_consensus'
-EVA2={  "<mean_consensus_state>":
-        lambda fnames: np.nanmean([np.load(f)["consensus_state"] for f in fnames]),
-        "<mean_consensus_time>":
-        lambda fnames: np.nanmean([np.load(f)["consensus_time"] for f in fnames]),
-        "<min_consensus_time>":
-        lambda fnames: np.nanmin([np.load(f)["consensus_time"] for f in fnames]),
-        "<max_consensus_time>":
-        lambda fnames: np.max([np.load(f)["consensus_time"] for f in fnames]),
-        "<nanmax_consensus_time>":
-        lambda fnames: np.nanmax([np.load(f)["consensus_time"] for f in fnames]),
-        "<sem_consensus_time>":
-        lambda fnames: st.sem([np.load(f)["consensus_time"] for f in fnames]),
+NAME2 = NAME+'_convergence'
+EVA2={  "<mean_convergence_state>":
+        lambda fnames: np.nanmean([np.load(f)["convergence_state"] for f in fnames]),
+        "<mean_convergence_time>":
+        lambda fnames: np.nanmean([np.load(f)["convergence_time"] for f in fnames]),
+        "<min_convergence_time>":
+        lambda fnames: np.nanmin([np.load(f)["convergence_time"] for f in fnames]),
+        "<max_convergence_time>":
+        lambda fnames: np.max([np.load(f)["convergence_time"] for f in fnames]),
+        "<nanmax_convergence_time>":
+        lambda fnames: np.nanmax([np.load(f)["convergence_time"] for f in fnames]),
+        "<sem_convergence_time>":
+        lambda fnames: st.sem([np.load(f)["convergence_time"] for f in fnames]),
         "<runtime>":
         lambda fnames: st.sem([np.load(f)["runtime"] for f in fnames]),
         }
