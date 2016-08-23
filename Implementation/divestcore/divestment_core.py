@@ -71,9 +71,8 @@ class divestment_core:
         ## Sector parameters
 
         self.d_c = .06              # Clean capital depreciation rate
-        self.d_d = self.d_c     # Dirty capital depreciation rate
-        self.b_R = 1.                   # Resource harvest cost per unit (at full resource stock)
-        self.b_r_present = self.b_R     # Kept for upward compatibility
+        self.d_d = self.d_c         # Dirty capital depreciation rate
+        self.b_R0 = 1.              # Resource harvest cost per unit (at full resource stock)
 
         ## for Cobb Douglas economy 
         ## elasticities of labor and resource use are fixed 
@@ -178,10 +177,10 @@ class divestment_core:
         else: 
             return 0        # no consensus found during run time
 
-    def b_r(self, G):
+    def b_Rf(self, G):
         """
         Calculates the dependence of resource harvest cost on 
-        remaining resource stock starts at b_r_present and 
+        remaining resource stock starts at b_R0 and 
         increases with decreasing stock if stock is depleted, 
         costs are infinite
 
@@ -198,7 +197,7 @@ class divestment_core:
         """
         
         if G>0:
-            b_R = self.b_r_present*(self.G_0/G)**2
+            b_R = self.b_R0*(self.G_0/G)**2
         else:
             b_R = float('inf')
         return b_R
@@ -212,7 +211,7 @@ class divestment_core:
 
         K_c = sum(investment_clean)
         K_d = sum(investment_dirty)
-        b_R = self.b_r(G)
+        b_R = self.b_Rf(G)
 
         X_c = (self.b_c * K_c**self.kappa_c)**(-5./3.)
         X_d = (self.b_d * K_d**self.kappa_d)**(-5./3.)
@@ -321,7 +320,7 @@ class divestment_core:
 
         K_c = sum(investment_clean)
         K_d = sum(investment_dirty)
-        b_R = self.b_r(G)
+        b_R = self.b_Rf(G)
 
         X_c = (self.b_c * K_c**self.kappa_c)**(1./(1.-self.pi))
         X_d = (self.b_d * K_d**self.kappa_d)**(1./(1.-self.pi))

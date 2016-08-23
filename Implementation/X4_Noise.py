@@ -17,7 +17,7 @@ import time
 
 
 
-def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
+def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -31,31 +31,37 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
         the social update timescale
     phi : float \in [0,1]
         the rewiring probability for the network update
-    b_r : float
-        model parameter:
-        prefactor of resource extraction cost
+    eps : float \in [0,1]
+        fraction of rewiring and imitation events that 
+        are random.
     N : int
         the number of household agents
+    p : float \in [0,1]
+        connection probability for Erdos
+        Renyi random graph
     P : int
-        the initial number of members per household
-    delta_r : float
-        the resource extraction efficiency for the 
-        extraction of the fossil resource in units of
-        production_units/resource_uptake^2 to calculate the
-        cost of resource extraction:
-        cost = delta_r*resource_uptake^2
-    delta_c : float \in [0,1)
-        capital depreciation rate (is the same in both
-        sectors so far)
+        the initial population
     b_d : float
         Solov residual for the dirty sector
         should be signifficantly biger than
         for the clean sector (b_c = 1.)
         to ensure higher productivity of the
         fossil sector in the beginning
+    b_R : float
+        model parameter:
+        pre factor of resource extraction cost
+    e   : float
+        resource efficiency (output/resource)
+    d_c : float \in [0,1)
+        capital depreciation rate (is the same in both
+        sectors so far)
+    test: int \in [0,1]
+        wheter this is a test run, e.g.
+        can be executed with lower runtime
+
 
     """
-    t_max = 300
+    t_max = 300 if test == 0 else 50
 
     #building initial conditions
 
@@ -71,7 +77,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
     m = model.divestment_core(adjacency_matrix, investment_decisions, P, tau, phi)
     m.e = e
     m.eps = eps
-    m.b_R = b_R
+    m.b_R0 = b_R
     m.d_c = d_c
     m.b_d = b_d
 
@@ -93,7 +99,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
                         "savings rate": m.s,
                         "clean capital depreciation rate":m.d_c,
                         "dirty capital depreciation rate":m.d_d,
-                        "resource extraction efficiency":m.b_R,
+                        "resource extraction efficiency":m.b_R0,
                         "Solov residual clean":m.b_c,
                         "Solov residual dirty":m.b_d,
                         "pi":m.pi,
@@ -109,7 +115,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
     exit_status = m.run(t_max=t_max)
 
     #store exit status
-
+    print exit_status, m.convergence_state
 
     res["consensus"] = exit_status
 
@@ -146,56 +152,69 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, filename):
     return exit_status
 
 #get sub experiment and mode from command line
-if len(sys.argv)>1:
+if len(sys.argv)>=1:
     input_int = int(sys.argv[1])
 else:
-    input_int = 0
-if len(sys.argv)>2:
+    input_int = -1
+if len(sys.argv)>=2:
     mode = int(sys.argv[2])
 else:
     mode = None
+if len(sys.argv)>=3:
+    noise = bool(sys.argv[3])
+else:
+    noise = True
 
-experiments = ['b_d', 'b_R', 'e', 'p']
+experiments = ['b_d', 'b_R', 'e', 'p', 'test']
 sub_experiment = experiments[input_int]
+folder = 'Noise' if noise else 'NoNoise'
 
 #check if cluster or local
 if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW = "/p/tmp/kolb/Divest_Experiments/divestdata/Noise/raw_data" + '_' + sub_experiment + '/'
-    SAVE_PATH_RES = "/home/kolb/Divest_Experiments/divestdata/Noise/results" + '_' + sub_experiment + '/'
+    SAVE_PATH_RAW = "/p/tmp/kolb/Divest_Experiments/divestdata/"+folder+"/raw_data" + '_' + sub_experiment + '/'
+    SAVE_PATH_RES = "/home/kolb/Divest_Experiments/divestdata/"+folder+"/results" + '_' + sub_experiment + '/'
 elif getpass.getuser() == "jakob":
-    SAVE_PATH_RAW = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/Noise/raw_data" + '_' + sub_experiment + '/'
-    SAVE_PATH_RES = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/Noise/results" + '_' + sub_experiment + '/'
+    SAVE_PATH_RAW = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"+folder+"/raw_data" + '_' + sub_experiment + '/'
+    SAVE_PATH_RES = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"+folder+"/results" + '_' + sub_experiment + '/'
 
 taus = [round(x,5) for x in list(np.linspace(0.0,1.0,11))[1:-1]]
 phis = [round(x,5) for x in list(np.linspace(0.0,1.0,11))[1:-1]]
 
-b_ds = [round(x,5) for x in list(1 + np.linspace( 0.0, 1.0, 9))]
+b_ds = [round(x,5) for x in list(1 + np.linspace( 0.0, 0.3, 9))]
 b_Rs = [round(x,5) for x in list(10**np.linspace(-2.0, 2.0, 5))]
-es   = [round(x,5) for x in list(10**np.linspace( 0.0, 4.0, 5))]
-ps  =  [round(x,5) for x in list(    np.linspace( 0.0, 0.4, 5))]
+es   = [round(x,5) for x in list(4.**np.linspace( 0.0, 3.0, 4))]
+ps  =  [round(x,5) for x in list(    np.linspace( 0.0, 0.3, 7))]
+tests =[1]
 
 
-parameters = {'tau':0, 'phi':1, 'eps':2, 'N':3, 'p':4, 'P':5, 'b_d':6, 'b_R':7, 'e':8, 'd_c':9}
-tau, phi, eps, N, p, P, b_d, b_R, e, d_c =[.8], [.8], [0.05], [100], [0.125], [1000], [3.], [1.], [10], [0.06]
+parameters = {'tau':0, 'phi':1, 'eps':2, 'N':3, 'p':4, 'P':5, 'b_d':6, 'b_R':7, 'e':8, 'd_c':9, 'test':10}
+tau, phi, eps, N, p, P, b_d, b_R, e, d_c , test = [.8], [.8], [0.0], [100], [0.125], [1000], [1.2], [1.], [100], [0.06], [0]
+if noise:
+    eps = [0.05]
 
 NAME = 'tau_vs_phi_' + sub_experiment + '_sensitivity'
 INDEX = {0: "tau", 1: "phi", parameters[sub_experiment]: sub_experiment}
 
 if sub_experiment == 'b_d':
     PARAM_COMBS = list(it.product(taus,\
-        phis, eps, N, p, P, b_ds, b_R, e, d_c))
+        phis, eps, N, p, P, b_ds, b_R, e, d_c, test))
 
 elif sub_experiment == 'b_R':
     PARAM_COMBS = list(it.product(taus,\
-        phis, eps, N, p, P, b_d, b_Rs, e, d_c))
+        phis, eps, N, p, P, b_d, b_Rs, e, d_c, test))
 
 elif sub_experiment == 'e':
     PARAM_COMBS = list(it.product(taus,\
-        phis, eps, N, p, P, b_d, b_R, es, d_c))
+        phis, eps, N, p, P, b_d, b_R, es, d_c, test))
 
 elif sub_experiment =='p':
     PARAM_COMBS = list(it.product(taus,\
-        phis, eps, N, ps, P, b_d, b_R, e, d_c))
+        phis, eps, N, ps, P, b_d, b_R, e, d_c, test))
+    
+elif sub_experiment == 'test':
+    PARAM_COMBS = list(it.product(taus,\
+        phis, eps, N, p, P, b_d, b_R, e, d_c, tests))
+
 
 else:
     print sub_experiment, ' is not in the list of possible experiments'
@@ -250,10 +269,10 @@ if mode == 1:
 
 # debug and mess around mode:
 if mode == None:
-    SAMPLE_SIZE = 100
-    #handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
-    #handle.compute(RUN_FUNC)
-    #handle.resave(EVA1, NAME1)
-    #handle.resave(EVA2, NAME2)
-    #plot_tau_phi(SAVE_PATH_RES, NAME2)
+    SAMPLE_SIZE = 2
+    handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+    handle.compute(RUN_FUNC)
+    handle.resave(EVA1, NAME1)
+    handle.resave(EVA2, NAME2)
+    plot_tau_phi(SAVE_PATH_RES, NAME2)
     plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2)
