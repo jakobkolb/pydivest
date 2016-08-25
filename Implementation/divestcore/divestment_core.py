@@ -3,6 +3,7 @@
 import os
 import datetime 
 import csv
+import types
 import numpy as np
 import pandas as pd
 import networkx as nx
@@ -122,7 +123,11 @@ def cue_4(i):
 
 class divestment_core:
 
-    def __init__(self, adjacency, opinions, P_start=1000., tau=0.8, phi=.7, eps=0.05, possible_opinions = [0,1]):
+    def __init__(self, adjacency, opinions, \
+            tau=0.8, phi=.7, eps=0.05, possible_opinions = [0,1], \
+            P=1000., r_b=0, b_c=1., b_d=1.3, s=0.23, d_c=0.06, \
+            b_R0=1., e=50, G_0=1000,\
+            test=False):
 
         ## Modes: 1: only economy, 2: + opinion formation, 3: + decision heuristics
 
@@ -132,7 +137,7 @@ class divestment_core:
         
         ## General Parameters
 
-        self.debug = False              #turn output for debugging on or off
+        self.debug = test               #turn output for debugging on or off
         self.trajectory_output = True   #toggle trajectory output
         self.run_full_time = True       #toggle whether to run full time or only until consensus 
         
@@ -140,13 +145,14 @@ class divestment_core:
 
         self.t = 0                              # System Time
         self.steps = 0                          # Step counter for output
-        self.converged = False                  # 0 for no consensus, 1 consensus
+        self.converged = False                  # eps == 0: 0 for no consensus, 1 consensus
+                                                # eps>0 0 for no convergence, 1 for convergence at t_max
         self.convergence_time = float('NaN')    # safes the system time at which consensus is reached
-        self.convergence_state = -1             # -1 for no consensus, 1 for clean consensus, 
+        self.convergence_state = -1             # eps==0: -1 for no consensus, 1 for clean consensus, 
                                                 # 0 for dirty consensus, in between for fragmentation
-        self.opinions = opinions
-        self.opinion_state = np.mean(opinions)  # to keep track of the current ration of opinions
-        self.possible_opinions = possible_opinions
+                                                # eps>0: if converged: opinion state at time of convergence
+                                                # if not converged: opinion state at t_max
+
 
         self.cues = {1:cue_1, 2:cue_2, 
                 3:cue_3, 4:cue_4}               # dictionary of decision cues
@@ -156,26 +162,32 @@ class divestment_core:
 
         ## Household parameters
 
-        self.tau = tau                  #mean waiting time between social updates
-        self.phi = phi                  #rewiring probability for adaptive voter model
-        self.eps = eps
+        
+        self.tau = tau                  # mean waiting time between social updates
+        self.phi = phi                  # rewiring probability for adaptive voter model
+        self.eps = eps                  # percentage of rewiring and imitation events that are noise
+        self.possible_opinions = possible_opinions  # to select random opinions, 
+                                                    # all possible opinions must be known
 
         self.N = adjacency.shape[0]                 #number of households
-        self.net_birth_rate = .0                   #birth rate for household members
-        self.s = .23                     #percentage of income consumed
+        self.r_b = r_b                              #birth rate for household members
+        self.s = s                                  #percentage of income saved
 
         ## Household variables
 
         ## Individual
-        self.P = P_start                            #members of ALL household = population
+        self.P = P                                  #members of ALL household = population
         self.investment_dirty = np.ones((self.N))   #household investment in clean capital
         self.investment_clean = np.ones((self.N))   #household investment in dirty capital
         self.waiting_times = np.zeros((self.N))      
         self.waiting_times = \
                 np.random.exponential(scale=self.tau, size=self.N)  #waiting times between rewiring events for each household
         self.neighbors = adjacency                  #adjacency matrix between households
-        self.investment_decision = opinions         #investment decision vector
-        self.income = np.zeros((self.N))            #household income (for social update)
+        self.opinions = opinions
+        self.opinion_state = np.mean(opinions)      # to keep track of the current ration of opinions
+
+        self.investment_decision = opinions         # investment decision vector, so far equal to opinions
+        self.income = np.zeros((self.N))            # household income (for social update)
 
         ## Aggregated
         self.K_c = 0    #total clean capital (supply)
@@ -184,9 +196,9 @@ class divestment_core:
 
         ## Sector parameters
 
-        self.d_c = .06              # Clean capital depreciation rate
+        self.d_c = d_c              # Clean capital depreciation rate
         self.d_d = self.d_c         # Dirty capital depreciation rate
-        self.b_R0 = 1.              # Resource harvest cost per unit (at full resource stock)
+        self.b_R0 = b_R0            # Resource harvest cost per unit (at full resource stock)
 
         ## for Cobb Douglas economy 
         ## elasticities of labor and resource use are fixed 
@@ -197,10 +209,10 @@ class divestment_core:
         ## capital and labor elasticities must be equal
         ## in both sectors and satisfy pi + kappa = 1
 
-        self.b_c = 1.                   # solow residual for clean sector
-        self.b_d = 3.                   # solow residual for dirty sector
+        self.b_c = b_c                   # solow residual for clean sector
+        self.b_d = b_d                   # solow residual for dirty sector
 
-        self.pi = 2./5.                 # labor elasticity (equal in both sectors)
+        self.pi = 1./2.                 # labor elasticity (equal in both sectors)
         self.kappa_c = 1. - self.pi     # clean capital elasticity
         self.kappa_d = 1. - self.pi     # dirty capital elasticity
         self.rho = 3./4.                # fossil resource elasticity (Cobb-Douglas)
@@ -208,8 +220,8 @@ class divestment_core:
 
         ## Sector variables
 
-        self.P_c = P_start/2.
-        self.P_d = P_start/2.
+        self.P_c = P/2.
+        self.P_d = P/2.
 
         self.K_c = 0.
         self.K_d = 0.
@@ -230,11 +242,11 @@ class divestment_core:
 
         ## Ecosystem parameters
 
-        self.G_0 = 10000. 
+        self.G_0 = G_0 
 
         ## Ecosystem variables
 
-        self.G = self.G_0
+        self.G = G_0
 
         self.X_R = 1.
 
@@ -252,8 +264,8 @@ class divestment_core:
         Return
         ------
         exit_status : int
-            if exit_status == 1: consensus reached
-            if exit_status == 0: no consensus reached at t=t_max
+            if exit_status == 1: consensus/convergence reached
+            if exit_status == 0: no consensus/convergence reached at t=t_max
             if exit_status ==-1: no consensus & no update candidates found (BAD)
             if exit_status ==-2: economic model broken (BAD)
         """
@@ -292,12 +304,16 @@ class divestment_core:
 
         if self.converged: 
             return 1        #good - consensus reached
+        elif not self.converged:
+            self.convergence_state = self.opinion_state
+            return 0        # no consensus found during run time
         elif candidate==-2: 
             return -1       #bad run - opinion formation broken
         elif np.isnan(self.G): 
             return -2       #bad run - economy broken
-        else: 
-            return 0        # no consensus found during run time
+        else:
+            return -3       #very bad run. Investigations needed
+
 
     def b_Rf(self, G):
         """
@@ -371,7 +387,7 @@ class divestment_core:
                 + self.w*P/self.N
 
         G_dot = -R
-        P_dot= self.net_birth_rate * P
+        P_dot= self.r_b * P
         investment_clean_dot = self.investment_decision*self.s*self.income \
                 - self.investment_clean*self.d_c
         investment_dirty_dot = np.logical_not(self.investment_decision)*self.s*self.income \
@@ -480,7 +496,7 @@ class divestment_core:
                 + self.w*P/self.N
 
         G_dot = -R
-        P_dot= self.net_birth_rate * P
+        P_dot= self.r_b * P
         investment_clean_dot = self.investment_decision*self.s*self.income \
                 - self.investment_clean*self.d_c
         investment_dirty_dot = np.logical_not(self.investment_decision)*self.s*self.income \

@@ -37,13 +37,17 @@ def plot_tau_phi(SAVE_PATH, NAME, fextention = '.png'):
     parameter_combinations = list(it.product(*parameter_levels))
     
     for p in parameter_combinations:
-        d_slice = data.xs(key=p, level=levels).dropna()
+        d_slice = data.xs(key=p, level=levels)
         save_name = zip(parameter_level_names, [round(x,1) for x in p])
 
         for level in list(d_slice.unstack().columns.levels[0]):
-            TwoDFrame = d_slice[level].unstack()
-            vmax = np.max(TwoDFrame.values)
-            vmin = np.min(TwoDFrame.values)
+            TwoDFrame = d_slice[level].unstack().dropna()
+            if TwoDFrame.empty \
+                    or len(TwoDFrame.columns.values)<=1 \
+                    or len(TwoDFrame.index.values)<=1:
+                continue
+            vmax = np.nanmax(TwoDFrame.values)
+            vmin = np.nanmin(TwoDFrame.values)
             TwoDFrame.replace(np.nan, np.inf)
             cmap = cm.get_cmap('RdBu')
             cmap.set_under('yellow')

@@ -14,10 +14,11 @@ import itertools as it
 import sys
 import getpass
 import time
+import types
 
 
 
-def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, test, filename):
+def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -58,10 +59,17 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, test, filename):
     test: int \in [0,1]
         wheter this is a test run, e.g.
         can be executed with lower runtime
-
-
+    filename: string
+        filename for the results of the run
     """
-    t_max = 300 if test == 0 else 50
+    assert isinstance(test, types.IntType), 'test must be int, is {!r}'.format(test)
+
+    #input parameters
+
+    input_params = {'tau':tau, 'phi':phi, 'eps':eps, \
+            'P':P, 'b_d':b_d, 'b_R0':b_R0, \
+            'e':e, 'd_c':d_c, 'test':bool(test)}
+
 
     #building initial conditions
 
@@ -72,14 +80,11 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, test, filename):
     adjacency_matrix = nx.adj_matrix(net).toarray()
     investment_decisions = np.random.randint(low=0, high=2, size=N)
     
+    init_conditions = (adjacency_matrix, investment_decisions)
+
     #initializing the model
 
-    m = model.divestment_core(adjacency_matrix, investment_decisions, P, tau, phi)
-    m.e = e
-    m.eps = eps
-    m.b_R0 = b_R
-    m.d_c = d_c
-    m.b_d = b_d
+    m = model.divestment_core(*init_conditions, **input_params)
 
     #storing initial conditions and parameters
 
@@ -95,7 +100,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, test, filename):
                         "N": m.N,
                         "p": p,
                         "P": m.P,
-                        "birth rate": m.net_birth_rate,
+                        "birth rate": m.r_b,
                         "savings rate": m.s,
                         "clean capital depreciation rate":m.d_c,
                         "dirty capital depreciation rate":m.d_d,
@@ -103,22 +108,23 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, test, filename):
                         "Solov residual clean":m.b_c,
                         "Solov residual dirty":m.b_d,
                         "pi":m.pi,
-                        "kappa":m.kappa_c,
-                        "rho dirty":m.rho,
-                        "e":m.e,
+                        "kappa_c":m.kappa_c,
+                        "kappa_d":m.kappa_d,
+                        "rho":m.rho,
+                        "resource efficiency":m.e,
                         "epsilon":m.eps,
                         "initial resource stock":m.G_0})
 
     #run the model
-    
+
+    t_max = 300 if test == 0 else 50
     start = time.clock()
     exit_status = m.run(t_max=t_max)
 
     #store exit status
-    print exit_status, m.convergence_state
-
     res["convergence"] = exit_status
-
+    if test:
+        print m.tau, m.phi, exit_status, m.convergence_state, m.convergence_time
     #store data in case of successful run
 
     if exit_status in [0,1]:
@@ -152,18 +158,18 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R, e, d_c, test, filename):
     return exit_status
 
 #get sub experiment and mode from command line
-if len(sys.argv)>=1:
+if len(sys.argv)>1:
     input_int = int(sys.argv[1])
 else:
     input_int = -1
-if len(sys.argv)>=2:
-    mode = int(sys.argv[2])
-else:
-    mode = None
-if len(sys.argv)>=3:
-    noise = bool(sys.argv[3])
+if len(sys.argv)>2:
+    noise = bool(int(sys.argv[2]))
 else:
     noise = True
+if len(sys.argv)>3:
+    mode = int(sys.argv[3])
+else:
+    mode = None
 
 experiments = ['b_d', 'b_R', 'e', 'p', 'test']
 sub_experiment = experiments[input_int]
@@ -188,7 +194,7 @@ tests =[1]
 
 
 parameters = {'tau':0, 'phi':1, 'eps':2, 'N':3, 'p':4, 'P':5, 'b_d':6, 'b_R':7, 'e':8, 'd_c':9, 'test':10}
-tau, phi, eps, N, p, P, b_d, b_R, e, d_c , test = [.8], [.8], [0.0], [100], [0.125], [1000], [1.2], [1.], [100], [0.06], [0]
+tau, phi, eps, N, p, P, b_d, b_R, e, d_c , test = [.8], [.8], [0.0], [100], [0.125], [500], [1.2], [1.], [100], [0.06], [0]
 if noise:
     eps = [0.05]
 
