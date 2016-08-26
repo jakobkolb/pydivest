@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
 #SBATCH --qos=short
-#SBATCH --array=0-3
-#SBATCH --job-name=X3
-#SBATCH --output=%A_X3_%a_.out
-#SBATCH --error=%A_X3_%a_.err
+#SBATCH --array=0-5
+#SBATCH --job-name=X3NN
+#SBATCH --output=%A_X3NN_%a_.out
+#SBATCH --error=%A_X3NN_%a_.err
 #SBATCH --time=0-24
 #SBATCH --nodes=2
 #SBATCH --tasks-per-node=16

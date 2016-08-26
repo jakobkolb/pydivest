@@ -289,9 +289,6 @@ class divestment_core:
                 # Update economy, social and decision making
                 candidate, neighbor, neighbors, update_time = self.find_update_candidates()
 
-                if self.debug == True and self.steps%1000==0:
-                    print self.converged, self.t
-
                 #check for convergence and update convergence measure:
                 self.audic_convergence(self.investment_decision, update_time-self.t)
 

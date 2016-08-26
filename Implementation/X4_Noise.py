@@ -173,7 +173,7 @@ else:
 
 experiments = ['b_d', 'b_R', 'e', 'p', 'test']
 sub_experiment = experiments[input_int]
-folder = 'Noise' if noise else 'NoNoise'
+folder = 'X4Noise' if noise else 'X4NoNoise'
 
 #check if cluster or local
 if getpass.getuser() == "kolb":
