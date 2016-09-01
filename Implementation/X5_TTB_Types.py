@@ -244,8 +244,15 @@ cue_names = {
         2: 'capital rent',
         3: 'capital rent trend',
         4: 'peer pressure'}
-opinion_presets = [[0], [1], [2], [3], [4], [2, 3], [3, 2], [3, 4], [4, 1]]
 
+opinion_presets = [[2, 3],  # short term investor
+                   [3, 2],  # long term investor
+                   [4, 2],  # short term herder
+                   [4, 3],  # trending herder
+                   [4, 1],  # green conformer
+                   [4, 0],  # dirty conformer
+                   [1],     # gutmensch
+                   [0]]     # redneck
 """
 set different times for resource depletion
 in units of capital accumulation time t_d = 1/(d_c*(1-kappa_d))
@@ -256,15 +263,14 @@ t_Gs = [round(x, 5) for x in list(10**np.linspace(1.0, 2.0, 3))]
 Define different mixtures of decision makers to test
 """
 opinions = [
-        [100, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 100, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 100, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 100, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 100, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 100, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 100, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 100, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 100]]
+        [100, 0, 0, 0, 0, 0, 0, 0],
+        [0, 100, 0, 0, 0, 0, 0, 0],
+        [0, 0, 100, 0, 0, 0, 0, 0],
+        [0, 0, 0, 100, 0, 0, 0, 0],
+        [0, 0, 0, 0, 100, 0, 0, 0],
+        [0, 0, 0, 0, 0, 100, 0, 0],
+        [0, 0, 0, 0, 0, 0, 100, 0],
+        [0, 0, 0, 0, 0, 0, 0, 100]]
 """
 Define set of alphas that will be tested against the sets of resource depletion
 times and cue order mixtures

@@ -12,12 +12,13 @@ from random import shuffle
 
 class divestment_core:
 
-    def __init__(self, adjacency, opinions,
+    def __init__(self, adjacency=None, opinions=None,
+                 investment_clean=None, investment_dirty=None,
                  possible_opinions=[[0], [1]],
                  tau=0.8, phi=.7, eps=0.05,
                  P=1000., r_b=0, b_c=1., b_d=1.5, s=0.23, d_c=0.06,
                  b_R0=1., e=50, G_0=1000,
-                 test=False):
+                 R_depletion=True, test=False):
 
         # Modes:
         #  1: only economy,
@@ -30,6 +31,7 @@ class divestment_core:
         self.debug = test               # turn output for debugging on or off
         self.trajectory_output = True   # toggle trajectory output
         self.run_full_time = True       # toggle whether to run full time or only until consensus 
+        self.R_depletion = R_depletion  # toggle resource depletion
 
         # General Variables
 
@@ -43,21 +45,19 @@ class divestment_core:
                                                 # eps>0: if converged: opinion state at time of convergence
                                                 # if not converged: opinion state at t_max
 
-
         self.cues = {0: self.cue_0, 1:self.cue_1, 
                 2:self.cue_2, 3:self.cue_3, 
                 4:self.cue_4}                   # dictionary of decision cues
 
         self.audic=0                            #  (transient measure)
         self.trajectory = []                    # list to save trajectory of output variables
+        self.final_state = {}                   # dictionary for final state
 
         # Household parameters
-
 
         self.tau = tau                  # mean waiting time between social updates
         self.phi = phi                  # rewiring probability for adaptive voter model
         self.eps = eps                  # percentage of rewiring and imitation events that are noise
-
 
         self.N = adjacency.shape[0]     # number of households
         self.r_b = r_b                  # birth rate for household members
@@ -354,6 +354,20 @@ class divestment_core:
                 if not self.run_full_time and self.converged:
                     break
 
+        # save final state to dictionary
+
+        self.final_state = {
+                'adjacency': self.neighbors,
+                'opinions': self.opinions,
+                'investment_clean': self.investment_clean,
+                'investment_dirty': self.investment_dirty,
+                'possible_opinions': self.possible_opinions,
+                'tau': self.tau, 'phi': self.phi, 'eps': self.eps,
+                'P': self.P, 'r_b': self.r_b, 'b_c': self.b_c,
+                'b_d': self.b_d, 's': self.s, 'd_c': self.d_c,
+                'b_R0': self.b_R0, 'e': self.e, 'G_0': self.G,
+                'test': self.debug, 'R_depletion': False}
+
         if self.converged:
             return 1        # good - consensus reached
         elif not self.converged:
@@ -452,7 +466,7 @@ class divestment_core:
 
         return x1
 
-    def economy_dot_leontief(self, x0, t):
+    def economy_dot_leontief(self , x0, t):
 
         """
         economic model assuming Cobb-Douglas production
@@ -537,18 +551,18 @@ class divestment_core:
         self.R = R
         self.K_c = K_c
         self.K_d = K_d
-        self.P   = P
+        self.P = P
         self.P_c = P_c
         self.P_d = P_d
         self.c_R = b_R * R
         self.X_R = X_R
 
-        self.income = self.r_c*self.investment_clean \
-                + self.r_d*self.investment_dirty \
-                + self.w*P/self.N
+        self.income = (self.r_c*self.investment_clean
+                       + self.r_d*self.investment_dirty
+                       + self.w*P/self.N)
 
-        G_dot = -R
-        P_dot= self.r_b * P
+        G_dot = -R if self.R_depletion else 0.0
+        P_dot = self.r_b * P
         investment_clean_dot = self.investment_decisions*self.s*self.income \
                 - self.investment_clean*self.d_c
         investment_dirty_dot = np.logical_not(self.investment_decisions)*self.s*self.income \
@@ -556,13 +570,6 @@ class divestment_core:
 
         K_c_dot = sum(investment_clean_dot)
         K_d_dot = sum(investment_dirty_dot)
-
-        #self.r_c_dot = self.b_c*self.kappa_c*(self.kappa_c-1.)\
-        #        *self.pi*P**(self.pi)*K_c**(self.kappa_c - 2.)\
-        #        *K_c_dot
-        #self.r_d_dot = self.b_d*self.kappa_d*(self.kappa_d-1.)\
-        #        *self.pi*P**(self.pi)*K_d**(self.kappa_d - 2.)\
-        #        *K_d_dot
 
         x1 = np.fromiter(chain.from_iterable([ 
             list(investment_clean_dot), 

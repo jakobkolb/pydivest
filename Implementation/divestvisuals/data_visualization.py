@@ -257,7 +257,7 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, file_extension='.pn
                          SAVE_PATH, save_name, pos, file_extension)
 
 
-def plot_observables(t_data_in, c_data_in, loc, save_name, pos, file_extension='.png'):
+def plot_observables(t_data_in, c_data_in, loc, save_name, pos=None, file_extension='.png'):
     """
     function to create a grid of plots of the values of
     the observable for the values of the parameters given in
@@ -294,7 +294,7 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos, file_extension='
                  ['K_c', 'K_d'], ['K_c_cost', 'K_d_cost'],
                  ['P_c', 'P_d'], ['Y_c', 'Y_d'],
                  [str(x) for x in pos],
-                 ['R'], ['decision_state'],
+                 ['R'], ['decision state'],
                  ['G']]
     title_list = {0: 'capital rates',
                   1: 'trends',
@@ -344,7 +344,7 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos, file_extension='
 
         # create figure with enough space for ivals*columns plots
         # plus color map at the side
-        fig = plt.figure(figsize=(4*len(jvals), 4*len(ivals)))
+        fig = plt.figure(figsize=(4*(len(jvals)), 4*(len(ivals)+1)))
         axes = []
 
         for i, ival in enumerate(ivals):
@@ -416,22 +416,22 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos, file_extension='
 #                # change y axis scale to 'log' for plots with nonzero data
 #                if sum(np.sign(subset_j)) > 0 and observable in log_list:
 #                    axes[-1].set_yscale('log', nonposy='mask')
-
                 # add tau and phi values to rows and columns
-                if pos is None:
+                if ind_names[1] != 'opinion':
                     if i == len(ivals) - 1:
                         plt.title(ind_names[1] + ' = '
-                                               + `jval`,
+                                               + `round(jval,2)`,
                                   fontsize=labelsize_2)
                 # if initial types are given,
                 # create a string representation of the initial
                 # type distribution to use as title
-                elif pos is not None:
+                elif ind_names[1] == 'opinion':
                     title = ''
                     if i == len(ivals) - 1:
                         op_count = [int(x) for x in
                                     jval.strip('[]').split(',')]
-                        ct, ixs = np.unique(op_count, return_index=True)
+                        ixs = np.nonzero(op_count)[0]
+                        ct = [op_count[ix] for ix in ixs]
                         for c, ix in zip(ct, ixs):
                             if c > 0:
                                 title += '{}*{}\n'.format(c, pos[ix])

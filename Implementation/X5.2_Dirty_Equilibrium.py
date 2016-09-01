@@ -1,12 +1,7 @@
 """
-This experiment focuses on the transition from a full dirty
-economy to a clean economy as the fossil resource is depleted.
-
-Therefore, the system starts in an equilibrium dirty state where
-K_d has reached its max value K_c* and opinions are distributed
-with relative shares of U/S = eps/(1-phi) amongst successful and
-unsuccessful strategies. Internally, successful and Unsuccessful
-strategies are distributed equally.
+This experiment is dedicated to finding the dirty equilibrium of
+the system. Thus, the fossil resource is assumed to be infinite 
+and the system is run with noise and adaptive voter dynamics.
 
 Variable parameters are:
 
@@ -39,8 +34,8 @@ import time
 import types
 
 
-def RUN_FUNC(alpha, phi, d_c,
-             possible_opinions, eps, avm, test, filename):
+def RUN_FUNC(t_a, phi, alpha,
+             possible_opinions, eps, transition, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -50,16 +45,17 @@ def RUN_FUNC(alpha, phi, d_c,
 
     Parameters:
     -----------
-    t_G : float
-        timescale of fossil resource depletion
-        in a full fledged dirty economy
-        input is given in relation to t_c
+    t_a : float
+        Timescale of opinion spreading given
+        one opinion dominates. Timescale is
+        given in units of the timescale of
+        capital accumulation t_c
         such that the actual depletion time is
-        t_G*t_c
-    nopinions : list of integers
-        integer value indicating the number of
-        households that hold a specific opinion.
-        N = sum(opinions)
+        t_a*t_c
+    phi : list of integers
+        rewiring probability of the adaptive voter
+        dynamics. Governs the clustering in the
+        network of households.
     alpha: float
         the ratio alpha = (b_R0/e)**(1/2)
         that sets the share of the initial
@@ -71,8 +67,8 @@ def RUN_FUNC(alpha, phi, d_c,
         order, that a household uses.
     eps : float
         fraction of rewiring events that are random.
-    avm: bool
-        switch for adaptive voter dynamics in the model
+    transition: bool
+        switch for resource depletion
     test: int \in [0,1]
         whether this is a test run, e.g.
         can be executed with lower runtime
@@ -84,15 +80,21 @@ def RUN_FUNC(alpha, phi, d_c,
     assert alpha < 1,\
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
-    (N, p, tau, phi, P, b_d, b_R0, e, d_c, s) =\
-        (sum(nopinions), 0.125, .8, .8, 500, 1.2, 1., 100, 0.06, 0.23)
+    (N, p, P, b_d, b_R0, e, d_c, s) =\
+        (100, 0.125, 500, 1.2, 1., 100, 0.06, 0.23)
 
     # capital accumulation of dirty capital
     # (t_d = 1/(d_c*(1-kappa_c)) with kappa_c = 0.5 :
     t_d = 1/(2.*d_c)
 
     # Rescale input times to capital accumulation time:
-    t_G = t_G*t_d
+    t_a = t_a*t_d
+
+    # set tau according to t_a and phi
+    tau = t_a/(1.-phi)
+
+    # set t_G to some value approx. half of run time
+    t_G = 100*t_d
 
     # set G_0 according to resource depletion time:
     # t_G = G_0*e*d_c/(P*s*b_d**2)
@@ -108,7 +110,8 @@ def RUN_FUNC(alpha, phi, d_c,
             'possible_opinions': possible_opinions,
             'tau': tau, 'phi': phi, 'eps': eps,
             'P': P, 'b_d': b_d, 'b_R0': b_R0, 'G_0': G_0,
-            'e': e, 'd_c': d_c, 'test': bool(test)}
+            'e': e, 'd_c': d_c, 'test': bool(test),
+            'R_depletion': transition}
 
     # building initial conditions
 
@@ -118,13 +121,14 @@ def RUN_FUNC(alpha, phi, d_c,
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
 
-    opinions = []
-    for i, n in enumerate(nopinions):
-        opinions.append(np.full(n, i, dtype='I'))
-    opinions = [item for sublist in opinions for item in sublist]
-    shuffle(opinions)
+    opinions = [1 for x in range(N)]
+    investment_clean = np.ones(N)
+    investment_dirty = np.ones(N)
 
-    init_conditions = (adjacency_matrix, opinions)
+    init_conditions = (adjacency_matrix,
+                       opinions,
+                       investment_clean,
+                       investment_dirty)
 
     # initializing the model
 
@@ -165,9 +169,14 @@ def RUN_FUNC(alpha, phi, d_c,
     if test:
         print input_params
 
-    t_max = 300 if test == 0 else 50
+    t_max = 300 if transition else 3000
     start = time.clock()
     exit_status = m.run(t_max=t_max)
+
+    # save final state of the model
+    final_state = m.final_state
+    with open(filename + '_final', 'wb') as dumpfile:
+        cp.dump(final_state, dumpfile)
 
     # store exit status
     res["convergence"] = exit_status
@@ -209,11 +218,11 @@ if len(sys.argv) > 1:
 else:
     mode = 3
 if len(sys.argv) > 2:
-    noise = bool(int(sys.argv[2]))
+    transition = [bool(int(sys.argv[2]))]
 else:
-    noise = False
+    transition = [False]
 
-folder = 'X5_Cue_Orders'
+folder = 'X5.2_Dirty_Equilibrium'
 
 # check if cluster or local
 if getpass.getuser() == "kolb":
@@ -240,63 +249,57 @@ cue_names = {
         2: 'capital rent',
         3: 'capital rent trend',
         4: 'peer pressure'}
-opinion_presets = [[0], [1], [2], [3], [4], [2, 3], [3, 2], [3, 4], [4, 1]]
+opinion_presets = [[2, 3],  # short term investor
+                   [3, 2],  # long term investor
+                   [4, 2],  # short term herder
+                   [4, 3],  # trending herder
+                   [4, 1],  # green conformer
+                   [4, 0],  # dirty conformer
+                   [1],     # gutmensch
+                   [0]]     # redneck
 
 """
 set different times for resource depletion
 in units of capital accumulation time t_d = 1/(d_c*(1-kappa_d))
 """
-t_Gs = [round(x, 5) for x in list(10**np.linspace(0.0, 2.0, 9))]
+t_as = [round(x, 5) for x in list(10**np.linspace(0.1, 100.0, 4))]
 
 """
-Define different mixtures of decision makers to test
+set array of phis to generate equilibrium conditions for
 """
-opinions = [
-        [100, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 100, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 100, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 100, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 100, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 100, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 100, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 100, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 100]]
+phis = [round(x, 2) for x in list(np.linspace(0.0, 1.0, 11))[:-1]]
+
 """
 Define set of alphas that will be tested against the sets of resource depletion
 times and cue order mixtures
 """
-alphas = [round(x, 5) for x in list(10**np.linspace(-4.0, -1.0, 4))]
+alphas = [round(x, 5) for x in list(10**np.linspace(-3.0, -1.0, 2))]
 
 """
 dictionary of the variable parameters in this experiment together with their
 position in the index of the dictionary of results
 """
 parameters = {
-        't_G': 0,
-        'cue_order': 1,
+        't_a': 0,
+        'phi': 1,
         'alpha': 2,
         'test': 3}
 """
 Default values of variable parameter in this experiment
 """
-t_G, cue_order, alpha, test = [5.], [2, 3], [0.001], [0]
+t_a, phi, alpha, test = [0.1], [0.8], [0.001], [0]
 
 NAME = 'Cue_order_testing'
 INDEX = {
-        0: "t_G",
-        parameters['cue_order']: "cue_order",
+        0: "t_a",
+        parameters['phi']: "phi",
         parameters['alpha']: "alpha"}
 """
 set eps according to nose settings
 """
-if noise:
-    eps, avm = [0.05], [True]
-    SAVE_PATH_RAW += '_N/'
-    SAVE_PATH_RES += '_N/'
-else:
-    eps, avm = [0.0], [False]
-    SAVE_PATH_RAW += '_NN/'
-    SAVE_PATH_RES += '_NN/'
+eps, avm = [0.05], [True]
+SAVE_PATH_RAW += '_N/'
+SAVE_PATH_RES += '_N/'
 
 """
 create list of parameter combinations for
@@ -305,14 +308,14 @@ Make sure, opinion_presets are not expanded
 """
 if mode == 1:
     PARAM_COMBS = list(it.product(
-            t_Gs, opinions, alphas, [opinion_presets], eps, avm, test))
+            t_as, phis, alphas, [opinion_presets], eps, transition, test))
 
 elif mode == 2:
     PARAM_COMBS = list(it.product(
-            t_Gs, opinions, alphas, [opinion_presets], eps, avm, test))
+            t_a, phis, alphas, [opinion_presets], eps, transition, test))
 elif mode == 3:
     PARAM_COMBS = list(it.product(
-            t_Gs, opinions, alpha, [opinion_presets], eps, avm, test))
+            t_a, phis, alpha, [opinion_presets], eps, transition, test))
 else:
     print mode, ' is not a valid experiment mode.\
     valid modes are 1: production, 2: test, 3: messy'
@@ -366,7 +369,7 @@ if mode == 1:
 
 # test run
 if mode == 2:
-    SAMPLE_SIZE = 2
+    SAMPLE_SIZE = 100
     handle = experiment_handle(
             SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
