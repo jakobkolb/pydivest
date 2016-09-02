@@ -513,12 +513,16 @@ class divestment_core:
             of household members (depreciated) [0:N]
             clean household investments [N:2N] and
             dirty household investments [2N:3N].
-            The last entry is the remaining fossil 
+            The last entry is the remaining fossil
             reserves.
         """
 
-        investment_clean = x0[0:self.N]
-        investment_dirty = x0[self.N:2*self.N]
+        investment_clean = np.where(x0[0:self.N] > 0,
+                                    x0[0:self.N],
+                                    np.full((self.N), 1e-10))
+        investment_dirty = np.where(x0[self.N:2*self.N] > 0,
+                                    x0[self.N:2*self.N],
+                                    np.full((self.N), 1e-10))
         P = x0[-2]
         G = x0[-1]
 
@@ -528,15 +532,18 @@ class divestment_core:
 
         X_c = (self.b_c * K_c**self.kappa_c)**(1./(1.-self.pi))
         X_d = (self.b_d * K_d**self.kappa_d)**(1./(1.-self.pi))
-        X_R = (1. - b_R/self.e)**(1./(1.-self.pi)) if 1 > b_R/self.e else float('NaN')
+        X_R = (1. - b_R/self.e)**(1./(1.-self.pi))\
+            if 1 > b_R/self.e else float('NaN')
 
         P_c = P*X_c/(X_c + X_d*X_R)
         P_d = P*X_d*X_R/(X_c + X_d*X_R)
-        R   = 1./self.e * self.b_d * K_d**self.kappa_c * P_d**self.pi
+        R = 1./self.e * self.b_d * K_d**self.kappa_c * P_d**self.pi
 
-        self.w   = self.pi * P**(self.pi - 1) * (X_c + X_d*X_R)**(1.-self.pi)
-        self.r_c = self.kappa_c / K_c * X_c * P**self.pi * (X_c + X_d*X_R)**(-self.pi)
-        self.r_d = self.kappa_d / K_d * X_d * X_R * P**self.pi * (X_c + X_d*X_R)**(-self.pi)
+        self.w = self.pi * P**(self.pi - 1) * (X_c + X_d*X_R)**(1.-self.pi)
+        self.r_c = self.kappa_c /\
+            K_c * X_c * P**self.pi * (X_c + X_d*X_R)**(-self.pi)
+        self.r_d = self.kappa_d /\
+            K_d * X_d * X_R * P**self.pi * (X_c + X_d*X_R)**(-self.pi)
 
         # check if dirty sector is profitable (P_d > 0).
         # if not, shut it down.
@@ -545,7 +552,8 @@ class divestment_core:
             P_c = P
             R = 0
             self.w = self.b_c * K_c**self.kappa_c * self.pi * P**(self.pi - 1.)
-            self.r_c = self.b_c * self.kappa_c * K_c**(self.kappa_c - 1.) * P**self.pi
+            self.r_c = self.b_c * self.kappa_c *\
+                K_c**(self.kappa_c - 1.) * P**self.pi
             self.r_d = 0
 
         self.R = R
@@ -560,52 +568,56 @@ class divestment_core:
         self.income = (self.r_c*self.investment_clean
                        + self.r_d*self.investment_dirty
                        + self.w*P/self.N)
+        assert all(self.income > 0),\
+                'income is negative, X_R: {}, X_d: {}, X_c: {}, K_d: {}, K_c: {}\
+                \n investment decisions: \n {} \n income: \n {}'\
+            .format(X_R, X_d, X_c, K_d, K_c,
+                    self.investment_decisions, self.income)
 
         G_dot = -R if self.R_depletion else 0.0
         P_dot = self.r_b * P
         investment_clean_dot = self.investment_decisions*self.s*self.income \
-                - self.investment_clean*self.d_c
-        investment_dirty_dot = np.logical_not(self.investment_decisions)*self.s*self.income \
-                - self.investment_dirty*self.d_d
+            - self.investment_clean*self.d_c
+        investment_dirty_dot = np.logical_not(self.investment_decisions)\
+            * self.s * self.income - self.investment_dirty*self.d_d
 
-        K_c_dot = sum(investment_clean_dot)
-        K_d_dot = sum(investment_dirty_dot)
-
-        x1 = np.fromiter(chain.from_iterable([ 
-            list(investment_clean_dot), 
-            list(investment_dirty_dot), 
-            [P_dot, G_dot]]), dtype='float')
+        x1 = np.fromiter(chain.from_iterable([
+                                             list(investment_clean_dot),
+                                             list(investment_dirty_dot),
+                                             [P_dot, G_dot]]), dtype='float')
 
         return x1
 
     def update_economy(self, update_time):
 
-
         dt = [self.t, update_time]
         x0 = np.fromiter(chain.from_iterable([
-            list(self.investment_clean), 
-            list(self.investment_dirty), 
+            list(self.investment_clean),
+            list(self.investment_dirty),
             [self.P, self.G]]), dtype='float')
 
-
-
-        #integrate the system unless it crashes.
+        # integrate the system unless it crashes.
         if not np.isnan(self.R):
-            #with stdout_redirected():
-            [x0,x1] = odeint(self.economy_dot_leontief, x0, dt, mxhnil=1)
+            # with stdout_redirected():
+            [x0, x1] = odeint(self.economy_dot_leontief, x0, dt, mxhnil=1)
         else:
             x1 = x0
 
-        self.investment_clean = x1[0:self.N]
-        self.investment_dirty = x1[self.N:2*self.N]
+        self.investment_clean = np.where(x1[0:self.N] > 0,
+                                         x1[0:self.N], np.zeros(self.N))
+        self.investment_dirty = np.where(x1[self.N:2*self.N] > 0,
+                                         x1[self.N:2*self.N], np.zeros(self.N))
         self.P = x1[-2]
         self.G = x1[-1]
+        print self.K_d, self.K_c, self.t, self.d_c
+        print self.investment_clean
+        print self.investment_dirty
 
         # memorize return rates for trend estimation
         self.r_cs.append(self.r_c)
         self.r_ds.append(self.r_d)
         self.t_rs.append(self.t)
-        if len(self.r_cs)>self.N_mem:
+        if len(self.r_cs) > self.N_mem:
             self.r_cs.pop(0)
             self.r_ds.pop(0)
             self.t_rs.pop(0)
@@ -616,11 +628,11 @@ class divestment_core:
         self.t = update_time
         self.steps += 1
 
-        #calculate market shares:
+        # calculate market shares:
         self.Y_c = self.b_c*self.K_c**self.kappa_c*self.P_c**self.pi
         self.Y_d = self.b_c*self.K_d**self.kappa_d*self.P_d**self.pi*self.R**self.rho
 
-        #output economic data
+        # output economic data
         if self.trajectory_output:
             self.update_economic_trajectory()
 
