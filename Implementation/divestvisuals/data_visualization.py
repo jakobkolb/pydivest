@@ -249,7 +249,7 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, file_extension='.pn
     parameter_combinations = list(it.product(*parameter_levels))
 
     for p in parameter_combinations:
-        trj_d_slice = trj_data.xs(key=p, level=levels).dropna()
+        trj_d_slice = trj_data.xs(key=p, level=levels)
         cns_d_slice = cns_data.xs(key=p, level=levels)
         save_name = zip(parameter_level_names, p)
 
@@ -344,7 +344,13 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos=None, file_extens
 
         # create figure with enough space for ivals*columns plots
         # plus color map at the side
-        fig = plt.figure(figsize=(4*(len(jvals)), 4*(len(ivals)+1)))
+        if ind_names[1] == 'opinion':
+            fig = plt.figure(figsize=(4*(len(jvals)), 4*(len(ivals)+1)))
+        elif ind_names[0] == 'opinion':
+            fig = plt.figure(figsize=(4*(len(jvals)+3), 4*(len(ivals))))
+        else:
+            fig = plt.figure(figsize=(4*(len(jvals)), 4*(len(ivals))))
+
         axes = []
 
         for i, ival in enumerate(ivals):
@@ -360,7 +366,6 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos=None, file_extens
                         level=(0, 1))['<mean_trajectory>']
                 subset_j = subset\
                     .unstack('observables')[pl].dropna(axis=0, how='any')
-
                 subset_errors = t_data.xs(
                         key=(ival, jval),
                         axis=0,
@@ -437,9 +442,21 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos=None, file_extens
                                 title += '{}*{}\n'.format(c, pos[ix])
                         plt.title(title, fontsize=labelsize_2)
                     pass
-                if j == 0:
-                    plt.ylabel(ind_names[0] + ' = ' + `round(ival, 3)`,
-                               fontsize=labelsize_2)
+                if ind_names[0] == 'opinion':
+                    title = ''
+                    if j == 0:
+                        op_count = [int(x) for x in
+                                    ival.strip('[]').split(',')]
+                        ixs = np.nonzero(op_count)[0]
+                        ct = [op_count[ix] for ix in ixs]
+                        for c, ix in zip(ct, ixs):
+                            if c > 0:
+                                title += '{}*{}\n'.format(c, pos[ix])
+                        plt.ylabel(title, fontsize=labelsize_2)
+                else:
+                    if j == 0:
+                        plt.ylabel(ind_names[0] + ' = ' + `round(ival, 3)`,
+                                   fontsize=labelsize_2)
 
                 # remove x axis for all but the lowest row
                 if i != 0:
