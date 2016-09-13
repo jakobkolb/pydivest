@@ -1,7 +1,6 @@
 
 import datetime
 import numpy as np
-import pandas as pd
 import networkx as nx
 from itertools import chain
 from scipy.integrate import odeint
@@ -19,7 +18,8 @@ class divestment_core:
                  P=1000., r_b=0, b_c=1., b_d=1.5, s=0.23, d_c=0.06,
                  b_R0=1., e=50, G_0=1000,
                  R_depletion=True, test=False,
-                 C=0.1, beta=0.03, gamma=1./8., learning=False):
+                 C=1, beta=0.03, gamma=1./8., learning=False,
+                 campaign=False):
 
         # Modes:
         #  1: only economy,
@@ -33,7 +33,8 @@ class divestment_core:
         self.trajectory_output = True   # toggle trajectory output
         self.run_full_time = True       # toggle whether to run full time or only until consensus 
         self.R_depletion = R_depletion  # toggle resource depletion
-        self.learning = learning
+        self.learning = learning        # toggle learning by doing
+        self.campaign = campaign        # toggle campaigning
         self.imitation = True           # toggle imitation in avm
         self.epsilon = np.finfo(dtype='float')
 
@@ -48,10 +49,10 @@ class divestment_core:
                                                 # 0 for dirty consensus, in between for fragmentation
                                                 # eps>0: if converged: opinion state at time of convergence
                                                 # if not converged: opinion state at t_max
-
+        # dictionary of decision cues
         self.cues = {0: self.cue_0, 1: self.cue_1,
                      2: self.cue_2, 3: self.cue_3,
-                     4: self.cue_4}             # dictionary of decision cues
+                     4: self.cue_4, 5: self.cue_1}
 
         self.trajectory = []                    # list to save trajectory of output variables
         self.final_state = {}                   # dictionary for final state
@@ -157,7 +158,7 @@ class divestment_core:
         self.R = 1.
 
         # knowledge stock in clean sector
-        self.C = C
+        self.C = C if learning else 1
 
         self.Y_c = 0.
         self.Y_d = 0.
@@ -250,9 +251,10 @@ class divestment_core:
              0 decide for dirty investment
              1 decide for clean investment
         """
-        if self.r_c>self.r_d*1.1:
+        dif = 1.
+        if self.r_c>self.r_d*dif:
             dec = 1
-        elif self.r_d>self.r_c*1.1:
+        elif self.r_d>self.r_c*dif:
             dec = 0
         else:
             dec = -1
@@ -393,10 +395,11 @@ class divestment_core:
                 'P': self.P, 'r_b': self.r_b, 'b_c': self.b_c,
                 'b_d': self.b_d, 's': self.s, 'd_c': self.d_c,
                 'b_R0': self.b_R0, 'e': self.e, 'G_0': self.G,
+                'C': self.C, 'gamma': self.gamma, 'beta': self.beta,
                 'test': self.debug, 'R_depletion': False}
 
         if self.converged:
-            return 1        # good - consensus reached
+            return 1        # good - consensus reached 
         elif not self.converged:
             self.convergence_state = 0.
             self.convergence_time = self.t
@@ -610,9 +613,9 @@ class divestment_core:
         G_dot = -R if self.R_depletion else 0.0
         P_dot = self.r_b * P
         C_dot = self.b_c * C**self.gamma * P_c**(self.pi) * K_c**self.kappa_c\
-            - C * self.d_c
+            - C * self.beta if self.learning else 0.
         investment_clean_dot = self.investment_decisions*self.s*self.income \
-            - self.investment_clean*self.beta
+            - self.investment_clean*self.d_c
         investment_dirty_dot = np.logical_not(self.investment_decisions)\
             * self.s * self.income - self.investment_dirty*self.d_d
 
@@ -701,10 +704,11 @@ class divestment_core:
             neighbors = self.neighbors[:, candidate].nonzero()[0]
 
             # noise in imitation (exploration of strategies)
+            # people trying new stuff at random
             rdn = np.random.uniform()
             if rdn < self.eps*(1-self.phi) and self.imitation:
                 self.opinions[candidate] = np.random.randint(
-                        len(self.possible_opinions))
+                    len(self.possible_opinions))
                 candidate = -1
                 break
             # noise in rewiring (sometimes they make new friends
@@ -759,16 +763,23 @@ class divestment_core:
                                  neighbors):
 
         same_unconnected = np.zeros(self.N, dtype=int)
-        opinion = self.investment_decisions
+        opinion = self.opinions
 
         # adapt or rewire?
         if (self.phi == 1 or (self.phi != 1
                               and np.random.uniform() < self.phi)):
             # if rewire
             for i in xrange(self.N):
-                if (opinion[i] == opinion[candidate] and
-                        i not in neighbors and i != candidate):
+                # campaigners rewire to everybody
+                if (self.campaign is True and
+                        opinion[candidate] == len(possible_opinions)):
                     same_unconnected[i] = 1
+
+                # everybody else rewires to people with same opinion
+                else:
+                    if (opinion[i] == opinion[candidate] and
+                            i not in neighbors and i != candidate):
+                        same_unconnected[i] = 1
             same_unconnected = same_unconnected.nonzero()[0]
             if len(same_unconnected) > 0:
                 new_neighbor = np.random.choice(same_unconnected)
@@ -780,9 +791,12 @@ class divestment_core:
             # if adapt
             # compare fitness
             df = self.fitness(neighbor) - self.fitness(candidate)
-            if (np.random.uniform() < .5*(np.tanh(df) + 1)) and self.imitation:
-                    self.opinions[candidate] = \
-                            self.opinions[neighbor]
+            # and rewire, if not a campaigner
+            if ((self.campaign is False
+                    or opinion[candidate] != len(self.possible_opinions)-1)
+                    and (np.random.uniform() < .5*(np.tanh(df) + 1))
+                    and self.imitation):
+                self.opinions[candidate] = self.opinions[neighbor]
         return 0
 
     def update_decision_making(self):
@@ -958,11 +972,35 @@ if __name__ == '__main__':
         + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
     # Initial conditions:
+    Trigger = False
+
+    if Trigger:
+
+        nopinions = [20, 10, 20, 20, 20, 20, 10, 10]
+        possible_opinions = [[2, 3], [3, 2], [4, 2], [4, 3], [4], [0], [1], [5]]
+        input_parameters = {'tau': 3, 'eps': 0.05, 'b_d': 1.5,
+                            'b_c': 1., 'phi': 0.6, 'e': 1000,
+                            'G_0': 30000, 'possible_opinions': possible_opinions,
+                            'C': 1, 'gamma': 1./8., 'beta': 0.03,
+                            'campaign': True, 'learning': False}
+
+
+    if not Trigger:
+
+        nopinions = [10, 10]
+        possible_opinions = [[0], [1]]
+        nopinions = [20, 10, 20, 20, 20, 20, 10, 10]
+        possible_opinions = [[2, 3], [3, 2], [4, 2], [4, 3], [4], [0], [1], [5]]
+        input_parameters = {'tau': 3, 'eps': 0.05, 'b_d': 1.2,
+                            'b_c': 0.3, 'phi': 0.6, 'e': 1000,
+                            'G_0': 30000, 'possible_opinions': possible_opinions,
+                            'C': 1, 'gamma': 1./8., 'beta': 0.03,
+                            'campaign': False, 'learning': True}
 
     # opinions:
 
-    nopinions = [20, 20, 20, 20, 0, 50, 50]
-    possible_opinions = [[2, 3], [3, 2], [4, 2], [4, 3], [4], [0], [1]]
+
+
     cops = ['c'+str(x) for x in possible_opinions]
     dops = ['d'+str(x) for x in possible_opinions]
     colors = [np.random.rand(3, 1) for x in possible_opinions]
@@ -989,11 +1027,6 @@ if __name__ == '__main__':
 
     # Parameters:
 
-    input_parameters = {'tau': 10, 'eps': 0.05, 'b_d': 1.2,
-                        'b_c': 0.25, 'phi': 0.8, 'e': 100,
-                        'G_0': 30000, 'possible_opinions': possible_opinions,
-                        'C': 1, 'gamma': 1./8., 'beta': 0.03}
-
     # Initialize Model
 
     model = divestment_core(*init_conditions,
@@ -1007,7 +1040,7 @@ if __name__ == '__main__':
 
     # Run Model
     model.R_depletion = False
-    model.run(t_max=300)
+    model.run(t_max=200)
     model.R_depletion = True
     model.run(t_max=500)
 
@@ -1049,6 +1082,7 @@ if __name__ == '__main__':
     ax5 = fig.add_subplot(235)
     df[['r_d', 'r_c']].plot(ax = ax5)
     mp.axvline(model.convergence_time)
+    ax5.set_ylim([0, 0.2])
     #ax5.set_yscale('log')
 
     ax6 = fig.add_subplot(236)

@@ -83,8 +83,8 @@ def RUN_FUNC(t_a, phi, alpha,
     assert alpha < 1,\
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
-    (N, p, tau, P, b_d, b_R0, e, s) =\
-        (100, 0.125, 0.8, 500, 1.2, 1., 100, 0.23)
+    (N, p, tau, P, b_d, b_c, b_R0, e, s) =\
+        (100, 0.125, 0.8, 500, 1.2, 0.3, 1., 100, 0.23)
 
     # ROUND ONE: FIND EQUILIBRIUM DISTRIBUTIONS:
     if not transition:
@@ -134,8 +134,8 @@ def RUN_FUNC(t_a, phi, alpha,
                         'tau': tau, 'phi': phi, 'eps': eps,
                         'P': P, 'b_d': b_d, 'b_R0': b_R0, 'G_0': G_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
+                        'b_c': b_c, 'learning': True,
                         'R_depletion': transition}
-
     # ROUND TWO: TRANSITION
     if transition:
         # build list of initial conditions
@@ -256,11 +256,11 @@ conditions for transition in run function.
 """
 
 if no_heuristics:
-    FOLDER_EQUI = 'X5o2_Dirty_Equilibrium_No_TTB'
-    FOLDER_TRANS = 'X5o2_Dirty_Clean_Transition_No_TTB'
+    FOLDER_EQUI = 'X5o4_Dirty_Equilibrium_No_TTB'
+    FOLDER_TRANS = 'X5o4_Dirty_Clean_Transition_No_TTB'
 else:
-    FOLDER_EQUI = 'X5o2_Dirty_Equilibrium'
-    FOLDER_TRANS = 'X5o2_Dirty_Clean_Transition'
+    FOLDER_EQUI = 'X5o4_Dirty_Equilibrium'
+    FOLDER_TRANS = 'X5o4_Dirty_Clean_Transition'
 
 if not any(transition):
     print 'EQUI'
@@ -450,8 +450,7 @@ if mode == 1:
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
     plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
-                  file_extension='.pdf')
+    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets)
 
 # test run
 if mode == 2:
@@ -462,8 +461,7 @@ if mode == 2:
     # handle.resave(EVA1, NAME1)
     # handle.resave(EVA2, NAME2)
     # plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
-                  file_extension='.pdf')
+    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets)
 
 # debug and mess around mode:
 if mode == 3:
@@ -474,5 +472,4 @@ if mode == 3:
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
     plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
-                  file_extension='.pdf')
+    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets)
