@@ -104,11 +104,23 @@
 
 \newcommand{\vect}[1]{\boldsymbol{\mathbf{#1}}}
 
-
-
-%adjust nested math sizes
-%\DeclareMathSizes{12}{12}{10}{8}
-
+% easy column vectors
+\newcount\colveccount
+\newcommand*\colvec[1]{
+        \global\colveccount#1
+        \begin{pmatrix}
+        \colvecnext
+}
+\def\colvecnext#1{
+        #1
+        \global\advance\colveccount-1
+        \ifnum\colveccount>0
+                \\
+                \expandafter\colvecnext
+        \else
+                \end{pmatrix}
+        \fi
+}
     
 
 %Papiergeometrie

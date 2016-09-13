@@ -18,7 +18,8 @@ class divestment_core:
                  tau=0.8, phi=.7, eps=0.05,
                  P=1000., r_b=0, b_c=1., b_d=1.5, s=0.23, d_c=0.06,
                  b_R0=1., e=50, G_0=1000,
-                 R_depletion=True, test=False):
+                 R_depletion=True, test=False,
+                 C=0.1, beta=0.03, gamma=1./8., learning=False):
 
         # Modes:
         #  1: only economy,
@@ -32,6 +33,7 @@ class divestment_core:
         self.trajectory_output = True   # toggle trajectory output
         self.run_full_time = True       # toggle whether to run full time or only until consensus 
         self.R_depletion = R_depletion  # toggle resource depletion
+        self.learning = learning
         self.imitation = True           # toggle imitation in avm
         self.epsilon = np.finfo(dtype='float')
 
@@ -47,9 +49,9 @@ class divestment_core:
                                                 # eps>0: if converged: opinion state at time of convergence
                                                 # if not converged: opinion state at t_max
 
-        self.cues = {0: self.cue_0, 1:self.cue_1, 
-                2:self.cue_2, 3:self.cue_3, 
-                4:self.cue_4}                   # dictionary of decision cues
+        self.cues = {0: self.cue_0, 1: self.cue_1,
+                     2: self.cue_2, 3: self.cue_3,
+                     4: self.cue_4}             # dictionary of decision cues
 
         self.trajectory = []                    # list to save trajectory of output variables
         self.final_state = {}                   # dictionary for final state
@@ -66,7 +68,7 @@ class divestment_core:
 
         # Decision making variables:
 
-        self.N_mem = 10                       # number of steps that households memorize to estimate trend
+        self.N_mem = 20                       # number of steps that households memorize to estimate trend
         self.r_cs = []                       # memory of r_c values
         self.r_ds = []                       # memory of r_d values
         self.t_rs = []                       # times of memories
@@ -81,16 +83,18 @@ class divestment_core:
         self.possible_opinions = possible_opinions  # to select random opinions, 
                                                     # all possible opinions must be known
         self.opinions = np.array(opinions)          # opinions as indices of possible_opinions
-
-                                                    # to keep track of the current ration of opinions
-        ### these two need some scrutiny
-        i, n = np.unique(self.opinions, \
-                return_counts = True)
-        self.opinion_state = [n[list(i).index(j)] if j in i else 0 for j in range(len(self.possible_opinions))] 
+        self.clean_opinions = np.zeros((len(possible_opinions)))
+        self.dirty_opinions = np.zeros((len(possible_opinions)))
+        # to keep track of the current ration of opinions
+        i, n = np.unique(self.opinions,
+                         return_counts=True)
+        self.opinion_state = [n[list(i).index(j)]
+                              if j in i else 0
+                              for j in range(len(self.possible_opinions))] 
 
         self.decision_state = 0.                    # to keep track of investment decisions.
         self.investment_decisions = \
-                np.random.randint(0,2,self.N)       # investment decision vector, so far equal to opinions
+            np.random.randint(0, 2, self.N)       # investment decision vector, so far equal to opinions
 
         # members of ALL household = population   
         self.P = P
@@ -119,6 +123,7 @@ class divestment_core:
 
         self.d_c = d_c              # Clean capital depreciation rate
         self.d_d = self.d_c         # Dirty capital depreciation rate
+        self.beta = beta            # knowledge depreciation rate
         self.b_R0 = b_R0            # Resource harvest cost per unit (at full resource stock)
 
         # for Cobb Douglas economy
@@ -138,6 +143,7 @@ class divestment_core:
         self.kappa_d = 1. - self.pi     # dirty capital elasticity
         self.rho = 3./4.                # fossil resource elasticity (Cobb-Douglas)
         self.e = 10.                    # fossil->energy->output conversion efficiency (Leontief)
+        self.gamma = 1./8.              # elasticity of knowledge
 
         # Sector variables
 
@@ -147,7 +153,11 @@ class divestment_core:
         self.K_c = 0.
         self.K_d = 0.
 
+        # resource uptake in dirty sector
         self.R = 1.
+
+        # knowledge stock in clean sector
+        self.C = C
 
         self.Y_c = 0.
         self.Y_d = 0.
@@ -170,6 +180,10 @@ class divestment_core:
         self.G = G_0
 
         self.X_R = 1.
+
+        if self.trajectory_output:
+            self.init_economic_trajectory()
+
 
     def cue_0(self, i):
         """
@@ -263,9 +277,9 @@ class divestment_core:
              0 decide for dirty investment
              1 decide for clean investment
         """
-        if self.r_c_dot>self.r_d_dot*1.1:
+        if self.r_c_dot > self.r_d_dot*1.1 and self.r_c > self.d_c:
             dec = 1
-        elif self.r_d_dot>self.r_c_dot*1.1:
+        elif self.r_d_dot > self.r_c_dot*1.1 and self.r_d > self.d_c:
             dec = 0
         else:
             dec = -1
@@ -324,8 +338,6 @@ class divestment_core:
             if exit_status ==-2: economic model broken (BAD)
         """
 
-        if self.trajectory_output:
-            self.init_economic_trajectory()
 
         if self.mode == 1:
             # only economic model:
@@ -386,7 +398,8 @@ class divestment_core:
         if self.converged:
             return 1        # good - consensus reached
         elif not self.converged:
-            self.convergence_state = self.opinion_state
+            self.convergence_state = 0.
+            self.convergence_time = self.t
             return 0        # no consensus found during run time
         elif candidate == -2:
             return -1       # bad run - opinion formation broken
@@ -397,24 +410,24 @@ class divestment_core:
 
     def b_Rf(self, G):
         """
-        Calculates the dependence of resource harvest cost on 
-        remaining resource stock starts at b_R0 and 
-        increases with decreasing stock if stock is depleted, 
+        Calculates the dependence of resource harvest cost on
+        remaining resource stock starts at b_R0 and
+        increases with decreasing stock if stock is depleted,
         costs are infinite
 
         Parameter
         ---------
         G : float
             The quantity of resource remaining in Stock
-        
+
         Return
         ------
         b_R     : float
             The resource extraction efficiency according to the
             current resource stock
         """
-        
-        if G>0:
+
+        if G > 0:
             b_R = self.b_R0*(self.G_0/G)**2
         else:
             b_R = float('inf')
@@ -480,7 +493,7 @@ class divestment_core:
 
         return x1
 
-    def economy_dot_leontief(self , x0, t):
+    def economy_dot_leontief(self, x0, t):
 
         """
         economic model assuming Cobb-Douglas production
@@ -513,7 +526,7 @@ class divestment_core:
             clean household investments [0:N] and
             dirty household investments [N:2N].
             Second last entry is total population
-            The last entry is the remaining fossil 
+            The last entry is the remaining fossil
             reserves.
 
         t   : float
@@ -537,8 +550,9 @@ class divestment_core:
         investment_dirty = np.where(x0[self.N:2*self.N] > 0,
                                     x0[self.N:2*self.N],
                                     np.full((self.N), self.epsilon.eps))
-        P = x0[-2]
-        G = x0[-1]
+        P = x0[-3]
+        G = x0[-2]
+        C = x0[-1]
 
         K_c = sum(investment_clean)
         K_d = sum(investment_dirty)
@@ -547,8 +561,9 @@ class divestment_core:
         assert K_c >= 0, 'negative clean capital'
         assert K_d >= 0, 'negative dirty capital'
         assert G >= 0, 'negative resource'
+        assert C >= 0, 'negative knowledge'
 
-        X_c = (self.b_c * K_c**self.kappa_c)**(1./(1.-self.pi))
+        X_c = (self.b_c * C**self.gamma * K_c**self.kappa_c)**(1./(1.-self.pi))
         X_d = (self.b_d * K_d**self.kappa_d)**(1./(1.-self.pi))
         X_R = (1. - b_R/self.e)**(1./(1.-self.pi))\
             if 1 > b_R/self.e else float('NaN')
@@ -569,8 +584,8 @@ class divestment_core:
             P_d = 0
             P_c = P
             R = 0
-            self.w = self.b_c * K_c**self.kappa_c * self.pi * P**(self.pi - 1.)
-            self.r_c = self.b_c * self.kappa_c *\
+            self.w = self.b_c * C**self.gamma * K_c**self.kappa_c * self.pi * P**(self.pi - 1.)
+            self.r_c = self.b_c * C**self.gamma * self.kappa_c *\
                 K_c**(self.kappa_c - 1.) * P**self.pi
             self.r_d = 0
 
@@ -594,15 +609,17 @@ class divestment_core:
 
         G_dot = -R if self.R_depletion else 0.0
         P_dot = self.r_b * P
+        C_dot = self.b_c * C**self.gamma * P_c**(self.pi) * K_c**self.kappa_c\
+            - C * self.d_c
         investment_clean_dot = self.investment_decisions*self.s*self.income \
-            - self.investment_clean*self.d_c
+            - self.investment_clean*self.beta
         investment_dirty_dot = np.logical_not(self.investment_decisions)\
             * self.s * self.income - self.investment_dirty*self.d_d
 
         x1 = np.fromiter(chain.from_iterable([
                                              list(investment_clean_dot),
                                              list(investment_dirty_dot),
-                                             [P_dot, G_dot]]), dtype='float')
+                                             [P_dot, G_dot, C_dot]]), dtype='float')
 
         return x1
 
@@ -612,7 +629,7 @@ class divestment_core:
         x0 = np.fromiter(chain.from_iterable([
             list(self.investment_clean),
             list(self.investment_dirty),
-            [self.P, self.G]]), dtype='float')
+            [self.P, self.G, self.C]]), dtype='float')
 
         # integrate the system unless it crashes.
         if not np.isnan(self.R):
@@ -625,8 +642,9 @@ class divestment_core:
                                          x1[0:self.N], np.zeros(self.N))
         self.investment_dirty = np.where(x1[self.N:2*self.N] > 0,
                                          x1[self.N:2*self.N], np.zeros(self.N))
-        self.P = x1[-2]
-        self.G = x1[-1]
+        self.P = x1[-3]
+        self.G = x1[-2]
+        self.C = x1[-1]
 
         # memorize return rates for trend estimation
         self.r_cs.append(self.r_c)
@@ -640,17 +658,15 @@ class divestment_core:
         self.r_c_dot = linregress(self.t_rs, self.r_cs)[0]
         self.r_d_dot = linregress(self.t_rs, self.r_ds)[0]
         if np.isnan(self.r_c_dot):
-            print self.r_cs
             self.r_c_dot = 0
         if np.isnan(self.r_d_dot):
-            print self.r_ds
             self.r_d_dot = 0
         self.t = update_time
         self.steps += 1
 
         # calculate market shares:
-        self.Y_c = self.b_c*self.K_c**self.kappa_c*self.P_c**self.pi
-        self.Y_d = self.b_c*self.K_d**self.kappa_d*self.P_d**self.pi*self.R**self.rho
+        self.Y_c = self.b_c * self.C**self.gamma * self.K_c**self.kappa_c * self.P_c**self.pi
+        self.Y_d = self.b_d * self.K_d**self.kappa_d * self.P_d**self.pi
 
         # output economic data
         if self.trajectory_output:
@@ -725,10 +741,6 @@ class divestment_core:
             if neighbor < self.N:
                 # update candidate found (GOD)
                 break
-            elif self.converged:
-                candidate = -1
-                update_time = self.t + self.tau
-                break
             else:
                 i += 1
                 if i % self.N == 0:
@@ -779,6 +791,9 @@ class divestment_core:
         # preferences and the state of the
         # economy
 
+        self.dirty_opinions = np.zeros((len(self.possible_opinions)))
+        self.clean_opinions = np.zeros((len(self.possible_opinions)))
+
         for i in range(self.N):
             for cue in self.possible_opinions[self.opinions[i]]:
                 decision = self.cues[cue](i)
@@ -787,6 +802,13 @@ class divestment_core:
                     break
             if decision == -1:
                 self.investment_decisions[i] = np.random.randint(2)
+                decision = self.investment_decisions[i]
+            if decision == 0:
+                self.dirty_opinions[self.opinions[i]] += 1./self.N
+            elif decision == 1:
+                self.clean_opinions[self.opinions[i]] += 1./self.N
+
+        # print sum(self.clean_opinions) + sum(self.dirty_opinions)
 
         self.decision_state = np.mean(self.investment_decisions)
 
@@ -842,7 +864,7 @@ class divestment_core:
             self.convergence_state =\
                 (self.G-alpha*self.G_0)/(self.G_0*(1.-alpha))
             self.convergence_time = self.t
-            self.convergence = True
+            self.converged = True
 
     def fitness(self, agent):
         return self.income[agent]
@@ -862,6 +884,7 @@ class divestment_core:
               self.P,
               self.G,
               self.R,
+              self.C,
               self.Y_c,
               self.Y_d,
               self.P_c*self.w,
@@ -871,7 +894,9 @@ class divestment_core:
               self.c_R,
               self.converged,
               self.decision_state],
-             self.opinion_state]))
+             self.opinion_state,
+             self.clean_opinions,
+             self.dirty_opinions]))
         self.trajectory.append(element)
 
     def init_economic_trajectory(self):
@@ -889,6 +914,7 @@ class divestment_core:
               'P',
               'G',
               'R',
+              'C',
               'Y_c',
               'Y_d',
               'P_c_cost',
@@ -898,25 +924,26 @@ class divestment_core:
               'c_R',
               'consensus',
               'decision state'],
-             [str(x) for x in self.possible_opinions]]))
+             [str(x) for x in self.possible_opinions],
+             ['c'+str(x) for x in self.possible_opinions],
+             ['d'+str(x) for x in self.possible_opinions]]))
         self.trajectory.append(element)
 
         dt = [self.t, self.t]
         x0 = np.fromiter(chain.from_iterable([
             list(self.investment_clean),
             list(self.investment_dirty),
-            [self.P, self.G]]), dtype='float')
+            [self.P, self.G, self.C]]), dtype='float')
 
         [x0, x1] = odeint(self.economy_dot_leontief, x0, dt)
 
         self.investment_clean = x1[0:self.N]
         self.investment_dirty = x1[self.N:2*self.N]
-        self.P = x1[-2]
-        self.G = x1[-1]
+        self.P = x1[-3]
+        self.G = x1[-2]
+        self.C = x1[-1]
 
         self.update_economic_trajectory()
-
-
 
 
 if __name__ == '__main__':
@@ -926,23 +953,24 @@ if __name__ == '__main__':
     """
     import pandas as pd
     import matplotlib.pyplot as mp
-   
-   
-    output_location = 'test_output/' + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
+    output_location = 'test_output/'\
+        + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
     # Initial conditions:
 
     # opinions:
 
-    nopinions = [20,20,0,0,0]
-    possible_opinions = [[1,3],[2,3],[2,4],[3,4],[4]]
+    nopinions = [20, 20, 20, 20, 0, 50, 50]
+    possible_opinions = [[2, 3], [3, 2], [4, 2], [4, 3], [4], [0], [1]]
+    cops = ['c'+str(x) for x in possible_opinions]
+    dops = ['d'+str(x) for x in possible_opinions]
+    colors = [np.random.rand(3, 1) for x in possible_opinions]
+    colors = colors + colors
 
     opinions = []
     for i, n in enumerate(nopinions):
-        opinions.append(np.full((n),i, dtype='I'))
-        print i, n
-        print opinions
+        opinions.append(np.full((n), i, dtype='I'))
     opinions = [item for sublist in opinions for item in sublist]
     shuffle(opinions)
 
@@ -956,27 +984,32 @@ if __name__ == '__main__':
         if len(list(net)) > 1:
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
-    print adjacency_matrix
-    print connected_components(adjacency_matrix)
-    
+
     init_conditions = (adjacency_matrix, opinions)
 
     # Parameters:
 
-    input_parameters = {'tau':0.1, 'eps':0.05, 'b_d':1.6,\
-            'G_0':3000, 'possible_opinions':possible_opinions}
+    input_parameters = {'tau': 10, 'eps': 0.05, 'b_d': 1.2,
+                        'b_c': 0.25, 'phi': 0.8, 'e': 100,
+                        'G_0': 30000, 'possible_opinions': possible_opinions,
+                        'C': 1, 'gamma': 1./8., 'beta': 0.03}
 
     # Initialize Model
 
-    model = divestment_core(*init_conditions, tau = 0.1, eps=0.05, b_d = 1.6, G_0 = 3000)
+    model = divestment_core(*init_conditions,
+                            **input_parameters)
+
+    # model.mode = 1
 
     # Turn on debugging
 
     model.debug = True
 
     # Run Model
-
-    model.run(t_max=50)
+    model.R_depletion = False
+    model.run(t_max=300)
+    model.R_depletion = True
+    model.run(t_max=500)
 
     # Print some output
 
@@ -988,43 +1021,42 @@ if __name__ == '__main__':
     print 'finish time', model.t
     print 'steps computed', model.steps
 
+    trj = model.trajectory
+    headers = trj.pop(0)
+    df = pd.DataFrame(trj, columns=headers)
+    df = df.set_index('time')
+    print df[['P_c', 'P_d', 'G', 'K_c', 'K_d', 'r_c_dot', 'r_d_dot']]
 
+    fig = mp.figure()
+    ax1 = fig.add_subplot(231)
+    df[['K_d', 'K_c', 'C']].plot(ax=ax1)
+    ax1.set_yscale('log')
 
-#   trj = model.trajectory
-#   headers = trj.pop(0)
-#   df = pd.DataFrame(trj, columns=headers)
-#   df = df.set_index('time')
-#
-#   fig = mp.figure()
-#   ax1 = fig.add_subplot(231)
-#   df[['K_d', 'K_c']].plot(ax = ax1)
-#   ax1.set_yscale('log')
-#  
-#   ax2 = fig.add_subplot(232)
-#   df[['P_d', 'P_c']].plot(ax = ax2)
-#   mp.axvline(model.convergence_time)
-#   ax2.set_yscale('log')
-#
-#   ax3 = fig.add_subplot(233)
-#   df[['G']].plot(ax = ax3)
-#   mp.axvline(model.convergence_time)
-#   ax3.set_yscale('log')
-#
-#   ax4 = fig.add_subplot(234)
-#   df[['r_c_dot', 'r_d_dot']].plot(ax = ax4)
-#   mp.axvline(model.convergence_time)
-#
-#   ax5 = fig.add_subplot(235)
-#   df[['r_d', 'r_c']].plot(ax = ax5)
-#   mp.axvline(model.convergence_time)
-#   #ax5.set_yscale('log')
-#
-#   ax6 = fig.add_subplot(236)
-#   df[['decision state']].plot(ax = ax6)
-#   mp.axvline(model.convergence_time)
-#   ax6.set_yscale('log')
-#
-#   mp.show()
-#   print df[['P_c', 'P_d', 'G', 'K_c', 'K_d', 'r_c_dot', 'r_d_dot']]
+    ax2 = fig.add_subplot(232)
+    df[['Y_d', 'Y_c']].plot(ax=ax2)
+    mp.axvline(model.convergence_time)
+    ax2.set_yscale('log')
+
+    ax3 = fig.add_subplot(233)
+    df[['G']].plot(ax=ax3)
+    mp.axvline(model.convergence_time)
+    ax3.set_yscale('log')
+
+    ax4 = fig.add_subplot(234)
+    df[['K_c_cost', 'K_d_cost', 'P_c_cost', 'P_d_cost']].plot(ax=ax4)
+    mp.axvline(model.convergence_time)
+
+    ax5 = fig.add_subplot(235)
+    df[['r_d', 'r_c']].plot(ax = ax5)
+    mp.axvline(model.convergence_time)
+    #ax5.set_yscale('log')
+
+    ax6 = fig.add_subplot(236)
+    df[cops+dops].plot.area(color = colors, ax=ax6, alpha=0.3, legend=False)
+    df[['decision state']].plot(ax = ax6)
+    mp.axvline(model.convergence_time)
+    #ax6.set_yscale('log')
+
+    mp.show()
 
 

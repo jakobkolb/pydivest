@@ -3,7 +3,7 @@ import numpy as np
 import networkx as nx
 import itertools as it
 import matplotlib as mpl
-mpl.use('Agg')
+#mpl.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.colors as cl
 import matplotlib.cm as cm
@@ -40,7 +40,6 @@ def plot_tau_phi(SAVE_PATH, NAME, xlog=False,
 
     for p in parameter_combinations:
         d_slice = data.xs(key=p, level=levels)
-        print parameter_level_names
         save_name = zip(parameter_level_names, [str(x) for x in p])
 
         for level in list(d_slice.unstack().columns.levels[0]):
@@ -65,7 +64,6 @@ def plot_tau_phi(SAVE_PATH, NAME, xlog=False,
                     xlog=xlog,
                     ylog=ylog)
             target = SAVE_PATH + '/' + level.strip('<>') + `save_name`
-            print target
             fig.savefig(target + fextension)
             fig.clf()
             plt.close()
@@ -251,13 +249,15 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, file_extension='.pn
     for p in parameter_combinations:
         trj_d_slice = trj_data.xs(key=p, level=levels)
         cns_d_slice = cns_data.xs(key=p, level=levels)
+        p = (round(x, 4) for x in p)
         save_name = zip(parameter_level_names, p)
 
         plot_observables(trj_d_slice, cns_d_slice,
                          SAVE_PATH, save_name, pos, file_extension)
 
 
-def plot_observables(t_data_in, c_data_in, loc, save_name, pos=None, file_extension='.png'):
+def plot_observables(t_data_in, c_data_in, loc,
+                     save_name, pos=None, file_extension='.png'):
     """
     function to create a grid of plots of the values of
     the observable for the values of the parameters given in
@@ -295,7 +295,9 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos=None, file_extens
                  ['P_c', 'P_d'], ['Y_c', 'Y_d'],
                  [str(x) for x in pos],
                  ['R'], ['decision state'],
-                 ['G']]
+                 ['G'],
+                 ['c_R', 'P_d_cost', 'K_d_cost'],
+                 ['P_d_cost', 'P_c_cost']]
     title_list = {0: 'capital rates',
                   1: 'trends',
                   2: 'capital stocks',
@@ -305,9 +307,13 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos=None, file_extens
                   6: 'cue order frequencies',
                   7: 'R',
                   8: 'decisions',
-                  9: 'resource stock'}
-    lin_cmap = cm.get_cmap('rainbow')
-    print plot_list
+                  9: 'resource stock',
+                  10: 'dirty costs',
+                  11: 'labor cost'}
+    cops = ['c'+str(x) for x in pos]
+    dops = ['d'+str(x) for x in pos]
+    colors = [x for x in "brwcmygk"][:len(pos)]
+    colorlist = colors + colors
 
     # some parameters:
     labelsize_2 = 30
@@ -326,7 +332,7 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos=None, file_extens
     c_times_nanmax = c_data_in['<nanmax_convergence_time>']
     c_times_sem = c_data_in['<sem_convergence_time>']
 
-    norm = cl.Normalize(vmin=min(c_values), vmax=max(c_values))
+    norm = cl.Normalize(vmin=0, vmax=1)
     cmap = cm.get_cmap('RdBu')
     cmap.set_under('yellow')
 
@@ -339,19 +345,33 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos=None, file_extens
     # get the values of the last index level
     # which will be transformed into columns by unstack()
 
-    for p, pl in enumerate(plot_list):
-        print 'plotting ' + `p` + ' to grid'
+    for p in range(len(plot_list)):
+    # for p in [8]:
+        pl = plot_list[p]
+        if len(pl) == 1:
+            colors = colorlist[-1]
+        else:
+            colors = colorlist
+        print 'plotting ' + `pl` + ' to grid'
 
         # create figure with enough space for ivals*columns plots
         # plus color map at the side
-        if ind_names[1] == 'opinion':
-            fig = plt.figure(figsize=(4*(len(jvals)), 4*(len(ivals)+1)))
-        elif ind_names[0] == 'opinion':
-            fig = plt.figure(figsize=(4*(len(jvals)+3), 4*(len(ivals))))
-        else:
-            fig = plt.figure(figsize=(4*(len(jvals)), 4*(len(ivals))))
+        x_opinionspace = 3 if ind_names[0] == 'opinion' else 0
+        y_opinionspace = 3 if ind_names[1] == 'opinion' else 0
+        x_legendspace = 0 if title_list[p] == 'decisions' else 0
+        x_legendgrid = 0 if title_list[p] == 'decisions' else 0
+        x_colorbarspace = 2
+        fig = plt.figure(figsize=
+                         (4*(len(jvals)
+                             + x_opinionspace
+                             + x_legendspace
+                             + x_colorbarspace),
+                          4*(len(ivals)
+                             + y_opinionspace)))
 
         axes = []
+
+        leg = None
 
         for i, ival in enumerate(ivals):
 
@@ -374,25 +394,40 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos=None, file_extens
                     .unstack('observables')[pl].dropna(axis=0, how='any')
 
                 # add a subplot to the list of axes
-                axes.append(plt.subplot2grid((len(ivals), len(jvals) + 1),
-                                             (len(ivals) - i - 1, j)))
+                axes.append(plt.subplot2grid((len(ivals),
+                                              len(jvals) + 1 + x_legendgrid),
+                                             (len(ivals) - i - 1,
+                                              j + x_legendgrid)))
 
-                # plot mean trajectory
-                subset_j.plot(ax=axes[-1], legend=(j == 0 and i == 0),
-                              colormap = lin_cmap)
+                # plot mean trajectory (and fix the color problem..)
+                pt = subset_j.plot(ax=axes[-1], legend=(j == 0 and i == 0),
+                                   color=colors)
+
+                # plot stacked decision for mean decision state:
+                if title_list[p] == 'decisions':
+                    pt = subset.unstack('observables')[cops + dops]\
+                        .plot.area(color=colorlist, ax=axes[-1], alpha=0.3,
+                                   legend=(j == 0 and i == 0))
+                    axes[-1].set_ylim(0., 1.)
 
                 # plot standard error
-                # plt.fill_between(subset_j.index,
-                #                 subset_j - subset_j_errors,
-                #                 subset_j + subset_j_errors,
-                #                 where=subset_j - subset_j_errors > 0,
-                #                 color='blue',
-                #                 alpha=0.1)
+                for var in subset_j.columns:
+                    x = subset_j.index.values
+                    y1 = (subset_j[[var]] -
+                          subset_j_errors[[var]]).values.T[0]
+                    y2 = (subset_j[[var]] +
+                          subset_j_errors[[var]]).values.T[0]
+                    w = (subset_j[[var]] - subset_j_errors[[var]]
+                         > 0).values.T[0]
+                    plt.fill_between(x, y1, y2,
+                                     where=w,
+                                     color=colors,
+                                     alpha=0.1)
                 (subset_j - subset_j_errors).plot(ax=axes[-1],
-                                                  colormap=lin_cmap, alpha=0.3,
+                                                  color=colors, alpha=0.3,
                                                   legend=False)
                 (subset_j + subset_j_errors).plot(ax=axes[-1],
-                                                  colormap=lin_cmap, alpha=0.3,
+                                                  color=colors, alpha=0.3,
                                                   legend=False)
 
                 # plot consensus time with sem and min and max values
@@ -410,12 +445,12 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos=None, file_extens
                     c_time_nanmax = c_time_nanmax
                     c_time_sem = c_time_sem
 
-#                plt.axvline(c_time, color='grey')
-#                plt.axvline(c_time_min, ls='dashed', color='grey')
-#                plt.axvline(c_time_max, ls='dashed', color='grey')
-#                plt.axvline(c_time_nanmax, ls='dotted', color='grey')
-#                plt.axvspan(c_time - c_time_sem, c_time + c_time_sem,
-#                            alpha=0.2, color='grey')
+                plt.axvline(c_time, color='grey')
+                plt.axvline(c_time_min, ls='dashed', color='grey')
+                plt.axvline(c_time_max, ls='dashed', color='grey')
+                plt.axvline(c_time_nanmax, ls='dotted', color='grey')
+                plt.axvspan(c_time - c_time_sem, c_time + c_time_sem,
+                            alpha=0.2, color='grey')
 
 
 #                # change y axis scale to 'log' for plots with nonzero data
@@ -425,7 +460,7 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos=None, file_extens
                 if ind_names[1] != 'opinion':
                     if i == len(ivals) - 1:
                         plt.title(ind_names[1] + ' = '
-                                               + `round(jval,2)`,
+                                               + `round(jval, 2)`,
                                   fontsize=labelsize_2)
                 # if initial types are given,
                 # create a string representation of the initial
@@ -433,7 +468,7 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos=None, file_extens
                 elif ind_names[1] == 'opinion':
                     title = ''
                     if i == len(ivals) - 1:
-                        op_count = [int(x) for x in
+                        op_count = [int(a) for a in
                                     jval.strip('[]').split(',')]
                         ixs = np.nonzero(op_count)[0]
                         ct = [op_count[ix] for ix in ixs]
@@ -445,7 +480,7 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos=None, file_extens
                 if ind_names[0] == 'opinion':
                     title = ''
                     if j == 0:
-                        op_count = [int(x) for x in
+                        op_count = [int(a) for a in
                                     ival.strip('[]').split(',')]
                         ixs = np.nonzero(op_count)[0]
                         ct = [op_count[ix] for ix in ixs]
@@ -466,24 +501,40 @@ def plot_observables(t_data_in, c_data_in, loc, save_name, pos=None, file_extens
                 axes[-1].grid(b=False)
 
                 # set subplot background according to consensus oppinion state
-                axes[-1].patch.set_facecolor(
-                        cmap(norm(c_values.loc[(ival, jval)])))
-                axes[-1].patch.set_alpha(bgcolor_alpha)
+                if title_list[p] != 'decisions':
+                    axes[-1].patch.set_facecolor(
+                            cmap(norm(c_values.loc[(ival, jval)])))
+                    axes[-1].patch.set_alpha(bgcolor_alpha)
+
+                # set legend outside of plotting area for decisions
+                if j == 0 and i == 0:
+                    leg = pt.get_legend()
+                    if title_list[p] in ['decisions', 'cue order frequencies']:
+                        leg.set_bbox_to_anchor((1.2*len(jvals)
+                                               - 0*x_opinionspace
+                                               + .8, 3))
+                        for t in leg.get_texts():
+                            t.set_fontsize(labelsize_2)
 
         # plot colorbar
-        cbar_ax = plt.subplot2grid(
-                (len(ivals), len(jvals)+1),
-                (0, len(jvals)),
-                rowspan=len(ivals))
-        sm = cm.ScalarMappable(cmap=cmap, norm=norm)
-        sm._A = []
-        cbar = fig.colorbar(cax=cbar_ax, mappable=sm, alpha=bgcolor_alpha)
-        cbar.ax.tick_params(labelsize = labelsize_2)
+        if title_list[p] != 'decisions':
+            cbar_ax = plt.subplot2grid(
+                    (len(ivals), len(jvals)+1),
+                    (0, len(jvals)),
+                    rowspan=len(ivals))
+            sm = cm.ScalarMappable(cmap=cmap, norm=norm)
+            sm._A = []
+            cbar = fig.colorbar(cax=cbar_ax, mappable=sm, alpha=bgcolor_alpha)
+            cbar.ax.tick_params(labelsize=labelsize_2)
 
         # adjust the grid layout to avoid overlapping plots and save the figure
+        sloc = loc\
+            + title_list[p].replace(' ', '_')\
+            + `save_name[0]`.strip('()').replace(', ','=')\
+            .replace('.', 'o')\
+            + file_extension
         fig.tight_layout()
-        fig.savefig(loc+title_list[p]+`save_name[0]`.strip('()').replace(', ',
-            '=').replace('.','o')+file_extension, facecolor=fig.get_facecolor())
+        fig.savefig(sloc, bbox_extra_artists=(leg,), bbox_inches='tight')
         fig.clf()
         plt.close()
 
