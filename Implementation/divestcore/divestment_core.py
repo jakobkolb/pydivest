@@ -759,7 +759,7 @@ class divestment_core:
                                  neighbors):
 
         same_unconnected = np.zeros(self.N, dtype=int)
-        opinion = self.investment_decisions
+        opinion = self.opinions
 
         # adapt or rewire?
         if (self.phi == 1 or (self.phi != 1
