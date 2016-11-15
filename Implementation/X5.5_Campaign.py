@@ -17,24 +17,27 @@ Variable parameters are:
    nature of the transition.
 """
 
-from pymofa.experiment_handling import (experiment_handle,
-                                        even_time_series_spacing)
-from divestcore import divestment_core as model
-from divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
+import cPickle as cp
+import getpass
+import glob
+import itertools as it
 import numpy as np
 import scipy.stats as st
-import networkx as nx
-import pandas as pd
-import cPickle as cp
-import itertools as it
 import sys
-import getpass
 import time
 import types
-import glob
+
+import networkx as nx
+import pandas as pd
+
+from divestcore import divestment_core as model
+from divestvisuals.data_visualization import (plot_obs_grid, plot_tau_phi,
+                                              tau_phi_final)
+from pymofa.experiment_handling import (experiment_handling,
+                                        even_time_series_spacing)
 
 
-def RUN_FUNC(t_a, phi, alpha,
+def RUN_FUNC(ccount, phi, alpha,
              t_d, possible_opinions, eps, transition, test, filename):
     """
     Set up the model for various parameters and determine
@@ -45,14 +48,11 @@ def RUN_FUNC(t_a, phi, alpha,
 
     Parameters:
     -----------
-    t_a : float
-        Timescale of opinion spreading given
-        one opinion dominates. Timescale is
-        given in units of the timescale of
-        capital accumulation t_c
-        such that the actual depletion time is
-        t_a*t_c
-    phi : list of integers
+    ccount: float
+        The fraction of household that are campaigners
+        at the beginning of the resource depletion
+        period.
+    phi: list of integers
         rewiring probability of the adaptive voter
         dynamics. Governs the clustering in the
         network of households.
@@ -61,14 +61,14 @@ def RUN_FUNC(t_a, phi, alpha,
         that sets the share of the initial
         resource G_0 that can be harvested
         economically.
-    t_d : float
+    t_d: float
         the capital accumulation timescale
         t_d = 1/(d_c(1-kappa_d))
-    possible_opinions : list of list of integers
+    possible_opinions: list of list of integers
         the set of cue orders that are allowed in the
         model. opinions determine the individual cue
         order, that a household uses.
-    eps : float
+    eps: float
         fraction of rewiring events that are random.
     transition: bool
         switch for resource depletion
@@ -84,7 +84,7 @@ def RUN_FUNC(t_a, phi, alpha,
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
     (N, p, tau, P, b_d, b_c, b_R0, e, s) =\
-        (100, 0.125, 0.8, 500, 1.2, 0.3, 1., 100, 0.23)
+        (100, 0.125, 3., 500, 1.2, 0.32, 1., 100, 0.23)
 
     # ROUND ONE: FIND EQUILIBRIUM DISTRIBUTIONS:
     if not transition:
@@ -100,6 +100,7 @@ def RUN_FUNC(t_a, phi, alpha,
         # set G_0 according to resource depletion time:
         # t_G = G_0*e*d_c/(P*s*b_d**2)
         G_0 = t_G*P*s*b_d**2/(e*d_c)
+        print G_0, G_0*alpha
 
         # set b_R0 according to alpha and e:
         # alpha = (b_R0/e)**(1/2)
@@ -120,7 +121,8 @@ def RUN_FUNC(t_a, phi, alpha,
                 break
         adjacency_matrix = nx.adj_matrix(net).toarray()
 
-        opinions = [1 for x in range(N)]
+        opinions = [np.random.randint(0, len(possible_opinions))
+                    for x in range(N)]
         investment_clean = np.full((N), 0.1)
         investment_dirty = np.full((N), K_d0/N)
 
@@ -155,11 +157,33 @@ def RUN_FUNC(t_a, phi, alpha,
         # adapt parameters where necessary
 
         # set tau according to t_a and phi
-        input_params['tau'] = t_a/(1.-phi)
+        input_params['tau'] = tau
         input_params['R_depletion'] = True
+        input_params['learning'] = True
+        input_params['campaign'] = True
+        print input_params['b_c']
+
+        # add campaigners to list of possible opinions
+        possible_opinions = input_params['possible_opinions']
+        possible_opinions.append([5])
+        input_params['possible_opinions'] = possible_opinions
+        campaigner = len(possible_opinions) - 1
+
+        # make fraction of ccount households campaigners
+        opinions = input_params['opinions']
+        nccount = int(ccount*len(opinions))
+        print nccount, len(opinions)
+        j = 0
+        while j < nccount:
+            n = np.random.randint(0, len(opinions))
+            if opinions[n] != campaigner:
+                opinions[n] = campaigner
+                j += 1
+        input_params['opinions'] = opinions
+        print opinions
 
         # set t_max for run
-        t_max = 300
+        t_max = 2000
 
     # initializing the model
 
@@ -222,7 +246,7 @@ def RUN_FUNC(t_a, phi, alpha,
 
         df = pd.DataFrame(trajectory, columns=headers)
         df = df.set_index('time')
-        dfo = even_time_series_spacing(df, 101, 0., t_max)
+        dfo = even_time_series_spacing(df, 501, 0., t_max)
         res["economic_trajectory"] = dfo
 
     end = time.clock()
@@ -256,11 +280,11 @@ conditions for transition in run function.
 """
 
 if no_heuristics:
-    FOLDER_EQUI = 'X5o4_Dirty_Equilibrium_No_TTB'
-    FOLDER_TRANS = 'X5o4_Dirty_Clean_Transition_No_TTB'
+    FOLDER_EQUI = 'X5o5_Dirty_Equilibrium_No_TTB'
+    FOLDER_TRANS = 'X5o5_Dirty_Clean_Transition_No_TTB'
 else:
-    FOLDER_EQUI = 'X5o4_Dirty_Equilibrium'
-    FOLDER_TRANS = 'X5o4_Dirty_Clean_Transition'
+    FOLDER_EQUI = 'X5o5_Dirty_Equilibrium'
+    FOLDER_TRANS = 'X5o5_Dirty_Clean_Transition'
 
 if not any(transition):
     print 'EQUI'
@@ -306,7 +330,8 @@ cue_names = {
         1: 'always clean',
         2: 'capital rent',
         3: 'capital rent trend',
-        4: 'peer pressure'}
+        4: 'peer pressure',
+        5: 'campaignee'}
 opinion_presets = [[2, 3],  # short term investor
                    [3, 2],  # long term investor
                    [4, 2],  # short term herder
@@ -322,7 +347,7 @@ if no_heuristics:
 set different times for resource depletion
 in units of capital accumulation time t_d = 1/(d_c*(1-kappa_d))
 """
-t_as = [round(x, 5) for x in list(10**np.linspace(0, 1, 3))]
+ccounts = [round(x, 5) for x in list(np.linspace(0, 0.14, 8))]
 
 """
 set array of phis to generate equilibrium conditions for
@@ -347,11 +372,11 @@ parameters = {
 """
 Default values of variable parameter in this experiment
 """
-t_a, phi, alpha, t_d, test = [0.1], [0.8], [0.1], [30.], [0]
+ccount, phi, alpha, t_d, test = [0.05], [0.8], [0.1], [30.], [0]
 
 NAME = 'Cue_order_testing'
 INDEX = {
-        0: "t_a",
+        0: "c_count",
         parameters['phi']: "phi",
         parameters['alpha']: "alpha"}
 """
@@ -369,28 +394,31 @@ Make sure, opinion_presets are not expanded
 """
 if mode == 1:  # Production
     PARAM_COMBS = list(it.product(
-        t_as, phis, alphas, t_d,
+        ccounts, phis, alphas, t_d,
         [opinion_presets], eps,
         transition, test))
 
 elif mode == 2:  # test
     PARAM_COMBS = list(it.product(
-        t_as, phis, alphas, t_d,
+        ccounts, phis, alphas, t_d,
         [opinion_presets], eps,
         transition, test))
 
 elif mode == 3:  # messy
     test = [True]
-    t_as = [round(x, 5) for x in list(10**np.linspace(0., 2., 4))]
     phis = [round(x, 2) for x in list(np.linspace(0.0, 1.0, 5))[1:-1]]
     PARAM_COMBS = list(it.product(
-        t_as, phis, alpha, t_d,
+        ccount, phis, alpha, t_d,
         [opinion_presets], eps,
         transition, test))
+elif mode == 4:
+    print 'just experimental plotting'
 else:
     print mode, ' is not a valid experiment mode.\
     valid modes are 1: production, 2: test, 3: messy'
     sys.exit()
+
+# add campaigners to possible opinions for plotting
 
 # names and function dictionaries for post processing:
 
@@ -421,6 +449,16 @@ NAME2 = NAME+'_convergence'
 EVA2 = {"<mean_convergence_state>":
         lambda fnames: np.nanmean([np.load(f)["convergence_state"]
                                    for f in fnames]),
+        "<sem_convergence_state>":
+        lambda fnames: st.sem([np.load(f)["convergence_state"]
+                               for f in fnames]),
+
+        "<nanmax_convergence_state>":
+        lambda fnames: np.nanmax([np.load(f)["convergence_state"]
+                                  for f in fnames]),
+        "<nanmin_convergence_state>":
+        lambda fnames: np.nanmin([np.load(f)["convergence_state"]
+                                  for f in fnames]),
         "<mean_convergence_time>":
         lambda fnames: np.nanmean([np.load(f)["convergence_time"]
                                    for f in fnames]),
@@ -443,33 +481,39 @@ EVA2 = {"<mean_convergence_state>":
 
 # full run
 if mode == 1:
-    SAMPLE_SIZE = 100
-    handle = experiment_handle(
+    SAMPLE_SIZE = 20
+    handle = experiment_handling(
             SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
-    plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets)
+    #plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
+    #plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets)
 
 # test run
 if mode == 2:
     SAMPLE_SIZE = 100
-    handle = experiment_handle(
+    handle = experiment_handling(
             SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     # handle.compute(RUN_FUNC)
     # handle.resave(EVA1, NAME1)
     # handle.resave(EVA2, NAME2)
     # plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets)
+    if transition[0]:
+        opinion_presets.append([5])
+    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets, t_max=400)
 
 # debug and mess around mode:
 if mode == 3:
-    SAMPLE_SIZE = 10
-    handle = experiment_handle(
+    SAMPLE_SIZE = 3
+    handle = experiment_handling(
             SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
-    plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
+    plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=False)
     plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets)
+
+if mode == 4:
+    #tau_phi_linear(SAVE_PATH_RES, NAME2)
+    tau_phi_final(SAVE_PATH_RES, NAME1)

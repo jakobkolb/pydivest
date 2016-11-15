@@ -89,6 +89,10 @@ class divestment_core:
         # to keep track of the current ration of opinions
         i, n = np.unique(self.opinions,
                          return_counts=True)
+        for j in range(len(possible_opinions)):
+            if j not in list(i):
+                n = np.append(n, 0)
+                i, np.append(i, j)
         self.opinion_state = [n[list(i).index(j)]
                               if j in i else 0
                               for j in range(len(self.possible_opinions))] 
@@ -396,6 +400,7 @@ class divestment_core:
                 'b_d': self.b_d, 's': self.s, 'd_c': self.d_c,
                 'b_R0': self.b_R0, 'e': self.e, 'G_0': self.G,
                 'C': self.C, 'gamma': self.gamma, 'beta': self.beta,
+                'learning': self.learning, 'campaign': self.campaign,
                 'test': self.debug, 'R_depletion': False}
 
         if self.converged:
@@ -772,7 +777,7 @@ class divestment_core:
             for i in xrange(self.N):
                 # campaigners rewire to everybody
                 if (self.campaign is True and
-                        opinion[candidate] == len(possible_opinions)):
+                        opinion[candidate] == len(self.possible_opinions)):
                     same_unconnected[i] = 1
 
                 # everybody else rewires to people with same opinion
@@ -884,6 +889,7 @@ class divestment_core:
         return self.income[agent]
 
     def update_economic_trajectory(self):
+        alpha = (self.b_R0/self.e)**(1./2.)
         element = list(chain.from_iterable(
             [[self.t,
               self.w,
@@ -907,7 +913,8 @@ class divestment_core:
               self.K_d*self.r_d,
               self.c_R,
               self.converged,
-              self.decision_state],
+              self.decision_state,
+              (self.G-alpha*self.G_0)/(self.G_0*(1.-alpha))],
              self.opinion_state,
              self.clean_opinions,
              self.dirty_opinions]))
@@ -937,7 +944,8 @@ class divestment_core:
               'K_d_cost',
               'c_R',
               'consensus',
-              'decision state'],
+              'decision state',
+              'G_alpha'],
              [str(x) for x in self.possible_opinions],
              ['c'+str(x) for x in self.possible_opinions],
              ['d'+str(x) for x in self.possible_opinions]]))
@@ -976,23 +984,30 @@ if __name__ == '__main__':
 
     if Trigger:
 
-        nopinions = [20, 10, 20, 20, 20, 20, 10, 10]
-        possible_opinions = [[2, 3], [3, 2], [4, 2], [4, 3], [4], [0], [1], [5]]
-        input_parameters = {'tau': 3, 'eps': 0.05, 'b_d': 1.5,
+        nopinions = [10, 10, 10, 10, 10, 10, 10, 10]
+        possible_opinions = [[2, 3],  # short term investor
+                           [3, 2],  # long term investor
+                           [4, 2],  # short term herder
+                           [4, 3],  # trending herder
+                           [4, 1],  # green conformer
+                           [4, 0],  # dirty conformer
+                           [1],     # gutmensch
+                           [0]]     # redneck
+        input_parameters = {'tau': 3, 'eps': 0.05, 'b_d': 1.2,
                             'b_c': 1., 'phi': 0.6, 'e': 1000,
                             'G_0': 30000, 'possible_opinions': possible_opinions,
                             'C': 1, 'gamma': 1./8., 'beta': 0.03,
-                            'campaign': True, 'learning': False}
+                            'campaign': False, 'learning': False}
 
 
     if not Trigger:
 
         nopinions = [10, 10]
         possible_opinions = [[0], [1]]
-        nopinions = [20, 10, 20, 20, 20, 20, 10, 10]
-        possible_opinions = [[2, 3], [3, 2], [4, 2], [4, 3], [4], [0], [1], [5]]
+        nopinions = [10, 10, 10, 10, 10, 10, 10]
+        possible_opinions = [[2, 3], [3, 2], [4, 2], [4, 3], [4], [0], [1]]
         input_parameters = {'tau': 3, 'eps': 0.05, 'b_d': 1.2,
-                            'b_c': 0.3, 'phi': 0.6, 'e': 1000,
+                            'b_c': 0.36, 'phi': 0.6, 'e': 1000,
                             'G_0': 30000, 'possible_opinions': possible_opinions,
                             'C': 1, 'gamma': 1./8., 'beta': 0.03,
                             'campaign': False, 'learning': True}

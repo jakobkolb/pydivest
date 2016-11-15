@@ -66,3 +66,7 @@ target/
 
 #output data
 Implementation/divestdata/*
+
+#pymofa and cyexploit
+cyexploit
+Implementation/pymofa

@@ -1,25 +1,29 @@
 """
-This experiment focuses on the transition from a full dirty
-economy to a clean economy as the fossil resource is depleted.
+This experiment focuses on the test of different cue orders for
+the Take The Best Heuristic. All other parameters are set to
+standard values or determined by the following timescales:
 
-Therefore, the system starts in an equilibrium dirty state where
-K_d has reached its max value K_c* and opinions are distributed
-with relative shares of U/S = eps/(1-phi) amongst successful and
-unsuccessful strategies. Internally, successful and Unsuccessful
-strategies are distributed equally.
+1) capital accumulation in the dirty sector,
+    t_d = 1/(d_c*(1-kappa_c))
+2) depletion of the fossil resource and
+    t_G = G_0*e*d_c/(P*s*b_d**2)
+3) opinion spreading in the adaptive voter model
+   given one opinion dominates the other.
+    t_a = tau*(1-phi)
 
-Variable parameters are:
+tau and phi are of no interest so far, since the adaptive
+voter dynamics is disabled so far.
+t_d is fixed by standard values for d_c=0.06
+and kappa_c=0.5.
 
-1) alpha, as it indicates the proximity of the
-   initial state to the depreciation of the fossil
-   resource,
+Focus in terms of timescales is set to the last two remaining
+degrees of freedom:
 
-2) phi, as it governs the clustering amongst similar
-   opinions,
+t_G sets the value for G_0 as all other parameters
+are assumed to be fixed.
 
-3) d_c as it sets the timescale for capital accumulation
-   and is therefore thought to change the qualitative
-   nature of the transition.
+the ratio alpha = b_R/e<0 determines the share of the initial
+resource that can be economically harvested.
 """
 
 from pymofa.experiment_handling import (experiment_handle,
@@ -39,7 +43,7 @@ import time
 import types
 
 
-def RUN_FUNC(alpha, phi, d_c,
+def RUN_FUNC(t_G, nopinions, alpha,
              possible_opinions, eps, avm, test, filename):
     """
     Set up the model for various parameters and determine
@@ -85,7 +89,7 @@ def RUN_FUNC(alpha, phi, d_c,
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
     (N, p, tau, phi, P, b_d, b_R0, e, d_c, s) =\
-        (sum(nopinions), 0.125, .8, .8, 500, 1.2, 1., 100, 0.06, 0.23)
+        (sum(nopinions), 0.125, .1, .8, 500, 1.2, 1., 100, 0.06, 0.23)
 
     # capital accumulation of dirty capital
     # (t_d = 1/(d_c*(1-kappa_c)) with kappa_c = 0.5 :
@@ -213,7 +217,7 @@ if len(sys.argv) > 2:
 else:
     noise = False
 
-folder = 'X5_Cue_Orders'
+folder = 'X5.1_Cue_Orders'
 
 # check if cluster or local
 if getpass.getuser() == "kolb":
@@ -240,32 +244,38 @@ cue_names = {
         2: 'capital rent',
         3: 'capital rent trend',
         4: 'peer pressure'}
-opinion_presets = [[0], [1], [2], [3], [4], [2, 3], [3, 2], [3, 4], [4, 1]]
 
+opinion_presets = [[2, 3],  # short term investor
+                   [3, 2],  # long term investor
+                   [4, 2],  # short term herder
+                   [4, 3],  # trending herder
+                   [4, 1],  # green conformer
+                   [4, 0],  # dirty conformer
+                   [1],     # gutmensch
+                   [0]]     # redneck
 """
 set different times for resource depletion
 in units of capital accumulation time t_d = 1/(d_c*(1-kappa_d))
 """
-t_Gs = [round(x, 5) for x in list(10**np.linspace(0.0, 2.0, 9))]
+t_Gs = [round(x, 5) for x in list(10**np.linspace(1.0, 2.0, 3))]
 
 """
 Define different mixtures of decision makers to test
 """
 opinions = [
-        [100, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 100, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 100, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 100, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 100, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 100, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 100, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 100, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 100]]
+        [100, 0, 0, 0, 0, 0, 0, 0],
+        [0, 100, 0, 0, 0, 0, 0, 0],
+        [0, 0, 100, 0, 0, 0, 0, 0],
+        [0, 0, 0, 100, 0, 0, 0, 0],
+        [0, 0, 0, 0, 100, 0, 0, 0],
+        [0, 0, 0, 0, 0, 100, 0, 0],
+        [0, 0, 0, 0, 0, 0, 100, 0],
+        [0, 0, 0, 0, 0, 0, 0, 100]]
 """
 Define set of alphas that will be tested against the sets of resource depletion
 times and cue order mixtures
 """
-alphas = [round(x, 5) for x in list(10**np.linspace(-4.0, -1.0, 4))]
+alphas = [round(x, 5) for x in list(10**np.linspace(-3.0, -1.0, 3))]
 
 """
 dictionary of the variable parameters in this experiment together with their

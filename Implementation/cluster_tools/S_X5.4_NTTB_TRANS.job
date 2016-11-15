@@ -18,4 +18,4 @@ echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
 cd ../
-srun -n $SLURM_NTASKS python X5.4_Campaign.py 1 1 1
+srun -n $SLURM_NTASKS python X5.4_Learning.py 1 1 1

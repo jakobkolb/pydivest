@@ -1,21 +1,18 @@
-
-from pymofa.experiment_handling import experiment_handle, even_time_series_spacing
-from divestcore import divestment_core as model
-from divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
-
-from scipy import interpolate as ip
-
+import cPickle as cp
+import getpass
+import itertools as it
 import numpy as np
 import scipy.stats as st
-import networkx as nx
-import pandas as pd
-import cPickle as cp
-import itertools as it
 import sys
-import getpass
 import time
 import types
 
+import networkx as nx
+import pandas as pd
+
+from divestcore import divestment_core as model
+from divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
+from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
 
 
 def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
@@ -256,7 +253,7 @@ EVA2={  "<mean_convergence_state>":
 # full run
 if mode == 0:
     SAMPLE_SIZE = 100
-    handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+    handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
@@ -266,7 +263,7 @@ if mode == 0:
 # test run
 if mode == 1:
     SAMPLE_SIZE = 2
-    handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+    handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
@@ -276,7 +273,7 @@ if mode == 1:
 # debug and mess around mode:
 if mode == None:
     SAMPLE_SIZE = 2
-    handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+    handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)

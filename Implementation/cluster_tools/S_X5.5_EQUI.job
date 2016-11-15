@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
 #SBATCH --qos=short
-#SBATCH --job-name=X5.4_NTTB_EQUI
-#SBATCH --output=%A_X5.4_NTTB_EQUI%a_.out
-#SBATCH --error=%A_X5.4_NTTB_EQUI%a_.err
-#SBATCH --nodes=2
+#SBATCH --job-name=X5.5_EQUI
+#SBATCH --output=%A_X5.5_EQUI%a_.out
+#SBATCH --error=%A_X5.5_EQUI%a_.err
+#SBATCH --nodes=16
 #SBATCH --tasks-per-node=16
 
 
@@ -17,4 +17,4 @@ echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
 cd ../
-srun -n $SLURM_NTASKS python X5.4_Learning.py 1 0 1
+srun -n $SLURM_NTASKS python X5.5_Campaign.py 1 0

@@ -5,7 +5,7 @@
 #SBATCH --output=%A_X5.4_TRANS%a_.out
 #SBATCH --error=%A_X5.4_TRANS%a_.err
 #SBATCH --time=0-24
-#SBATCH --nodes=2
+#SBATCH --nodes=16
 #SBATCH --tasks-per-node=16
 
 
@@ -18,4 +18,4 @@ echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
 cd ../
-srun -n $SLURM_NTASKS python X5.4_Campaign.py 1 1
+srun -n $SLURM_NTASKS python X5.4_Learning.py 1 1

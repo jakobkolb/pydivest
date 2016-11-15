@@ -69,6 +69,47 @@ def plot_tau_phi(SAVE_PATH, NAME, xlog=False,
             plt.close()
 
 
+def tau_phi_linear(SAVE_PATH, NAME, xlog=False,
+                   ylog=False, fextension='.png'):
+
+    data = np.load(SAVE_PATH + NAME)
+
+    parameter_levels = [list(p.values) for p in data.index.levels[2:]]
+    parameter_level_names = [name for name in data.index.names[2:]]
+    levels = tuple(i+2 for i in range(len(parameter_levels)))
+
+    parameter_combinations = list(it.product(*parameter_levels))
+
+    for p in parameter_combinations:
+        print p, levels
+        d_slice = data.xs(key=p, level=levels)
+        save_name = zip(parameter_level_names, [str(x) for x in p])
+
+        print d_slice.columns
+        print save_name
+        d_slice_mean = d_slice['<mean_convergence_state>'].unstack('c_count')
+        d_slice_err = d_slice['<sem_convergence_state>'].unstack('c_count')
+        print d_slice.columns
+        d_slice_mean.plot(style='-o', yerr=d_slice_err)
+        plt.show()
+
+
+def tau_phi_final(SAVE_PATH, NAME, xlog=False,
+                  ylog=False, fextension='.png'):
+
+    data = np.load(SAVE_PATH + NAME)['<mean_trajectory>'].xs(key=('R', 0.05,
+        300),
+            level=('observables', 'alpha', 'timesteps'))
+    print data
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    data[data>239].plot.hist(legend=False, ax=ax, bins=20)
+    ax.set_yscale('log')
+    #ax.set_xlim([50, 300])
+    #ax.set_ylim([10**2, 10**2.5])
+    plt.show()
+
+
 def explore_Parameterspace(TwoDFrame, title="",
                            cmap='RdBu', norm=None,
                            vmin=None, vmax=None,
@@ -212,7 +253,7 @@ def plot_trajectories(loc, name, params, indices):
         plt.close()
 
 
-def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, file_extension='.png'):
+def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, t_max=None, file_extension='.png'):
 
     """
     Loads the dataframe NAME of postprocessed data
@@ -253,11 +294,11 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, file_extension='.pn
         save_name = zip(parameter_level_names, p)
 
         plot_observables(trj_d_slice, cns_d_slice,
-                         SAVE_PATH, save_name, pos, file_extension)
+                         SAVE_PATH, save_name, pos, t_max, file_extension)
 
 
 def plot_observables(t_data_in, c_data_in, loc,
-                     save_name, pos=None, file_extension='.png'):
+        save_name, pos=None, t_max=None, file_extension='.png'):
     """
     function to create a grid of plots of the values of
     the observable for the values of the parameters given in
@@ -291,7 +332,7 @@ def plot_observables(t_data_in, c_data_in, loc,
 
     # list of observables that should be plotted together
     plot_list = [['r_c', 'r_d'], ['r_c_dot', 'r_d_dot'],
-                 ['K_c', 'K_d'], ['K_c_cost', 'K_d_cost'],
+                 ['K_c', 'K_d', 'C'], ['K_c_cost', 'K_d_cost'],
                  ['P_c', 'P_d'], ['Y_c', 'Y_d'],
                  [str(x) for x in pos],
                  ['R'], ['decision state'],
@@ -310,6 +351,7 @@ def plot_observables(t_data_in, c_data_in, loc,
                   9: 'resource stock',
                   10: 'dirty costs',
                   11: 'labor cost'}
+    log_list = [2, 4, 5, 7, 9, 10]
     cops = ['c'+str(x) for x in pos]
     dops = ['d'+str(x) for x in pos]
     colors = [x for x in "brwcmygk"][:len(pos)]
@@ -454,8 +496,9 @@ def plot_observables(t_data_in, c_data_in, loc,
 
 
 #                # change y axis scale to 'log' for plots with nonzero data
-#                if sum(np.sign(subset_j)) > 0 and observable in log_list:
-#                    axes[-1].set_yscale('log', nonposy='mask')
+                if p in log_list:
+                    axes[-1].set_yscale('log', nonposy='mask')
+
                 # add tau and phi values to rows and columns
                 if ind_names[1] != 'opinion':
                     if i == len(ivals) - 1:
@@ -494,14 +537,16 @@ def plot_observables(t_data_in, c_data_in, loc,
                                    fontsize=labelsize_2)
 
                 # remove x axis for all but the lowest row
-                if i != 0:
-                    axes[-1].xaxis.set_visible(False)
+                # if i != 0:
+                #     axes[-1].xaxis.set_visible(False)
+                if t_max is not None:
+                    axes[-1].set_xlim([0, t_max])
 
                 # remove axis grids for all rows
                 axes[-1].grid(b=False)
 
                 # set subplot background according to consensus oppinion state
-                if title_list[p] != 'decisions':
+                if title_list[p] not in ['decisions', 'cue order frequencies']:
                     axes[-1].patch.set_facecolor(
                             cmap(norm(c_values.loc[(ival, jval)])))
                     axes[-1].patch.set_alpha(bgcolor_alpha)
@@ -517,7 +562,7 @@ def plot_observables(t_data_in, c_data_in, loc,
                             t.set_fontsize(labelsize_2)
 
         # plot colorbar
-        if title_list[p] != 'decisions':
+        if title_list[p] not in ['decisions', 'cue order frequencies']:
             cbar_ax = plt.subplot2grid(
                     (len(ivals), len(jvals)+1),
                     (0, len(jvals)),
@@ -541,3 +586,4 @@ def plot_observables(t_data_in, c_data_in, loc,
 if __name__ == '__main__':
 	loc = sys.argv[1]
         plot_trajectories(loc, 'phi')
+

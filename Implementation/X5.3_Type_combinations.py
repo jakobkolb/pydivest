@@ -43,7 +43,7 @@ the ratio alpha = b_R/e<0 determines the share of the initial
 resource that can be economically harvested.
 """
 
-from pymofa.experiment_handling import (experiment_handle,
+from pymofa.experiment_handling import (experiment_handling,
                                         even_time_series_spacing)
 from divestcore import divestment_core as model
 from divestvisuals.data_visualization import plot_obs_grid
@@ -505,7 +505,7 @@ EVA2 = {"<mean_convergence_state>":
 # full run
 if mode == 1:
     SAMPLE_SIZE = 100
-    handle = experiment_handle(
+    handle = experiment_handling(
             SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
@@ -516,7 +516,7 @@ if mode == 1:
 # test run
 if mode == 2:
     SAMPLE_SIZE = 100
-    handle = experiment_handle(
+    handle = experiment_handling(
             SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     #handle.compute(RUN_FUNC)
     #handle.resave(EVA1, NAME1)
@@ -527,7 +527,7 @@ if mode == 2:
 # debug and mess around mode:
 if mode == 3:
     SAMPLE_SIZE = 10
-    handle = experiment_handle(
+    handle = experiment_handling(
             SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
