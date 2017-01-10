@@ -1,9 +1,44 @@
 """
-This experiment is dedicated to finding the dirty equilibrium of
-the system. Thus, the fossil resource is assumed to be infinite
-and the system is run with noise and adaptive voter dynamics.
+Description of the experiment:
+------------------------------
 
-Variable parameters are:
+This experiment is meant to investigate the influence of a possible
+fossil fuel divestment campaign on the transition.
+
+The campaign is implemented such that:
+Campaigners continuously invest in clean capital regardless
+of any information available. Campaigners also don't
+imitate other strategies according to their financial benefit.
+This means, that being a campaigner is an absorbing state in terms
+of the imitation process and changing a campaigners mind can only
+happen through the noise in the system.
+
+Like previous experiments, this one is conducted in two stages.
+
+1) In the first stage, the fossil resource is abundant and does
+   not deplete. Also, there are no campaigners (e.g. no absorbing
+   state in the social dynamics of the systen) such that the model
+   will converge to an equilibrium dirty state.
+
+2) In the second stage, resource depletion is switched on and
+   becoming part of the campaign becomes available to households.
+   At the start of the second stage, a certain number of randomly
+   selected households is converted into campaigners.
+
+
+Time scales in the experiment:
+------------------------------
+
+1) capital accumulation in the dirty sector,
+    t_d = 1/(d_c*(1-kappa_c))
+2) depletion of the fossil resource and
+    t_G = G_0*e*d_c/(P*s*b_d**2)
+3) opinion spreading in the adaptive voter model
+   given one opinion dominates the other.
+    t_a = tau*(1-phi)
+
+Discussion of variable parameters (degrees of freedom):
+-------------------------------------------------------
 
 1) alpha, as it indicates the proximity of the
    initial state to the depreciation of the fossil
@@ -12,9 +47,9 @@ Variable parameters are:
 2) phi, as it governs the clustering amongst similar
    opinions,
 
-3) d_c as it sets the timescale for capital accumulation
-   and is therefore thought to change the qualitative
-   nature of the transition.
+3) ccount, the fraction of households that is being
+   converted into campaigners at the beginning of the
+   transition phase.
 """
 
 import cPickle as cp
@@ -30,7 +65,7 @@ import types
 import networkx as nx
 import pandas as pd
 
-from divestcore import divestment_core as model
+from micro_model import divestment_core as model
 from divestvisuals.data_visualization import (plot_obs_grid, plot_tau_phi,
                                               tau_phi_final)
 from pymofa.experiment_handling import (experiment_handling,
@@ -57,7 +92,7 @@ def RUN_FUNC(ccount, phi, alpha,
         dynamics. Governs the clustering in the
         network of households.
     alpha: float
-        the ratio alpha = (b_R0/e)**(1/2)
+        the ratio alpha = (b_r0/e)**(1/2)
         that sets the share of the initial
         resource G_0 that can be harvested
         economically.
@@ -66,7 +101,7 @@ def RUN_FUNC(ccount, phi, alpha,
         t_d = 1/(d_c(1-kappa_d))
     possible_opinions: list of list of integers
         the set of cue orders that are allowed in the
-        model. opinions determine the individual cue
+        model. investment_decisions determine the individual cue
         order, that a household uses.
     eps: float
         fraction of rewiring events that are random.
@@ -102,8 +137,8 @@ def RUN_FUNC(ccount, phi, alpha,
         G_0 = t_G*P*s*b_d**2/(e*d_c)
         print G_0, G_0*alpha
 
-        # set b_R0 according to alpha and e:
-        # alpha = (b_R0/e)**(1/2)
+        # set b_r0 according to alpha and e:
+        # alpha = (b_r0/e)**(1/2)
         b_R0 = alpha**2 * e
 
         # calculate equilibrium dirty capital
@@ -129,12 +164,12 @@ def RUN_FUNC(ccount, phi, alpha,
         # input parameters
 
         input_params = {'adjacency': adjacency_matrix,
-                        'opinions': opinions,
+                        'investment_decisions': opinions,
                         'investment_clean': investment_clean,
                         'investment_dirty': investment_dirty,
                         'possible_opinions': possible_opinions,
                         'tau': tau, 'phi': phi, 'eps': eps,
-                        'P': P, 'b_d': b_d, 'b_R0': b_R0, 'G_0': G_0,
+                        'P': P, 'b_d': b_d, 'b_r0': b_R0, 'G_0': G_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
                         'b_c': b_c, 'learning': True,
                         'R_depletion': transition}
@@ -163,14 +198,14 @@ def RUN_FUNC(ccount, phi, alpha,
         input_params['campaign'] = True
         print input_params['b_c']
 
-        # add campaigners to list of possible opinions
+        # add campaigners to list of possible investment_decisions
         possible_opinions = input_params['possible_opinions']
         possible_opinions.append([5])
         input_params['possible_opinions'] = possible_opinions
         campaigner = len(possible_opinions) - 1
 
         # make fraction of ccount households campaigners
-        opinions = input_params['opinions']
+        opinions = input_params['investment_decisions']
         nccount = int(ccount*len(opinions))
         print nccount, len(opinions)
         j = 0
@@ -179,7 +214,7 @@ def RUN_FUNC(ccount, phi, alpha,
             if opinions[n] != campaigner:
                 opinions[n] = campaigner
                 j += 1
-        input_params['opinions'] = opinions
+        input_params['investment_decisions'] = opinions
         print opinions
 
         # set t_max for run
@@ -196,14 +231,14 @@ def RUN_FUNC(ccount, phi, alpha,
     res["parameters"] = \
         pd.Series({"tau": m.tau,
                    "phi": m.phi,
-                   "N": m.N,
-                   "p": p,
+                   "n": m.n,
+                   "P": p,
                    "P": m.P,
                    "birth rate": m.r_b,
                    "savings rate": m.s,
                    "clean capital depreciation rate": m.d_c,
                    "dirty capital depreciation rate": m.d_d,
-                   "resource extraction efficiency": m.b_R0,
+                   "resource extraction efficiency": m.b_r0,
                    "Solov residual clean": m.b_c,
                    "Solov residual dirty": m.b_d,
                    "pi": m.pi,
@@ -212,7 +247,7 @@ def RUN_FUNC(ccount, phi, alpha,
                    "rho": m.rho,
                    "resource efficiency": m.e,
                    "epsilon": m.eps,
-                   "initial resource stock": m.G_0})
+                   "initial resource stock": m.g_0})
 
     # run the model
     start = time.clock()
@@ -240,8 +275,8 @@ def RUN_FUNC(ccount, phi, alpha,
         res["convergence_state"] = m.convergence_state
         res["convergence_time"] = m.convergence_time
 
-        # interpolate trajectory to get evenly spaced time series.
-        trajectory = m.trajectory
+        # interpolate e_trajectory to get evenly spaced time series.
+        trajectory = m.e_trajectory
         headers = trajectory.pop(0)
 
         df = pd.DataFrame(trajectory, columns=headers)
@@ -297,8 +332,8 @@ elif any(transition):
 set path variables according to local of cluster environment
 """
 if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW =\
-        "/p/tmp/kolb/Divest_Experiments/divestdata/"\
+    SAVE_PATH_RAW = \
+        "/P/tmp/kolb/Divest_Experiments/divestdata/" \
         + folder + "/raw_data"
     SAVE_PATH_RES =\
         "/home/kolb/Divest_Experiments/divestdata/"\
@@ -314,8 +349,8 @@ elif getpass.getuser() == "jakob":
 set path variable for initial conditions for transition runs
 """
 if getpass.getuser() == "kolb":
-    SAVE_PATH_INIT =\
-        "/p/tmp/kolb/Divest_Experiments/divestdata/"\
+    SAVE_PATH_INIT = \
+        "/P/tmp/kolb/Divest_Experiments/divestdata/" \
         + FOLDER_EQUI + "/raw_data"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_INIT = \
@@ -344,8 +379,8 @@ if no_heuristics:
     opinion_presets = [[1], [0]]
 
 """
-set different times for resource depletion
-in units of capital accumulation time t_d = 1/(d_c*(1-kappa_d))
+The fraction of households that is converted into campaigners
+at the beginning of the transition phase
 """
 ccounts = [round(x, 5) for x in list(np.linspace(0, 0.14, 8))]
 
@@ -355,8 +390,7 @@ set array of phis to generate equilibrium conditions for
 phis = [round(x, 2) for x in list(np.linspace(0.0, 1.0, 11))[:-1]]
 
 """
-Define set of alphas that will be tested against the sets of resource depletion
-times and cue order mixtures
+Different alphas (how sudden the resource depletion will be)
 """
 alphas = [0.1, 0.08, 0.05]
 
@@ -418,7 +452,7 @@ else:
     valid modes are 1: production, 2: test, 3: messy'
     sys.exit()
 
-# add campaigners to possible opinions for plotting
+# add campaigners to possible investment_decisions for plotting
 
 # names and function dictionaries for post processing:
 
@@ -501,7 +535,8 @@ if mode == 2:
     # plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
     if transition[0]:
         opinion_presets.append([5])
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets, t_max=400)
+    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets, t_max=400,
+                  file_extension='.pdf')
 
 # debug and mess around mode:
 if mode == 3:

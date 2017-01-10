@@ -1,9 +1,49 @@
 """
-This experiment is dedicated to finding the dirty equilibrium of
-the system. Thus, the fossil resource is assumed to be infinite
-and the system is run with noise and adaptive voter dynamics.
+Description of the Experiment:
+------------------------------
 
-Variable parameters are:
+This experiment focuses on the effects of learning in the clean
+sector.
+
+To emulate a clean -> dirty transition this experiment consists of
+two steps:
+1) Equilibrating the model with abundant fossil resources
+2) Switch on fossil resource depletion and record transition
+   to a clean economy.
+
+Unlike previous experiments, this experiment incorporates learning
+in the clean sector. This means, that the system has two stable states
+(even with abundant fossil resource) where one is mostly dirty with
+little clean investment and low clean technology knowledge and the other
+is mostly clean with large clean investment and high clean technology
+knowledge.
+To make the system bistable, parameters have to be chosen such, that
+with low knowledge stock r_d > r_c and with high knowledge stock r_d < r_c
+
+Additionally, the experiment has two modi:
+
+A) With heuristic decision making and several different types of
+   households
+
+B) Without heuristic decision making, only two types of households
+   and only decision (instead of cue order) imitation in the
+   social learning process.
+
+
+Time scales in the experiment:
+------------------------------
+
+1) capital accumulation in the dirty sector,
+    t_d = 1/(d_c*(1-kappa_c))
+2) depletion of the fossil resource and
+    t_G = G_0*e*d_c/(P*s*b_d**2)
+3) opinion spreading in the adaptive voter model
+   given one opinion dominates the other.
+    t_a = tau*(1-phi)
+
+
+Discussion of variable parameters (degrees of freedom):
+-------------------------------------------------------
 
 1) alpha, as it indicates the proximity of the
    initial state to the depreciation of the fossil
@@ -30,7 +70,7 @@ import types
 import networkx as nx
 import pandas as pd
 
-from divestcore import divestment_core as model
+from micro_model import divestment_core as model
 from divestvisuals.data_visualization import (plot_obs_grid, plot_tau_phi,
                                               tau_phi_final)
 from pymofa.experiment_handling import (experiment_handling,
@@ -62,14 +102,14 @@ def RUN_FUNC(t_a, phi, alpha,
     alpha: float
         the ratio alpha = (b_r0/e)**(1/2)
         that sets the share of the initial
-        resource g_0 that can be harvested
+        resource G_0 that can be harvested
         economically.
     t_d : float
         the capital accumulation timescale
         t_d = 1/(d_c(1-kappa_d))
     possible_opinions : list of list of integers
         the set of cue orders that are allowed in the
-        model. opinions determine the individual cue
+        model. investment_decisions determine the individual cue
         order, that a household uses.
     eps : float
         fraction of rewiring events that are random.
@@ -99,8 +139,8 @@ def RUN_FUNC(t_a, phi, alpha,
         # set t_g to some value approx. half of run time
         t_g = 50*t_d
 
-        # set g_0 according to resource depletion time:
-        # t_g = g_0*e*d_c/(p*s*b_d**2)
+        # set G_0 according to resource depletion time:
+        # t_g = G_0*e*d_c/(P*s*b_d**2)
         g_0 = t_g*p*s*b_d**2/(e*d_c)
 
         # set b_r0 according to alpha and e:
@@ -132,15 +172,15 @@ def RUN_FUNC(t_a, phi, alpha,
         # input parameters
 
         input_params = {'adjacency': adjacency_matrix,
-                        'opinions': opinions,
+                        'investment_decisions': opinions,
                         'investment_clean': investment_clean,
                         'investment_dirty': investment_dirty,
                         'possible_opinions': possible_opinions,
                         'tau': tau, 'phi': phi, 'eps': eps,
-                        'p': p, 'b_d': b_d, 'b_r0': b_r0, 'g_0': g_0,
+                        'P': p, 'b_d': b_d, 'b_r0': b_r0, 'G_0': g_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
                         'b_c': b_c, 'learning': True,
-                        'R_depletion': transition}
+                        'r_depletion': transition}
     # ROUND TWO: TRANSITION
     else:
         # build list of initial conditions
@@ -161,11 +201,11 @@ def RUN_FUNC(t_a, phi, alpha,
 
         # set tau according to t_a and phi
         input_params['tau'] = t_a/(1.-phi)
-        input_params['R_depletion'] = True
+        input_params['r_depletion'] = True
         input_params['learning'] = True
 
         # set t_max for run
-        t_max = 2000
+        t_max = 300
 
     # initializing the model
 
@@ -178,13 +218,13 @@ def RUN_FUNC(t_a, phi, alpha,
 
     res = {"parameters": pd.Series({"tau": m.tau,
                                     "phi": m.phi,
-                                    "n": m.N,
-                                    "p": m.P,
+                                    "n": m.n,
+                                    "P": m.P,
                                     "birth rate": m.r_b,
                                     "savings rate": m.s,
                                     "clean capital depreciation rate": m.d_c,
                                     "dirty capital depreciation rate": m.d_d,
-                                    "resource extraction efficiency": m.b_R0,
+                                    "resource extraction efficiency": m.b_r0,
                                     "Solov residual clean": m.b_c,
                                     "Solov residual dirty": m.b_d,
                                     "pi": m.pi,
@@ -193,7 +233,7 @@ def RUN_FUNC(t_a, phi, alpha,
                                     "rho": m.rho,
                                     "resource efficiency": m.e,
                                     "epsilon": m.eps,
-                                    "initial resource stock": m.G_0})}
+                                    "initial resource stock": m.g_0})}
 
     # run the model
     start = time.clock()
@@ -221,8 +261,8 @@ def RUN_FUNC(t_a, phi, alpha,
         res["convergence_state"] = m.convergence_state
         res["convergence_time"] = m.convergence_time
 
-        # interpolate trajectory to get evenly spaced time series.
-        trajectory = m.trajectory
+        # interpolate e_trajectory to get evenly spaced time series.
+        trajectory = m.e_trajectory
         headers = trajectory.pop(0)
 
         df = pd.DataFrame(trajectory, columns=headers)
@@ -278,8 +318,8 @@ else:
 set path variables according to local of cluster environment
 """
 if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW =\
-        "/p/tmp/kolb/Divest_Experiments/divestdata/"\
+    SAVE_PATH_RAW = \
+        "/P/tmp/kolb/Divest_Experiments/divestdata/" \
         + folder + "/raw_data"
     SAVE_PATH_RES =\
         "/home/kolb/Divest_Experiments/divestdata/"\
@@ -301,8 +341,8 @@ else:
 set path variable for initial conditions for transition runs
 """
 if getpass.getuser() == "kolb":
-    SAVE_PATH_INIT =\
-        "/p/tmp/kolb/Divest_Experiments/divestdata/"\
+    SAVE_PATH_INIT = \
+        "/P/tmp/kolb/Divest_Experiments/divestdata/" \
         + FOLDER_EQUI + "/raw_data"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_INIT = \
@@ -477,7 +517,8 @@ if mode == 2:
     # handle.resave(EVA1, NAME1)
     # handle.resave(EVA2, NAME2)
     # plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets, t_max=200)
+    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets, t_max=400,
+                  file_extension='.pdf')
 
 # debug and mess around mode:
 if mode == 3:

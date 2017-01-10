@@ -16,6 +16,7 @@
     floatrow,
     color,
     cite,
+    empheq,
 	amsmath,
 	amssymb,
         titleps,
@@ -78,6 +79,9 @@
     \boxed{#1 #2}
     \endgroup
               }
+
+
+\newcommand*\widefbox[1]{\fbox{\hspace{2em}#1\hspace{2em}}}
 %set fontsize for figure captions
 
 \usepackage[font=small,labelfont=bf]{caption}
@@ -132,7 +136,7 @@
 %Kopf- unf Fuﬂzeilen
 \newpagestyle{newstyle}{
       \setheadrule{.4pt}% Header rule
-        \sethead[Jakob Kolb]% even left
+        \sethead[Preliminary results - Do not circulate!]% even left
             []% even centre
             [\thepage]% even right
             {\thepage}% odd left

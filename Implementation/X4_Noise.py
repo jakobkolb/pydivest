@@ -10,9 +10,10 @@ import types
 import networkx as nx
 import pandas as pd
 
-from divestcore import divestment_core as model
+from micro_model import divestment_core as model
 from divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
-from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
+from pymofa.experiment_handling import experiment_handling, \
+    even_time_series_spacing
 
 
 def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
@@ -32,9 +33,9 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
     eps : float \in [0,1]
         fraction of rewiring and imitation events that 
         are random.
-    N : int
+    n : int
         the number of household agents
-    p : float \in [0,1]
+    P : float \in [0,1]
         connection probability for Erdos
         Renyi random graph
     P : int
@@ -59,16 +60,16 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
     filename: string
         filename for the results of the run
     """
-    assert isinstance(test, types.IntType), 'test must be int, is {!r}'.format(test)
+    assert isinstance(test, types.IntType), \
+        'test must be int, is {!r}'.format(test)
 
-    #input parameters
+    # input parameters
 
-    input_params = {'tau':tau, 'phi':phi, 'eps':eps, \
-            'P':P, 'b_d':b_d, 'b_R0':b_R0, \
-            'e':e, 'd_c':d_c, 'test':bool(test)}
+    input_params = {'tau': tau, 'phi': phi, 'eps': eps,
+                    'P': P, 'b_d': b_d, 'b_r0': b_R0,
+                    'e': e, 'd_c': d_c, 'test': bool(test)}
 
-
-    #building initial conditions
+    # building initial conditions
 
     while True:
         net = nx.erdos_renyi_graph(N, p)
@@ -79,61 +80,58 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
     
     init_conditions = (adjacency_matrix, investment_decisions)
 
-    #initializing the model
+    # initializing the model
 
     m = model.divestment_core(*init_conditions, **input_params)
 
-    #storing initial conditions and parameters
+    # storing initial conditions and parameters
 
-    res = {}
-    res["initials"] = \
-            pd.DataFrame({"Investment decisions": investment_decisions,
-                            "Investment clean": m.investment_clean,
-                            "Investment dirty": m.investment_dirty})
+    res = {
+        "initials": pd.DataFrame({"Investment decisions": investment_decisions,
+                                  "Investment clean": m.investment_clean,
+                                  "Investment dirty": m.investment_dirty}),
+        "parameters": pd.Series({"tau": m.tau,
+                                 "phi": m.phi,
+                                 "n": m.n,
+                                 "P": m.P,
+                                 "birth rate": m.r_b,
+                                 "savings rate": m.s,
+                                 "clean capital depreciation rate": m.d_c,
+                                 "dirty capital depreciation rate": m.d_d,
+                                 "resource extraction efficiency": m.b_r0,
+                                 "Solov residual clean": m.b_c,
+                                 "Solov residual dirty": m.b_d,
+                                 "pi": m.pi,
+                                 "kappa_c": m.kappa_c,
+                                 "kappa_d": m.kappa_d,
+                                 "resource efficiency": m.e,
+                                 "epsilon": m.eps,
+                                 "initial resource stock": m.G_0})}
 
-    res["parameters"] = \
-            pd.Series({ "tau": m.tau,
-                        "phi": m.phi,
-                        "N": m.N,
-                        "p": p,
-                        "P": m.P,
-                        "birth rate": m.r_b,
-                        "savings rate": m.s,
-                        "clean capital depreciation rate":m.d_c,
-                        "dirty capital depreciation rate":m.d_d,
-                        "resource extraction efficiency":m.b_R0,
-                        "Solov residual clean":m.b_c,
-                        "Solov residual dirty":m.b_d,
-                        "pi":m.pi,
-                        "kappa_c":m.kappa_c,
-                        "kappa_d":m.kappa_d,
-                        "rho":m.rho,
-                        "resource efficiency":m.e,
-                        "epsilon":m.eps,
-                        "initial resource stock":m.G_0})
-
-    #run the model
+    # run the model
 
     t_max = 300 if test == 0 else 50
     start = time.clock()
     exit_status = m.run(t_max=t_max)
 
-    #store exit status
+    # store exit status
     res["convergence"] = exit_status
     if test:
-        print m.tau, m.phi, exit_status, m.convergence_state, m.convergence_time
-    #store data in case of successful run
+        print m.tau, m.phi, exit_status, \
+            m.convergence_state, m.convergence_time
 
-    if exit_status in [0,1]:
+    # store data in case of successful run
+
+    if exit_status in [0, 1]:
         res["convergence_data"] = \
-                pd.DataFrame({"Investment decisions": m.investment_decision,
-                            "Investment clean": m.investment_clean,
-                            "Investment dirty": m.investment_dirty})
+            pd.DataFrame({"Investment decisions": m.investment_decisions,
+                          "Investment clean": m.investment_clean,
+                          "Investment dirty": m.investment_dirty})
         res["convergence_state"] = m.convergence_state
         res["convergence_time"] = m.convergence_time
 
-        # interpolate trajectory to get evenly spaced time series.
-        trajectory = m.trajectory
+        # interpolate e_trajectory to get evenly spaced time series.
+        trajectory = m.e_trajectory
         headers = trajectory.pop(0)
 
         df = pd.DataFrame(trajectory, columns=headers)
@@ -144,7 +142,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
     end = time.clock()
     res["runtime"] = end-start
 
-    #save data
+    # save data
     with open(filename, 'wb') as dumpfile:
         cp.dump(res, dumpfile)
     try:
@@ -154,44 +152,52 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
     
     return exit_status
 
-#get sub experiment and mode from command line
-if len(sys.argv)>1:
+
+# get sub experiment and mode from command line
+if len(sys.argv) > 1:
     input_int = int(sys.argv[1])
 else:
     input_int = -1
-if len(sys.argv)>2:
+if len(sys.argv) > 2:
     noise = bool(int(sys.argv[2]))
 else:
     noise = True
-if len(sys.argv)>3:
+if len(sys.argv) > 3:
     mode = int(sys.argv[3])
 else:
     mode = None
 
-experiments = ['b_d', 'b_R', 'e', 'p', 'test']
+experiments = ['b_d', 'b_R', 'e', 'P', 'test']
 sub_experiment = experiments[input_int]
 folder = 'X4Noise' if noise else 'X4NoNoise'
 
-#check if cluster or local
+# check if cluster or local
 if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW = "/p/tmp/kolb/Divest_Experiments/divestdata/"+folder+"/raw_data" + '_' + sub_experiment + '/'
-    SAVE_PATH_RES = "/home/kolb/Divest_Experiments/divestdata/"+folder+"/results" + '_' + sub_experiment + '/'
+    SAVE_PATH_RAW = "/P/tmp/kolb/Divest_Experiments/divestdata/" \
+                    + folder + "/raw_data" + '_' + sub_experiment + '/'
+    SAVE_PATH_RES = "/home/kolb/Divest_Experiments/divestdata/" \
+                    + folder + "/results" + '_' + sub_experiment + '/'
 elif getpass.getuser() == "jakob":
-    SAVE_PATH_RAW = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"+folder+"/raw_data" + '_' + sub_experiment + '/'
-    SAVE_PATH_RES = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"+folder+"/results" + '_' + sub_experiment + '/'
+    SAVE_PATH_RAW = \
+        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/" \
+        + folder + "/raw_data" + '_' + sub_experiment + '/'
+    SAVE_PATH_RES = \
+        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/" \
+        + folder + "/results" + '_' + sub_experiment + '/'
 
-taus = [round(x,5) for x in list(np.linspace(0.0,1.0,11))[1:-1]]
-phis = [round(x,5) for x in list(np.linspace(0.0,1.0,11))[1:-1]]
+taus = [round(x, 5) for x in list(np.linspace(0.0, 1.0, 11))[1:-1]]
+phis = [round(x, 5) for x in list(np.linspace(0.0, 1.0, 11))[1:-1]]
 
-b_ds = [round(x,5) for x in list(1 + np.linspace( 0.0, 0.3, 9))]
-b_Rs = [round(x,5) for x in list(10**np.linspace(-2.0, 2.0, 5))]
-es   = [round(x,5) for x in list(4.**np.linspace( 0.0, 3.0, 4))]
-ps  =  [round(x,5) for x in list(    np.linspace( 0.0, 0.3, 7))]
-tests =[1]
+b_ds = [round(x, 5) for x in list(1 + np.linspace(0.0, 0.3, 9))]
+b_Rs = [round(x, 5) for x in list(10 ** np.linspace(-2.0, 2.0, 5))]
+es = [round(x, 5) for x in list(4. ** np.linspace(0.0, 3.0, 4))]
+ps = [round(x, 5) for x in list(np.linspace(0.0, 0.3, 7))]
+tests = [1]
 
-
-parameters = {'tau':0, 'phi':1, 'eps':2, 'N':3, 'p':4, 'P':5, 'b_d':6, 'b_R':7, 'e':8, 'd_c':9, 'test':10}
-tau, phi, eps, N, p, P, b_d, b_R, e, d_c , test = [.8], [.8], [0.0], [100], [0.125], [500], [1.2], [1.], [100], [0.06], [0]
+parameters = {'tau': 0, 'phi': 1, 'eps': 2, 'n': 3, 'P': 4, 'b_d': 5,
+              'b_R': 6, 'e': 7, 'd_c': 8, 'test': 9}
+tau, phi, eps, N, p, P, b_d, b_R, e, d_c, test = \
+    [.8], [.8], [0.0], [100], [0.125], [500], [1.2], [1.], [100], [0.06], [0]
 if noise:
     eps = [0.05]
 
@@ -199,61 +205,70 @@ NAME = 'tau_vs_phi_' + sub_experiment + '_sensitivity'
 INDEX = {0: "tau", 1: "phi", parameters[sub_experiment]: sub_experiment}
 
 if sub_experiment == 'b_d':
-    PARAM_COMBS = list(it.product(taus,\
-        phis, eps, N, p, P, b_ds, b_R, e, d_c, test))
+    PARAM_COMBS = list(it.product(taus,
+                                  phis, eps, N, p, P, b_ds, b_R, e, d_c, test))
 
 elif sub_experiment == 'b_R':
-    PARAM_COMBS = list(it.product(taus,\
-        phis, eps, N, p, P, b_d, b_Rs, e, d_c, test))
+    PARAM_COMBS = list(it.product(taus, phis, eps, N, p, P, b_d, b_Rs,
+                                  e, d_c, test))
 
 elif sub_experiment == 'e':
-    PARAM_COMBS = list(it.product(taus,\
-        phis, eps, N, p, P, b_d, b_R, es, d_c, test))
+    PARAM_COMBS = list(it.product(taus, phis, eps, N, p, P, b_d,
+                                  b_R, es, d_c, test))
 
-elif sub_experiment =='p':
-    PARAM_COMBS = list(it.product(taus,\
-        phis, eps, N, ps, P, b_d, b_R, e, d_c, test))
+elif sub_experiment == 'P':
+    PARAM_COMBS = list(it.product(taus, phis, eps, N, ps, P, b_d,
+                                  b_R, e, d_c, test))
     
 elif sub_experiment == 'test':
-    PARAM_COMBS = list(it.product(taus,\
-        phis, eps, N, p, P, b_d, b_R, e, d_c, tests))
+    PARAM_COMBS = list(it.product(taus, phis, eps, N, p, P, b_d,
+                                  b_R, e, d_c, tests))
 
 
 else:
     print sub_experiment, ' is not in the list of possible experiments'
     sys.exit()
 
-#names and function dictionaries for post processing:
+# names and function dictionaries for post processing:
 
 NAME1 = NAME+'_trajectory'
-EVA1={   "<mean_trajectory>": 
-        lambda fnames: pd.concat([np.load(f)["economic_trajectory"] for f in fnames]).groupby(level=0).mean(),
-        "<sem_trajectory>": 
-        lambda fnames: pd.concat([np.load(f)["economic_trajectory"] for f in fnames]).groupby(level=0).sem()}
+EVA1 = {"<mean_trajectory>":
+            lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+                                      for f in fnames]).groupby(
+                level=0).mean(),
+        "<sem_trajectory>":
+            lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+                                      for f in fnames]).groupby(level=0).sem()}
 
 NAME2 = NAME+'_convergence'
-EVA2={  "<mean_convergence_state>":
-        lambda fnames: np.nanmean([np.load(f)["convergence_state"] for f in fnames]),
+EVA2 = {"<mean_convergence_state>":
+            lambda fnames: np.nanmean([np.load(f)["convergence_state"]
+                                       for f in fnames]),
         "<mean_convergence_time>":
-        lambda fnames: np.nanmean([np.load(f)["convergence_time"] for f in fnames]),
+            lambda fnames: np.nanmean([np.load(f)["convergence_time"]
+                                       for f in fnames]),
         "<min_convergence_time>":
-        lambda fnames: np.nanmin([np.load(f)["convergence_time"] for f in fnames]),
+            lambda fnames: np.nanmin([np.load(f)["convergence_time"]
+                                      for f in fnames]),
         "<max_convergence_time>":
-        lambda fnames: np.max([np.load(f)["convergence_time"] for f in fnames]),
+            lambda fnames: np.max([np.load(f)["convergence_time"]
+                                   for f in fnames]),
         "<nanmax_convergence_time>":
-        lambda fnames: np.nanmax([np.load(f)["convergence_time"] for f in fnames]),
+            lambda fnames: np.nanmax([np.load(f)["convergence_time"]
+                                      for f in fnames]),
         "<sem_convergence_time>":
-        lambda fnames: st.sem([np.load(f)["convergence_time"] for f in fnames]),
+            lambda fnames: st.sem([np.load(f)["convergence_time"]
+                                   for f in fnames]),
         "<runtime>":
-        lambda fnames: st.sem([np.load(f)["runtime"] for f in fnames]),
+            lambda fnames: st.sem([np.load(f)["runtime"]
+                                   for f in fnames]),
         }
-
-
 
 # full run
 if mode == 0:
     SAMPLE_SIZE = 100
-    handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+    handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
+                                 SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
@@ -263,7 +278,8 @@ if mode == 0:
 # test run
 if mode == 1:
     SAMPLE_SIZE = 2
-    handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+    handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
+                                 SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
@@ -271,9 +287,10 @@ if mode == 1:
     plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2)
 
 # debug and mess around mode:
-if mode == None:
+if mode is None:
     SAMPLE_SIZE = 2
-    handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+    handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
+                                 SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
