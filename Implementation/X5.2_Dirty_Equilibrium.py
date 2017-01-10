@@ -19,7 +19,7 @@ Variable parameters are:
 
 from pymofa.experiment_handling import (experiment_handle,
                                         even_time_series_spacing)
-from divestcore import divestment_core as model
+from micro_model import divestment_core as model
 from divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
 import numpy as np
 import scipy.stats as st
@@ -57,7 +57,7 @@ def RUN_FUNC(t_a, phi, alpha,
         dynamics. Governs the clustering in the
         network of households.
     alpha: float
-        the ratio alpha = (b_R0/e)**(1/2)
+        the ratio alpha = (b_r0/e)**(1/2)
         that sets the share of the initial
         resource G_0 that can be harvested
         economically.
@@ -66,7 +66,7 @@ def RUN_FUNC(t_a, phi, alpha,
         t_d = 1/(d_c(1-kappa_d))
     possible_opinions : list of list of integers
         the set of cue orders that are allowed in the
-        model. opinions determine the individual cue
+        model. investment_decisions determine the individual cue
         order, that a household uses.
     eps : float
         fraction of rewiring events that are random.
@@ -101,8 +101,8 @@ def RUN_FUNC(t_a, phi, alpha,
         # t_G = G_0*e*d_c/(P*s*b_d**2)
         G_0 = t_G*P*s*b_d**2/(e*d_c)
 
-        # set b_R0 according to alpha and e:
-        # alpha = (b_R0/e)**(1/2)
+        # set b_r0 according to alpha and e:
+        # alpha = (b_r0/e)**(1/2)
         b_R0 = alpha**2 * e
 
         # calculate equilibrium dirty capital
@@ -128,12 +128,12 @@ def RUN_FUNC(t_a, phi, alpha,
         # input parameters
 
         input_params = {'adjacency': adjacency_matrix,
-                        'opinions': opinions,
+                        'investment_decisions': opinions,
                         'investment_clean': investment_clean,
                         'investment_dirty': investment_dirty,
                         'possible_opinions': possible_opinions,
                         'tau': tau, 'phi': phi, 'eps': eps,
-                        'P': P, 'b_d': b_d, 'b_R0': b_R0, 'G_0': G_0,
+                        'P': P, 'b_d': b_d, 'b_r0': b_R0, 'G_0': G_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
                         'R_depletion': transition}
 
@@ -173,14 +173,14 @@ def RUN_FUNC(t_a, phi, alpha,
     res["parameters"] = \
         pd.Series({"tau": m.tau,
                    "phi": m.phi,
-                   "N": m.N,
-                   "p": p,
+                   "n": m.n,
+                   "P": p,
                    "P": m.P,
                    "birth rate": m.r_b,
                    "savings rate": m.s,
                    "clean capital depreciation rate": m.d_c,
                    "dirty capital depreciation rate": m.d_d,
-                   "resource extraction efficiency": m.b_R0,
+                   "resource extraction efficiency": m.b_r0,
                    "Solov residual clean": m.b_c,
                    "Solov residual dirty": m.b_d,
                    "pi": m.pi,
@@ -189,7 +189,7 @@ def RUN_FUNC(t_a, phi, alpha,
                    "rho": m.rho,
                    "resource efficiency": m.e,
                    "epsilon": m.eps,
-                   "initial resource stock": m.G_0})
+                   "initial resource stock": m.g_0})
 
     # run the model
     start = time.clock()
@@ -217,8 +217,8 @@ def RUN_FUNC(t_a, phi, alpha,
         res["convergence_state"] = m.convergence_state
         res["convergence_time"] = m.convergence_time
 
-        # interpolate trajectory to get evenly spaced time series.
-        trajectory = m.trajectory
+        # interpolate e_trajectory to get evenly spaced time series.
+        trajectory = m.e_trajectory
         headers = trajectory.pop(0)
 
         df = pd.DataFrame(trajectory, columns=headers)
@@ -274,8 +274,8 @@ elif any(transition):
 set path variables according to local of cluster environment
 """
 if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW =\
-        "/p/tmp/kolb/Divest_Experiments/divestdata/"\
+    SAVE_PATH_RAW = \
+        "/P/tmp/kolb/Divest_Experiments/divestdata/" \
         + folder + "/raw_data"
     SAVE_PATH_RES =\
         "/home/kolb/Divest_Experiments/divestdata/"\
@@ -291,8 +291,8 @@ elif getpass.getuser() == "jakob":
 set path variable for initial conditions for transition runs
 """
 if getpass.getuser() == "kolb":
-    SAVE_PATH_INIT =\
-        "/p/tmp/kolb/Divest_Experiments/divestdata/"\
+    SAVE_PATH_INIT = \
+        "/P/tmp/kolb/Divest_Experiments/divestdata/" \
         + FOLDER_EQUI + "/raw_data"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_INIT = \

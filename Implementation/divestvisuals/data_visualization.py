@@ -134,12 +134,6 @@ def explore_Parameterspace(TwoDFrame, title="",
     ylog : bool
         Wheter y axis is log scaled
 
-    Examples
-    --------
-    >>> import init_data
-    >>> data = init_data.get_Data("phi")
-    >>> explore_Parameterspace(data.unstack(level="deltaT")["<safe>",0.5].
-    >>>                        unstack(level="phi"))
     """
 
     xparams = TwoDFrame.columns.values
@@ -222,7 +216,7 @@ def plot_trajectories(loc, name, params, indices):
 
                 # add a subplot to the list of axes
                 axes.append(plt.subplot2grid((len(columns), len(ivals)), (c, i)))
-                # plot mean trajectory and insequrity interval
+                # plot mean e_trajectory and insequrity interval
                 # also mark the area in which the mean data was negative
                 subset_abs.plot(ax = axes[-1])
                 plt.fill_between(subset_abs.index, 
@@ -267,7 +261,7 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, t_max=None, file_ex
         the location where the processed data is saved
     NAME_TRJ : string
         the name of the datafile containing the processed
-        trajectory data
+        e_trajectory data
     NAME_CNS : string
         the name of the datafile containing the processed
         consensus data
@@ -354,7 +348,9 @@ def plot_observables(t_data_in, c_data_in, loc,
     log_list = [2, 4, 5, 7, 9, 10]
     cops = ['c'+str(x) for x in pos]
     dops = ['d'+str(x) for x in pos]
-    colors = [x for x in "brwcmygk"][:len(pos)]
+    colors = [x for x in "brwcmygk"]
+    colors.append('#2E8B57')
+    colors = colors[:len(pos)]
     colorlist = colors + colors
 
     # some parameters:
@@ -363,7 +359,7 @@ def plot_observables(t_data_in, c_data_in, loc,
 
     print 'plotting observable grids'
 
-    # clean trajectory data
+    # clean e_trajectory data
     t_data = t_data_in.where(t_data_in < 10**300, np.nan)
 
     # split convergence data
@@ -388,7 +384,7 @@ def plot_observables(t_data_in, c_data_in, loc,
     # which will be transformed into columns by unstack()
 
     for p in range(len(plot_list)):
-    # for p in [8]:
+        # for P in [8]:
         pl = plot_list[p]
         if len(pl) == 1:
             colors = colorlist[-1]
@@ -441,7 +437,7 @@ def plot_observables(t_data_in, c_data_in, loc,
                                              (len(ivals) - i - 1,
                                               j + x_legendgrid)))
 
-                # plot mean trajectory (and fix the color problem..)
+                # plot mean e_trajectory (and fix the color problem..)
                 pt = subset_j.plot(ax=axes[-1], legend=(j == 0 and i == 0),
                                    color=colors)
 
@@ -450,6 +446,8 @@ def plot_observables(t_data_in, c_data_in, loc,
                     pt = subset.unstack('observables')[cops + dops]\
                         .plot.area(color=colorlist, ax=axes[-1], alpha=0.3,
                                    legend=(j == 0 and i == 0))
+                    pt = subset_j.plot(ax=axes[-1], legend=False,
+                                       color='red', lw=5)
                     axes[-1].set_ylim(0., 1.)
 
                 # plot standard error
@@ -574,14 +572,24 @@ def plot_observables(t_data_in, c_data_in, loc,
 
         # adjust the grid layout to avoid overlapping plots and save the figure
         sloc = loc\
-            + title_list[p].replace(' ', '_')\
-            + `save_name[0]`.strip('()').replace(', ','=')\
-            .replace('.', 'o')\
+            + title_list[p].replace(' ', '_') \
+               + `save_name[0]`.strip('()').replace(', ', '=') \
+                   .replace('.', 'o')\
             + file_extension
         fig.tight_layout()
         fig.savefig(sloc, bbox_extra_artists=(leg,), bbox_inches='tight')
         fig.clf()
         plt.close()
+
+
+def plot_phase_transition(loc, name, ):
+    if not loc.endswith('/'):
+        loc += '/'
+
+    with open(loc + name) as target:
+        tmp = np.load(target)
+
+    print tmp
 
 if __name__ == '__main__':
 	loc = sys.argv[1]

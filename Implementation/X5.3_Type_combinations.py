@@ -1,4 +1,7 @@
 """
+Description of the Experiment:
+------------------------------
+
 This experiment focuses on the test of combinations of
 different cue orders for the Take The Best Heuristic
 in the dirty clean transition.
@@ -16,9 +19,8 @@ the next best we can do is using directed and random rewiring
 only to get at least some clustering amongst opinions that
 scales with phi.
 
-So in the equilibration runs, we allow rewiring but no
-imitation whereas in the transition runs, we allow none
-of them.
+Time scales in the experiment:
+------------------------------
 
 1) capital accumulation in the dirty sector,
     t_d = 1/(d_c*(1-kappa_c))
@@ -28,8 +30,11 @@ of them.
    given one opinion dominates the other.
     t_a = tau*(1-phi)
 
+Discussion of variable parameters (degrees of freedom):
+-------------------------------------------------------
+
 tau and phi are of no interest so far, since the adaptive
-voter dynamics is disabled so far.
+voter dynamics is disabled.
 t_d is fixed by standard values for d_c=0.06
 and kappa_c=0.5.
 
@@ -45,7 +50,7 @@ resource that can be economically harvested.
 
 from pymofa.experiment_handling import (experiment_handling,
                                         even_time_series_spacing)
-from divestcore import divestment_core as model
+from micro_model import divestment_core as model
 from divestvisuals.data_visualization import plot_obs_grid
 from random import shuffle
 import numpy as np
@@ -84,7 +89,7 @@ def RUN_FUNC(nopinions, phi, alpha,
         dynamics. Governs the clustering in the
         network of households.
     alpha: float
-        the ratio alpha = (b_R0/e)**(1/2)
+        the ratio alpha = (b_r0/e)**(1/2)
         that sets the share of the initial
         resource G_0 that can be harvested
         economically.
@@ -93,7 +98,7 @@ def RUN_FUNC(nopinions, phi, alpha,
         t_d = 1/(d_c(1-kappa_d))
     possible_opinions : list of list of integers
         the set of cue orders that are allowed in the
-        model. opinions determine the individual cue
+        model. investment_decisions determine the individual cue
         order, that a household uses.
     eps : float
         fraction of rewiring events that are random.
@@ -110,7 +115,7 @@ def RUN_FUNC(nopinions, phi, alpha,
     assert alpha < 1,\
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
-    (N, p, tau, P, b_d, b_R0, e, s) =\
+    (N, p, tau, p, b_d, b_r0, e, s) = \
         (sum(nopinions), 0.125, 1, 500, 1.2, 1., 100, 0.23)
 
     # ROUND ONE: FIND EQUILIBRIUM DISTRIBUTIONS:
@@ -126,15 +131,15 @@ def RUN_FUNC(nopinions, phi, alpha,
 
         # set G_0 according to resource depletion time:
         # t_G = G_0*e*d_c/(P*s*b_d**2)
-        G_0 = t_G*P*s*b_d**2/(e*d_c)
+        g_0 = t_G * p * s * b_d ** 2 / (e * d_c)
 
-        # set b_R0 according to alpha and e:
-        # alpha = (b_R0/e)**(1/2)
-        b_R0 = alpha**2 * e
+        # set b_r0 according to alpha and e:
+        # alpha = (b_r0/e)**(1/2)
+        b_r0 = alpha ** 2 * e
 
         # calculate equilibrium dirty capital
         # for full on dirty economy
-        K_d0 = (s/d_c*b_d*P**(1./2.)*(1-alpha**2))**2.
+        K_d0 = (s / d_c * b_d * p ** (1. / 2.) * (1 - alpha ** 2)) ** 2.
 
         # set t_max for run
         t_max = 50 if test else 300
@@ -159,14 +164,14 @@ def RUN_FUNC(nopinions, phi, alpha,
         # input parameters
 
         input_params = {'adjacency': adjacency_matrix,
-                        'opinions': opinions,
+                        'investment_decisions': opinions,
                         'investment_clean': investment_clean,
                         'investment_dirty': investment_dirty,
                         'possible_opinions': possible_opinions,
                         'tau': tau, 'phi': phi, 'eps': eps,
-                        'P': P, 'b_d': b_d, 'b_R0': b_R0, 'G_0': G_0,
+                        'P': p, 'b_d': b_d, 'b_r0': b_r0, 'G_0': g_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
-                        'R_depletion': transition}
+                        'r_depletion': transition}
     # ROUND TWO: TRANSITION
     if transition:
         # build list of initial conditions
@@ -182,10 +187,10 @@ def RUN_FUNC(nopinions, phi, alpha,
         input_params = np.load(
             init_files[np.random.randint(0, len(init_files))])
 
-        opinions = input_params["opinions"]
+        opinions = input_params["investment_decisions"]
         adjacency = input_params["adjacency"]
 
-        # make list of kinds and locations of opinions
+        # make list of kinds and locations of investment_decisions
         op_kinds = list(np.unique(opinions))
         op_locs = []
         for o in op_kinds:
@@ -223,7 +228,7 @@ def RUN_FUNC(nopinions, phi, alpha,
             l += 1
 
         # adapt parameters where necessary
-        input_params['R_depletion'] = True
+        input_params['r_depletion'] = True
 
         # set t_max for run
         t_max = 300
@@ -242,14 +247,14 @@ def RUN_FUNC(nopinions, phi, alpha,
     res["parameters"] = \
         pd.Series({"tau": m.tau,
                    "phi": m.phi,
-                   "N": m.N,
-                   "p": p,
+                   "n": m.n,
+                   "P": p,
                    "P": m.P,
                    "birth rate": m.r_b,
                    "savings rate": m.s,
                    "clean capital depreciation rate": m.d_c,
                    "dirty capital depreciation rate": m.d_d,
-                   "resource extraction efficiency": m.b_R0,
+                   "resource extraction efficiency": m.b_r0,
                    "Solov residual clean": m.b_c,
                    "Solov residual dirty": m.b_d,
                    "pi": m.pi,
@@ -258,7 +263,7 @@ def RUN_FUNC(nopinions, phi, alpha,
                    "rho": m.rho,
                    "resource efficiency": m.e,
                    "epsilon": m.eps,
-                   "initial resource stock": m.G_0})
+                   "initial resource stock": m.g_0})
 
     # run the model
     start = time.clock()
@@ -286,8 +291,8 @@ def RUN_FUNC(nopinions, phi, alpha,
         res["convergence_state"] = m.convergence_state
         res["convergence_time"] = m.convergence_time
 
-        # interpolate trajectory to get evenly spaced time series.
-        trajectory = m.trajectory
+        # interpolate e_trajectory to get evenly spaced time series.
+        trajectory = m.e_trajectory
         headers = trajectory.pop(0)
 
         df = pd.DataFrame(trajectory, columns=headers)
@@ -332,8 +337,8 @@ elif any(transition):
 set path variables according to local of cluster environment
 """
 if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW =\
-        "/p/tmp/kolb/Divest_Experiments/divestdata/"\
+    SAVE_PATH_RAW = \
+        "/P/tmp/kolb/Divest_Experiments/divestdata/" \
         + folder + "/raw_data"
     SAVE_PATH_RES =\
         "/home/kolb/Divest_Experiments/divestdata/"\
@@ -349,8 +354,8 @@ elif getpass.getuser() == "jakob":
 set path variable for initial conditions for transition runs
 """
 if getpass.getuser() == "kolb":
-    SAVE_PATH_INIT =\
-        "/p/tmp/kolb/Divest_Experiments/divestdata/"\
+    SAVE_PATH_INIT = \
+        "/P/tmp/kolb/Divest_Experiments/divestdata/" \
         + FOLDER_EQUI + "/raw_data"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_INIT = \
