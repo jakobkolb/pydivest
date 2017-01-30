@@ -1,0 +1,22 @@
+#!/bin/bash
+#SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
+#SBATCH --qos=short
+#SBATCH --array=0-5
+#SBATCH --job-name=X3N
+#SBATCH --output=%A_X3N_%a_.out
+#SBATCH --error=%A_X3N_%a_.err
+#SBATCH --time=0-24
+#SBATCH --nodes=2
+#SBATCH --tasks-per-node=16
+
+
+module load hpc/2015 anaconda/2.3.0
+export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
+
+echo "_______________________________________________"
+echo "SLURM JOB ID: $SLURM_JOBID"
+echo "$SLURM_NTASKS tasks"
+echo "_______________________________________________"
+
+cd ../
+srun -n $SLURM_NTASKS python X4_Noise.py $SLURM_ARRAY_TASK_ID 1 0
