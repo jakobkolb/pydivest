@@ -222,7 +222,7 @@ def RUN_FUNC(ccount, phi, alpha,
 
     # initializing the model
 
-    m = model.divestment_core(**input_params)
+    m = model.Divestment_Core(**input_params)
 
     # storing initial conditions and parameters
 

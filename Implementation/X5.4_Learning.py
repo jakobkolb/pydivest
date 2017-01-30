@@ -200,7 +200,6 @@ def RUN_FUNC(t_a, phi, alpha,
         # adapt parameters where necessary
 
         # set tau according to t_a and phi
-        input_params['tau'] = t_a/(1.-phi)
         input_params['r_depletion'] = True
         input_params['learning'] = True
 
@@ -209,7 +208,7 @@ def RUN_FUNC(t_a, phi, alpha,
 
     # initializing the model
 
-    m = model.divestment_core(**input_params)
+    m = model.Divestment_Core(**input_params)
 
     if transition and t_a > 10.:
         m.mode = 1
@@ -376,7 +375,7 @@ if no_heuristics:
 set different times for resource depletion
 in units of capital accumulation time t_d = 1/(d_c*(1-kappa_d))
 """
-t_as = [1, 3, 100]
+b_cs = [1, 3, 100]
 
 """
 set array of phis to generate equilibrium conditions for
@@ -394,7 +393,7 @@ dictionary of the variable parameters in this experiment together with their
 position in the index of the dictionary of results
 """
 parameters = {
-        't_a': 0,
+    'b_c': 0,
         'phi': 1,
         'alpha': 2,
         'test': 3}
@@ -424,13 +423,13 @@ Make sure, opinion_presets are not expanded
 print mode
 if mode == 1:  # Production
     PARAM_COMBS = list(itertools.product(
-        t_as, phis, alphas, t_d,
+        b_cs, phis, alphas, t_d,
         [opinion_presets], eps,
         transition, test))
 
 elif mode == 2:  # test
     PARAM_COMBS = list(itertools.product(
-        t_as, phis, alphas, t_d,
+        b_cs, phis, alphas, t_d,
         [opinion_presets], eps,
         transition, test))
 
@@ -438,7 +437,7 @@ elif mode == 3:  # messy
     test = [True]
     phis = [round(x, 2) for x in list(np.linspace(0.0, 1.0, 5))[1:-1]]
     PARAM_COMBS = list(itertools.product(
-        t_as, phis, alpha, t_d,
+        b_cs, phis, alpha, t_d,
         [opinion_presets], eps,
         transition, test))
 elif mode == 4:

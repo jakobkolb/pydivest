@@ -132,7 +132,7 @@ def RUN_FUNC(t_G, nopinions, alpha,
 
     # initializing the model
 
-    m = model.divestment_core(*init_conditions, **input_params)
+    m = model.Divestment_Core(*init_conditions, **input_params)
     if not avm:
         m.mode = 1
 

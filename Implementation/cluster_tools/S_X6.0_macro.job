@@ -4,7 +4,7 @@
 #SBATCH --job-name=X6.0_macro
 #SBATCH --output=%A_X6.0_macro.out
 #SBATCH --error=%A_X6.0_macro.err
-#SBATCH --nodes=1
+#SBATCH --nodes=16
 #SBATCH --tasks-per-node=16
 
 
@@ -17,4 +17,4 @@ echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
 cd ../
-srun -n $SLURM_NTASKS python X5.6_Phase_Transition.py 1
+srun -n $SLURM_NTASKS python X6.0_macro_trajectory.py 1

@@ -831,5 +831,121 @@ Since being a campaigner is an absorbing state in the opinion dynamic, it is cle
 	\caption{Same as fig.~\ref{fig:campaign_decisions0o1} but with $\alpha = 0.05$.}
 	\label{fig:campaign_decisions0o05}
 \end{figure}
+
+
+\section{Macroscopic Approximation}
+
+Equations in the clean sector are
+\begin{align}
+	Y_d &= \min(b_d L_d^{\pi}K_d^{\kappa_d}, eR) \nonumber \\
+	r_d &= \frac{\partial Y_d}{\partial K_d} - \frac{\partial c_R}{\partial K_d} \nonumber \\
+	w &=  \frac{\partial Y_d}{\partial L_d} - \frac{\partial c_R}{\partial L_d} \nonumber \\
+	c_R &= b_R R \left( \frac{G_0}{G} \right)^2 \nonumber
+\end{align}
+
+Equations for the clean sector are:
+\begin{align}
+	Y_c &= b_c L_c^{\pi}K_c^{\kappa_c} C^{\xi} \nonumber \\
+	r_c &= \frac{\partial Y_c}{\partial K_c} \nonumber \\
+	w &=  \frac{\partial Y_c}{\partial L_c} \nonumber \\
+	\dot{C} &= Y_c - \alpha C \nonumber 
+\end{align}
+
+Households have $K_i^{(c)}$, $K_i^{(d)}$,  $L_i$ , $o_i \in [c, d]$ and income $I_i = r_c K_{i}^{(c)} + r_d K_i^{(d)} + w L_i$
+Savings equations in single households are:
+
+\begin{align}
+	\dot{K_i^{(c)}} &= \delta_{o_i, c} s I_i - r_{\delta} K_i^{(c)} \nonumber \\
+	\dot{K_i^{(d)}} &= \delta_{o_i, d} s I_i - r_{\delta} K_i^{(d)} \nonumber
+\end{align}
+
+Resource extraction is given by
+\begin{equation}
+	G(t); \quad G(0) = G_0 \nonumber
+\end{equation}
+With dynamics
+\begin{equation}
+	\dot{G} = -R \nonumber
+\end{equation}
+
+Households become active with rate $1/\tau$. \\
+Imitation probability for $o_i \rightarrow o_j$ is given by 
+\begin{equation}
+	p(o_i \rightarrow o_j) = \frac{1}{2}\left( {\rm tahn}(I_j - I_i) + 1 \right) \nonumber
+\end{equation}
+
+Noise prob.\ is $\varepsilon$  avm prob.\ is $1 - \varepsilon$
+
+\begin{align}
+	\varphi = 0.2 \\ 
+	\varphi = 0.6 \\ 
+	\varphi = 0.8 \\ 
+	\varphi = 0.9 \\ 
+\end{align}
+
+Mean capital stocks of agents of same opinion are defined by
+
+\begin{equation}
+	\bar{K}_c^{(d)} = \frac{1}{N_c} \sum_{o_i = c}^{N} K_i^{(c)}; \quad \lim_{N \rightarrow \infty} \bar{K}_c^{(d)} = \left< K_i^{(c)} \right>_{o_i=c} = \mu_c^{(d)}
+\end{equation}
+
+\begin{align}
+	\dot{\bar{K}}_c^{(c)} &= (sr_c - \alpha)\bar{K}_c^{(c)} + s r_d \bar{K}_c^{(d)} + w \bar{L} \nonumber \\
+	\dot{\bar{K}}_c^{(d)} &= - \alpha\bar{K}_c^{(d)} \nonumber \\
+	\dot{\bar{K}}_d^{(c)} &= - \alpha\bar{K}_d^{(c)} \nonumber \\
+	\dot{\bar{K}}_d^{(d)} &= sr_c \bar{K}_d^{(c)} + (s r_d - \alpha)\bar{K}_d^{(d)} + w \bar{L} \nonumber
+\end{align}
+
+Definition of variables for Pair based Proxy, $N_c, N_d, [cc], [dd], [cd]$
+
+\begin{equation}
+	X = N_c - N_d, \quad Y = [cc] - [dd], \quad Z = [cd]
+\end{equation}
+
+Definition of state space vector $\mathbf{S}$, jumps in state space $\Delta \mathbf{S}$ and jump rates $W$:
+
+\begin{equation}
+	\mathbf{S} = (X, Y, Z)^T, \quad \Delta \mathbf{S}_j, \quad W(\mathbf{S},\mathbf{S} + \Delta \mathbf{S}_j)
+\end{equation}
+
+In terms of these, the dynamics of the PBP can be written in terms of a master equation
+
+\begin{align}
+	\frac{{\rm d} P(\mathbf{S}, t)}{{\rm d} t} = \sum_{j} &P(\mathbf{S} - \Delta \mathbf{S}_j, t) W(\mathbf{S} - \Delta \mathbf{S}_j,\mathbf{S}) \nonumber \\
+	&- P(\mathbf{S}, t) W(\mathbf{S},\mathbf{S} + \Delta \mathbf{S}_j) \nonumber
+\end{align}
+
+Rescaled variables for Thermodynamic limit:
+\begin{equation}
+	x = \frac{X}{N}, \quad y = \frac{Y}{M}, \quad z = \frac{Z}{M}, \quad c = \frac{C}{N}, \quad g = \frac{G}{N}, \quad k = \frac{2M}{N}
+\end{equation}
+
+constant returns to scale:
+\begin{equation}
+	\frac{Y_c}{N} = b_c\left( \frac{L_c}{N} \right)^{\pi}\left( \frac{K_c}{N} \right)^{\kappa_c}\left( \frac{C}{N} \right)^{\xi} \quad \Leftrightarrow \quad 1 = \pi + \kappa_c + \xi
+\end{equation}
+
+\begin{equation}
+	\frac{{\rm d} \mathbf{S} }{{\rm d} t} = (\Delta \mathbf{S}_1 \dots \Delta \mathbf{S}_E) (W(\Delta \mathbf{S}_1) \dots  W(\Delta \mathbf{S}_E))^{T} + \frac{1}{\sqrt{N}} \boldsymbol{\eta}(t)
+\end{equation}
+
+\begin{align}
+	\dot{\mu}_c^{(c)} &= (sr_c - \alpha)\mu_c^{(c)} + s r_d \mu_c^{(d)} + w l - (\mu_d^{(c)} - \mu_c^{(c)})\dot{x}/2 \nonumber \\
+	\dot{\mu}_c^{(d)} &= - \alpha\mu_c^{(d)} - (\mu_d^{(d)} - \mu_c^{(d)})\dot{x}/2\nonumber \\
+	\dot{\mu}_d^{(c)} &= - \alpha\mu_d^{(c)} + (\mu_c^{(c)} - \mu_d^{(c)})\dot{x}/2\nonumber \\
+	\dot{\mu}_d^{(d)} &= sr_c \mu_d^{(c)} + (s r_d - \alpha)\mu_d^{(d)} + w l - (\mu_c^{(d)} - \mu_d^{(d)})\dot{x}/2\nonumber \\
+	\dot{c} &= Y_c - \alpha c\nonumber \\
+	\dot{g} &= -r \nonumber \\
+	\left. \begin{aligned} 
+		\dot{x} & \\
+		\dot{y} & \\
+		\dot{z} & 
+	\end{aligned} \right\} &=(\Delta \mathbf{S}_1 \dots \Delta \mathbf{S}_E) (W(\Delta \mathbf{S}_1) \dots  W(\Delta \mathbf{S}_E))^{T}
+\end{align}
+
+
+\section{Literature}
+
 \bibliography{PhD-Divestment.bib}{}
     \bibliographystyle{IEEEtran}
+

@@ -235,7 +235,7 @@ def RUN_FUNC(nopinions, phi, alpha,
 
     # initializing the model
 
-    m = model.divestment_core(**input_params)
+    m = model.Divestment_Core(**input_params)
 
     # turn off avm since fragmentation of network is handles manually
     m.mode = 1
