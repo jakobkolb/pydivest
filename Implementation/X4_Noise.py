@@ -82,7 +82,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
 
     # initializing the model
 
-    m = model.divestment_core(*init_conditions, **input_params)
+    m = model.Divestment_Core(*init_conditions, **input_params)
 
     # storing initial conditions and parameters
 

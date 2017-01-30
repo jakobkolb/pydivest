@@ -6,13 +6,13 @@ import sympy as sp
 import pandas as pd
 
 
-class integrate_equations:
+class Integrate_Equations:
     def __init__(self, adjacency=None, investment_decisions=None,
                  investment_clean=None, investment_dirty=None,
                  possible_opinions=None,
                  tau=0.8, phi=.7, eps=0.05,
-                 P=1000., r_b=0, b_c=1., b_d=1.5, s=0.23, d_c=0.06,
-                 b_r0=1., e=10, G_0=1000,
+                 P=100., r_b=0, b_c=1., b_d=1.5, s=0.23, d_c=0.06,
+                 b_r0=1., e=10, G_0=3000,
                  R_depletion=True, test=False,
                  C=1, beta=0.06, xi=1. / 8., learning=False,
                  campaign=False):
@@ -20,14 +20,14 @@ class integrate_equations:
         # Social parameters
 
         # mean waiting time between social updates
-        self.tau = tau
+        self.tau = float(tau)
         # rewiring probability for adaptive voter model
-        self.phi = phi
+        self.phi = float(phi)
         # percentage of rewiring and imitation events that are noise
-        self.eps = eps
+        self.eps = float(eps)
         # number of households (to interface with initial
         # conditions from micro model)
-        self.n = adjacency.shape[0]
+        self.n = float(adjacency.shape[0])
         # edges/nodes
         self.k = float(sum(sum(adjacency))) / self.n
         # investment_decisions as indices of possible_opinions
@@ -36,21 +36,21 @@ class integrate_equations:
         # Sector parameters
 
         # Clean capital depreciation rate
-        self.d_c = d_c
+        self.d_c = float(d_c)
         # Dirty capital depreciation rate
-        self.d_d = self.d_c
+        self.d_d = float(self.d_c)
         # knowledge depreciation rate
-        self.beta = self.d_c
+        self.beta = float(self.d_c)
         # Resource harvest cost per unit (at full resource stock)
-        self.b_r0 = b_r0
+        self.b_r0 = float(b_r0)
         # percentage of income saved
-        self.s = s
+        self.s = float(s)
         # solow residual for clean sector
-        self.b_c = b_c
+        self.b_c = float(b_c)
         # solow residual for dirty sector
-        self.b_d = b_d
+        self.b_d = float(b_d)
         # elasticity of knowledge
-        self.xi = xi
+        self.xi = float(xi)
         # labor elasticity (equal in both sectors)
         self.pi = 1. / 2.
         # clean capital elasticity
@@ -58,22 +58,22 @@ class integrate_equations:
         # dirty capital elasticity
         self.kappa_d = 1. - self.pi
         # fossil->energy->output conversion efficiency (Leontief)
-        self.e = e
+        self.e = float(e)
         # total labor
-        self.P = P
+        self.P = float(P)
         # labor per household
         self.p = float(P) / self.n
         # total knowledge stock
-        self.C = C
+        self.C = float(C)
         # unprofitable fraction of fossil reserve
         self.alpha = (b_r0 / e) ** 0.5
 
         # Ecosystem parameters
 
         # initial fossil resource stock
-        self.G_0 = G_0
+        self.G_0 = float(G_0)
         # total fossil resource stock
-        self.G = G_0
+        self.G = float(G_0)
         # initial fossil resource stock per household
         self.g_0 = float(G_0) / self.n
         # toggle resource depletion
@@ -106,37 +106,37 @@ class integrate_equations:
             assert len(x) == len(y)
 
             n = len(x)
-            cc = 0
+            ccc = 0
 
             for i in range(n):
                 for j in range(n):
-                    cc += x[i] * adj[i, j] * y[j]
+                    ccc += x[i] * adj[i, j] * y[j]
 
-            return float(cc)
+            return float(ccc)
 
-        cc = cl(adjacency, self.investment_decisions,
-                self.investment_decisions) / 2
-        dd = cl(adjacency, self.investment_decisions,
-                1 - self.investment_decisions)
-        cd = cl(adjacency, 1 - self.investment_decisions,
-                1 - self.investment_decisions) / 2
+        adj = adjacency
+        c = self.investment_decisions
+        d = - self.investment_decisions + 1
 
-        n = len(self.investment_decisions)
-        k = float(sum(sum(adjacency))) / 2
+        cc = cl(adj, c, c) / 2
+        cd = cl(adj, c, d)
+        dd = cl(adj, d, d) / 2
 
-        nc = sum(self.investment_decisions)
-        nd = sum(- self.investment_decisions + 1)
+        n = len(c)
+        k = float(sum(sum(adj))) / 2
+
+        nc = sum(c)
+        nd = sum(d)
 
         self.x = float(nc - nd) / n
         self.y = float(cc - dd) / k
         self.z = float(cd) / k
-        self.mucc = sum(investment_clean * self.investment_decisions) / nc
-        self.mucd = sum(investment_dirty * self.investment_decisions) / nc
-        self.mudc = sum(
-            investment_clean * (1 - self.investment_decisions)) / nd
-        self.mudd = sum(
-            investment_dirty * (1 - self.investment_decisions)) / nd
-        self.c = self.C / n
+
+        self.mucc = sum(investment_clean * c) / nc
+        self.mucd = sum(investment_dirty * c) / nc
+        self.mudc = sum(investment_clean * d) / nd
+        self.mudd = sum(investment_dirty * d) / nd
+        self.c = float(self.C) / n
         self.g = self.g_0
 
         self.k = float(k) / n
@@ -149,43 +149,57 @@ class integrate_equations:
         self.s_c, self.s_g = sp.symbols('c, g')
 
         # Define symbols for parameters
-        bc, bd, bR, e, delta, rs, xi, epsilon, phi, tau, pi, N, g0, k, p = \
-            sp.symbols(
-                'b_c b_d b_R e delta s xi epsilon phi tau, pi, N G_0 k P')
+        bc, bd, bR, e, delta, rs, xi, epsilon \
+            = sp.symbols('b_c b_d b_R e delta s xi epsilon')
+        phi, tau, pi, kappac, kappad, N, g0, k, p \
+            = sp.symbols(' phi tau pi kappa_c kappa_d N g_0 k p')
 
+        # Define lists of symbols and values for parameters to substitute
+        # in rhs expression
         param_symbols = [bc, bd, bR, e, delta, rs, xi,
-                         epsilon, phi, tau, pi, N, g0, k, p]
+                         epsilon, phi, tau, pi, kappac, kappad, N, g0, k, p]
         param_values = [self.b_c, self.b_d, self.b_r0, self.e, self.d_c,
                         self.s, self.xi, self.eps, self.phi, self.tau, self.pi,
-                        self.n, float(self.G_0) / self.n, self.k,
-                        float(self.p) / self.n]
-        self.columns = \
-            ['x', 'y', 'z', 'mucc', 'mucd', 'mudc', 'mudd', 'c', 'g']
+                        self.kappa_c, self.kappa_d,
+                        self.n,
+                        float(self.g_0), self.k,
+                        float(self.p)]
 
         # Load right hand side of ode system
         rhs = np.load(__file__.rsplit('/', 1)[0] + '/res_raw.pkl')
+        pcl = np.load(__file__.rsplit('/', 1)[0] + '/pcl.pkl')
 
         # substitute parameters into rhs and simplify once.
         self.rhs = rhs.subs({symbol: value for symbol, value
                              in zip(param_symbols, param_values)})
+        self.pcl = pcl.subs({symbol: value for symbol, value
+                             in zip(param_symbols, param_values)})
 
         # list to save macroscopic quantities to compare with
         # moment closure / pair based proxy approach
+        self.columns = \
+            ['x', 'y', 'z', 'mucc', 'mucd', 'mudc', 'mudd', 'c', 'g']
         self.m_trajectory = pd.DataFrame(columns=self.columns)
 
         # dictionary for final state
         self.final_state = {}
 
+    def _get_m_trj(self):
+
+        return self.m_trajectory
+
     def dot_rhs(self, values, t):
         var_symbols = [self.s_x, self.s_y, self.s_z, self.s_mucc,
                        self.s_mucd, self.s_mudc, self.s_mudd,
                        self.s_c, self.s_g]
-        if values[-1] < self.alpha * self.G_0:
-            values[-1] = self.alpha * self.G_0
+        if values[-1] < self.alpha * self.g_0:
+            values[-1] = self.alpha * self.g_0
         # add to g such that 1 - alpha**2 * (g/G_0)**2 remains positive
         subs1 = {var: val for (var, val) in zip(var_symbols, values)}
         rval = list(self.rhs.subs(subs1).evalf())
-        if self.R_depletion:
+        # print [rc, rd, Kc, Kd, Pc, Pd, R] for debugging
+        # print list(self.pcl.subs(subs1).evalf())
+        if not self.R_depletion:
             rval[-1] = 0
         return rval
 
@@ -194,15 +208,24 @@ class integrate_equations:
             t = np.linspace(self.t, t_max, 50)
             initial_conditions = [self.x, self.y, self.z, self.mucc,
                                   self.mucd, self.mudc, self.mudd,
-                                  self.c, self.G_0]
+                                  self.c, self.g]
             trajectory = odeint(self.dot_rhs, initial_conditions, t)
             df = pd.DataFrame(trajectory, index=t, columns=self.columns)
             self.m_trajectory = pd.concat([self.m_trajectory, df])
 
             # update aggregated variables:
+            self.x = trajectory[-1, 0]
+            self.y = trajectory[-1, 1]
+            self.z = trajectory[-1, 2]
+            self.mucc = trajectory[-1, 3]
+            self.mucd = trajectory[-1, 4]
+            self.mudc = trajectory[-1, 5]
+            self.mudd = trajectory[-1, 6]
+            self.c = trajectory[-1, 7]
+            self.g_0 = trajectory[-1, 8]
             self.C = self.c * self.n
             self.G = self.g * self.n
-
+            self.t = t_max
         elif t_max <= self.t:
             print 'upper time limit is smaller than system time', self.t
 
@@ -263,7 +286,7 @@ if __name__ == '__main__':
     init_conditions = (adjacency_matrix, opinions,
                        clean_investment, dirty_investment)
 
-    model = integrate_equations(*init_conditions, **input_parameters)
+    model = Integrate_Equations(*init_conditions, **input_parameters)
 
     model.run(t_max=2)
 

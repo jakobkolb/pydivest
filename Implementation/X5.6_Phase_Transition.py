@@ -37,7 +37,8 @@ Just for the fun of it, I will check the pure adaptive
 voter case against the case with heuristic decision making.
 """
 
-from pymofa.experiment_handling import experiment_handling
+from pymofa.experiment_handling import \
+    experiment_handling, even_time_series_spacing
 from micro_model import divestment_core as model
 from divestvisuals.data_visualization import plot_phase_transition
 import numpy as np
@@ -101,11 +102,11 @@ def RUN_FUNC(phi, N, alpha,
     # P = 0.125  # question: SHOULDN'T THE MEAN DEGREE STAY CONSTANT?? Yes!
     p = 10. / N
     tau = 1.
-    P = 500
+    P = float(N) * 10
     b_d = 1.2
-    b_c = 0.4
+    b_c = 1.
     d_c = 0.06
-    e = 100
+    e = 100.
     s = 0.23
     t_g = 100.
 
@@ -126,8 +127,7 @@ def RUN_FUNC(phi, N, alpha,
         # set t_max for run in units of the social
         # equilibration time (since this is the
         # process that actually has to equilibrate
-        t_a = tau / (1 - phi)
-        t_max = 100 * t_a
+        t_max = 100
 
         # building initial conditions
 
@@ -145,7 +145,7 @@ def RUN_FUNC(phi, N, alpha,
         # input parameters
 
         input_params = {'adjacency': adjacency_matrix,
-                        'investment_decisions': opinions,
+                        'opinions': opinions,
                         'investment_clean': investment_clean,
                         'investment_dirty': investment_dirty,
                         'possible_opinions': possible_opinions,
@@ -153,7 +153,7 @@ def RUN_FUNC(phi, N, alpha,
                         'P': P, 'b_d': b_d, 'b_c': b_c,
                         'b_r0': b_R0, 'G_0': G_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
-                        'R_depletion': transition}
+                        'R_depletion': transition, 'learning': True}
 
     # ROUND TWO: TRANSITION
     elif transition:
@@ -170,7 +170,6 @@ def RUN_FUNC(phi, N, alpha,
                 + '*_final')
         init_files = glob.glob(path)
         init_file = init_files[np.random.randint(0, len(init_files))]
-        print init_file
         input_params = np.load(init_file)['final_state']
 
         # adapt parameters where necessary
@@ -179,16 +178,12 @@ def RUN_FUNC(phi, N, alpha,
         input_params['R_depletion'] = True
 
         # set t_max for run
-        t_a = tau / (1 - phi)
-        t_max = 300 * t_a
+        t_max = 200
 
     # initializing the model
 
-    m = model.divestment_core(**input_params)
+    m = model.Divestment_Core(**input_params)
 
-    # set to run until convergence only
-
-    m.run_full_time = False
 
     # storing initial conditions and parameters
 
@@ -228,6 +223,11 @@ def RUN_FUNC(phi, N, alpha,
     res["remaining_resource"] = m.G
     res["remaining_resource_fraction"] = m.convergence_state
     res["majority_time"] = m.convergence_time
+
+    res["e_trajectory"] = \
+        even_time_series_spacing(m._get_e_trj(), 201, 0., t_max)
+    res["m_trajectory"] = \
+        even_time_series_spacing(m._get_m_trj(), 201, 0., t_max)
 
     # store runtime:
 
@@ -285,7 +285,7 @@ set path variables according to local of cluster environment
 """
 if getpass.getuser() == "kolb":
     SAVE_PATH_RAW = \
-        "/P/tmp/kolb/Divest_Experiments/divestdata/" \
+        "/p/tmp/kolb/Divest_Experiments/divestdata/" \
         + folder + "/raw_data"
     SAVE_PATH_RES = \
         "/home/kolb/Divest_Experiments/divestdata/" \
@@ -302,7 +302,7 @@ set path variable for initial conditions for transition runs
 """
 if getpass.getuser() == "kolb":
     SAVE_PATH_INIT = \
-        "/P/tmp/kolb/Divest_Experiments/divestdata/" \
+        "/p/tmp/kolb/Divest_Experiments/divestdata/" \
         + FOLDER_EQUI + "/raw_data"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_INIT = \
@@ -332,7 +332,7 @@ if no_heuristics:
 """
 set array of fractions of rewiring events phi
 """
-phis = [round(x, 2) for x in list(np.linspace(0.0, 1.0, 101))[:-1]]
+phis = [round(x, 2) for x in list(np.linspace(0.0, 1.0, 21))[:-1]]
 
 """
 set array of numbers of households N
@@ -408,27 +408,53 @@ def foo(fnames):
     return 1.
 
 
+NAME1 = NAME + "_e_trajectory"
+EVA1 = {"mean_trajectory":
+            lambda fnames: pd.concat([np.load(f)["e_trajectory"]
+                                      for f in fnames]).groupby(
+                level=0).mean(),
+        "sem_trajectory":
+            lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+                                      for f in fnames]).groupby(level=0).sem(),
+        "min_trajectory":
+            lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+                                      for f in
+                                      fnames]).groupby(level=0).min(),
+        "max_trajectory":
+            lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+                                      for f in
+                                      fnames]).groupby(level=0).max()
+        }
+
 NAME2 = NAME + '_convergence'
-EVA2 = {"<mean_remaining_resource_fraction>":
+EVA2 = {"mean_remaining_resource_fraction":
             lambda fnames: np.nanmean(
                 [np.load(f)["remaining_resource_fraction"]
                  for f in fnames]),
-        "<mean_majority_time>":
+        "sem_remaining_resource_fraction":
+            lambda fnames: st.sem(
+                [np.load(f)["remaining_resource_fraction"]
+                 for f in fnames]),
+        "mean_remaining_resource":
+            lambda fnames: np.nanmean(
+                [np.load(f)["remaining_resource"]
+                 for f in fnames]),
+        "mean_majority_time":
             lambda fnames: np.nanmean([np.load(f)["majority_time"]
                                        for f in fnames]),
-        "<min_majority_time>":
+        "min_majority_time":
             lambda fnames: np.nanmin([np.load(f)["majority_time"]
                                       for f in fnames]),
-        "<max_majority_time>":
+        "max_majority_time":
             lambda fnames: np.max([np.load(f)["majority_time"]
                                    for f in fnames]),
-        "<nanmax_majority_time>":
+        "nanmax_majority_time":
             lambda fnames: np.nanmax([np.load(f)["majority_time"]
                                       for f in fnames]),
-        "<sem_majority_time>":
+        "sem_majority_time":
             lambda fnames: st.sem([np.load(f)["majority_time"]
                                    for f in fnames]),
-        "<runtime>":
+        "runtime":
             lambda fnames: st.sem([np.load(f)["runtime"]
                                    for f in fnames]),
         }
@@ -448,18 +474,23 @@ if mode == 1:
 
 # test run
 if mode == 2:
-    SAMPLE_SIZE = 3
+    SAMPLE_SIZE = 10
+    if not transition:
+        SAMPLE_SIZE = 5
     handle = experiment_handling(
         SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
+    handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
+    if transition[0]:
+        plot_phase_transition(SAVE_PATH_RES, NAME2)
 
 # debug and mess around mode:
 if mode == 3:
     SAMPLE_SIZE = 3
     handle = experiment_handling(
         SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
-    handle.compute(RUN_FUNC)
+    # handle.compute(RUN_FUNC)
     if transition[0]:
-        handle.resave(EVA2, NAME2)
-        # plot_phase_transition(SAVE_PATH_RES, NAME2)
+        # handle.resave(EVA2, NAME2)
+        plot_phase_transition(SAVE_PATH_RES, NAME2)

@@ -1,6 +1,7 @@
 
 import datetime
 import numpy as np
+import pandas as pd
 import networkx as nx
 from itertools import chain
 from scipy.integrate import odeint
@@ -9,14 +10,14 @@ from scipy.stats import linregress
 from random import shuffle
 
 
-class divestment_core:
+class Divestment_Core:
 
     def __init__(self, adjacency=None, opinions=None,
                  investment_clean=None, investment_dirty=None,
                  possible_opinions=None,
                  tau=0.8, phi=.7, eps=0.05,
-                 P=1000., r_b=0, b_c=1., b_d=1.5, s=0.23, d_c=0.06,
-                 b_r0=1., e=10, G_0=1000,
+                 P=100., r_b=0, b_c=1., b_d=1.5, s=0.23, d_c=0.06,
+                 b_r0=1., e=10, G_0=3000,
                  R_depletion=True, test=False,
                  C=1, beta=0.06, xi=1. / 8., learning=False,
                  campaign=False):
@@ -36,6 +37,7 @@ class divestment_core:
         # toggle e_trajectory output
         self.e_trajectory_output = True
         self.m_trajectory_output = True
+        self.switchlist_output = True
         # toggle whether to run full time or only until consensus
         self.run_full_time = True
         # toggle resource depletion
@@ -77,6 +79,8 @@ class divestment_core:
         # list to save macroscopic quantities to compare with
         # moment closure / pair based proxy approach
         self.m_trajectory = []
+        # list of data for switching events
+        self.switchlist = []
         # dictionary for final state
         self.final_state = {}
 
@@ -138,7 +142,10 @@ class divestment_core:
         # to keep track of investment decisions.
         self.decision_state = 0.
         # investment decision vector, so far equal to investment_decisions
-        self.investment_decisions = np.random.randint(0, 2, self.n)
+        if possible_opinions == [[0], [1]]:
+            self.investment_decisions = np.array(opinions)
+        else:
+            self.investment_decisions = np.random.randint(0, 2, self.n)
 
         # members of ALL household = population   
         self.P = P
@@ -242,6 +249,28 @@ class divestment_core:
         if self.m_trajectory_output:
             self.init_m_trajectory()
 
+    def _get_m_trj(self):
+        # make up Dataframe from macro data:
+        columns = self.m_trajectory.pop(0)
+        df = pd.DataFrame(self.m_trajectory, columns=columns)
+        df = df.set_index('time')
+
+        return df
+
+    def _get_e_trj(self):
+        # make up DataFrame from micro data
+        columns = self.e_trajectory.pop(0)
+        df = pd.DataFrame(self.e_trajectory, columns=columns)
+        df = df.set_index('time')
+
+        return df
+
+    def _get_switch_list(self):
+        columns = self.switchlist.pop(0)
+        df = pd.DataFrame(self.switchlist, columns=columns)
+        df = df.set_index('time')
+
+        return df
 
     def cue_0(self, i):
         """
@@ -549,19 +578,21 @@ class divestment_core:
 
         X_c = (self.b_c * C ** self.xi * K_c ** self.kappa_c) ** (
         1. / (1. - self.pi))
-        X_d = (self.b_d * K_d**self.kappa_d)**(1./(1.-self.pi))
-        X_R = (1. - b_R/self.e)**(1./(1.-self.pi))\
-            if 1 > b_R/self.e else float('NaN')
+        X_d = (self.b_d * K_d ** self.kappa_d) ** (1. / (1. - self.pi))
+        X_R = (1. - b_R / self.e) ** (1. / (1. - self.pi)) \
+            if 1 > b_R / self.e else float('NaN')
 
-        P_c = P*X_c/(X_c + X_d*X_R)
-        P_d = P*X_d*X_R/(X_c + X_d*X_R)
-        R = 1./self.e * self.b_d * K_d**self.kappa_c * P_d**self.pi
+        P_c = P * X_c / (X_c + X_d * X_R)
+        P_d = P * X_d * X_R / (X_c + X_d * X_R)
+        R = 1. / self.e * self.b_d * K_d ** self.kappa_d * P_d ** self.pi
 
-        self.w = self.pi * P**(self.pi - 1) * (X_c + X_d*X_R)**(1.-self.pi)
-        self.r_c = self.kappa_c /\
-            K_c * X_c * P**self.pi * (X_c + X_d*X_R)**(-self.pi)
-        self.r_d = self.kappa_d /\
-            K_d * X_d * X_R * P**self.pi * (X_c + X_d*X_R)**(-self.pi)
+        self.w = self.pi * P ** (self.pi - 1) * (X_c + X_d * X_R) ** (
+        1. - self.pi)
+        self.r_c = self.kappa_c / \
+                   K_c * X_c * P ** self.pi * (X_c + X_d * X_R) ** (- self.pi)
+        self.r_d = self.kappa_d / \
+                   K_d * X_d * X_R * P ** self.pi * (X_c + X_d * X_R) ** (
+        - self.pi)
 
         # check if dirty sector is profitable (P_d > 0).
         # if not, shut it down.
@@ -598,9 +629,11 @@ class divestment_core:
         P_dot = self.r_b * P
         C_dot = self.b_c * C ** self.xi * P_c ** self.pi \
                 * K_c ** self.kappa_c - C * self.beta if self.learning else 0.
-        investment_clean_dot = self.investment_decisions*self.s*self.income \
-            - self.investment_clean*self.d_c
-        investment_dirty_dot = np.logical_not(self.investment_decisions)\
+        investment_clean_dot = \
+            self.investment_decisions \
+            * self.s * self.income - self.investment_clean * self.d_c
+        investment_dirty_dot = \
+            np.logical_not(self.investment_decisions) \
             * self.s * self.income - self.investment_dirty*self.d_d
 
         x1 = np.fromiter(
@@ -608,7 +641,8 @@ class divestment_core:
                                  list(investment_dirty_dot),
                                  [P_dot, G_dot, C_dot]]),
             dtype='float')
-
+        # print for debugging:
+        # print [self.r_c, self.r_d, K_c, K_d, P_c, P_d, R]
         return x1
 
     def update_economy(self, update_time):
@@ -717,8 +751,12 @@ class divestment_core:
             # people trying new stuff at random
             rdn = np.random.uniform()
             if rdn < self.eps*(1-self.phi) and self.imitation:
-                self.opinions[candidate] = np.random.randint(
+                old_opinion = self.opinions[candidate]
+                new_opinion = np.random.randint(
                     len(self.possible_opinions))
+                self.opinions[candidate] = new_opinion
+                if old_opinion != new_opinion and self.switchlist_output:
+                    self.save_switch(candidate, old_opinion)
                 candidate = -1
                 break
             # noise in rewiring (sometimes they make new friends
@@ -801,11 +839,13 @@ class divestment_core:
             # if adapt
             # compare fitness
             df = self.fitness(neighbor) - self.fitness(candidate)
-            # and rewire, if not a campaigner
+            # and immitate, if not a campaigner
             if ((self.campaign is False
                     or opinion[candidate] != len(self.possible_opinions)-1)
                     and (np.random.uniform() < .5*(np.tanh(df) + 1))
                     and self.imitation):
+                if self.switchlist_output:
+                    self.save_switch(candidate, self.opinions[candidate])
                 self.opinions[candidate] = self.opinions[neighbor]
         return 0
 
@@ -978,8 +1018,8 @@ class divestment_core:
         pair based proxy.
         :return: None
         """
-        element = ['time', 'x', 'y', 'z', 'mucc', 'mucd', 'mudc', 'mudd', 'C',
-                   'G']
+        element = ['time', 'x', 'y', 'z', 'mucc', 'mucd', 'mudc', 'mudd', 'c',
+                   'g']
         self.m_trajectory.append(element)
 
         dt = [self.t, self.t]
@@ -1017,13 +1057,13 @@ class divestment_core:
             assert len(x) == len(y)
 
             n = len(x)
-            cc = 0
+            ccc = 0
 
             for i in range(n):
                 for j in range(n):
-                    cc += x[i] * adj[i, j] * y[j]
+                    ccc += x[i] * adj[i, j] * y[j]
 
-            return float(cc)
+            return float(ccc)
 
         adj = self.neighbors
         c = self.investment_decisions
@@ -1040,8 +1080,8 @@ class divestment_core:
         dd = cl(adj, d, d) / 2
 
         x = float(nc - nd) / n
-        y = (cc - dd) / k
-        z = cd / k
+        y = float(cc - dd) / k
+        z = float(cd) / k
 
         mucc = sum(self.investment_decisions * self.investment_clean) / nc
         mucd = sum(self.investment_decisions * self.investment_dirty) / nc
@@ -1050,8 +1090,18 @@ class divestment_core:
         mudd = sum((1 - self.investment_decisions)
                    * self.investment_dirty) / nd
 
-        entry = [self.t, x, y, z, mucc, mucd, mudc, mudd, self.C, self.G]
+        entry = [self.t, x, y, z, mucc, mucd, mudc, mudd, self.C / n,
+                 self.G / n]
         self.m_trajectory.append(entry)
+
+    def save_switch(self, i, direction):
+        if len(self.switchlist) == 0:
+            self.switchlist = [['time', '$K^{(c)}$', '$K^{(d)}$', 'direction']]
+        self.switchlist.append([self.t,
+                                self.investment_clean[i],
+                                self.investment_dirty[i],
+                                direction])
+
 
 if __name__ == '__main__':
     """
@@ -1066,9 +1116,9 @@ if __name__ == '__main__':
         + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
     # Initial conditions:
-    Trigger = False
+    FFH = False
 
-    if Trigger:
+    if FFH:
 
         nopinions = [10, 10, 10, 10, 10, 10, 10, 10]
         possible_opinions = [[2, 3],  # short term investor
@@ -1079,25 +1129,25 @@ if __name__ == '__main__':
                              [4, 0],  # dirty conformer
                              [1],  # gutmensch
                              [0]]  # redneck
-        input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
+        input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.4,
                             'b_c': 1., 'phi': 0.8, 'e': 100,
                             'G_0': 30000,
                             'possible_opinions': possible_opinions,
-                            'c': 100, 'xi': 1. / 8., 'beta': 0.03,
+                            'C': 100, 'xi': 1. / 8., 'beta': 0.03,
                             'campaign': False, 'learning': False}
 
-    if not Trigger:
+    if not FFH:
         # investment_decisions:
-        nopinions = [50, 50]
+        nopinions = [10, 10]
         possible_opinions = [[0], [1]]
 
         # Parameters:
 
-        input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.,
+        input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
                             'b_c': 1., 'phi': 0.8, 'e': 100,
-                            'G_0': 30000, 'b_r0': 0.1 ** 2 * 100,
+                            'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
                             'possible_opinions': possible_opinions,
-                            'c': 1, 'xi': 1. / 8., 'beta': 0.06,
+                            'C': 1, 'xi': 1. / 8., 'beta': 0.06,
                             'campaign': False, 'learning': True}
 
     cops = ['c'+str(x) for x in possible_opinions]
@@ -1113,7 +1163,7 @@ if __name__ == '__main__':
 
     # network:
     N = sum(nopinions)
-    p = .2
+    p = 10. / N
 
     while True:
         net = nx.erdos_renyi_graph(N, p)
@@ -1134,20 +1184,20 @@ if __name__ == '__main__':
 
     # Initialize Model
 
-    model = divestment_core(*init_conditions,
+    model = Divestment_Core(*init_conditions,
                             **input_parameters)
 
     # Turn off economic trajectory
-    model.e_trajectory_output = False
+    model.e_trajectory_output = True
 
     # Turn on debugging
     model.debug = True
 
     # Run Model
     model.R_depletion = False
-    model.run(t_max=20)
+    # model.run(t_max=200)
     model.R_depletion = True
-    model.run(t_max=100)
+    model.run(t_max=600)
 
     # Print some output
 
@@ -1159,25 +1209,25 @@ if __name__ == '__main__':
     print 'finish time', model.t
     print 'steps computed', model.steps
 
-    trj = model.m_trajectory
-    headers = trj.pop(0)
-    df = pd.DataFrame(trj, columns=headers)
-    df = df.set_index('time')
-    print df[['x', 'y', 'z']]
+    colors = [c for c in 'gk']
+
+    df = model._get_e_trj()
+    print df.columns
 
     fig = mp.figure()
     ax1 = fig.add_subplot(221)
-    df[['x', 'y', 'z']].plot(ax=ax1)
+    df[['r_c', 'r_d']].plot(ax=ax1, style=colors)
 
     ax2 = fig.add_subplot(223)
-    df[['C']].plot(ax=ax2)
+    df[['wage']].plot(ax=ax2)
 
     ax3 = fig.add_subplot(224)
-    df[['G']].plot(ax=ax3)
+    df[['K_c', 'K_d']].plot(ax=ax3, style=colors)
 
     ax4 = fig.add_subplot(222)
-    df[['mucc', 'mucd', 'mudc', 'mudd']].plot(ax=ax4)
+    df[['G']].plot(ax=ax4, style=colors[1])
+    ax5 = ax4.twinx()
+    df[['C']].plot(ax=ax5, style=colors[0])
 
-    mp.show()
-
-
+    fig.tight_layout()
+    mp.savefig('example_trajectory.png')

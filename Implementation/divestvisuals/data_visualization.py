@@ -176,6 +176,11 @@ def plot_network(loc):
     fig2.savefig(loc+'_network_plot')
 
 
+def plot_m_trajectories(loc, name):
+    with open(loc + name) as target:
+        tmp = np.load(target)
+
+
 def plot_trajectories(loc, name, params, indices):
 
     print 'plotting trajectories'
@@ -183,6 +188,8 @@ def plot_trajectories(loc, name, params, indices):
     with open(loc+name) as target:
         tmp = np.load(target).replace([np.inf, -np.inf], np.nan)
     dataframe = tmp.where(tmp < 10**300, np.nan)
+    print dataframe.columns
+    print dataframe.index.levels[2]
 
     # get the values of the first two index levels
     ivals = dataframe.index.levels[0]
@@ -202,37 +209,34 @@ def plot_trajectories(loc, name, params, indices):
 
             # extract the mean and std data for each of the values of the first index
             subset = dataframe.loc[(ival, jval,),
-                    '<mean_trajectory>'].unstack('observables').dropna(axis=0, how='any')
+                                   'mean_trajectory'].unstack(
+                'observables').dropna(axis=0, how='any')
             subset_errors = dataframe.loc[(ival, jval,),
-                    '<sem_trajectory>'].unstack('observables').dropna(axis=0, how='any')
+                                          'sem_trajectory'].unstack(
+                'observables').dropna(axis=0, how='any')
             for c, column in enumerate(columns):
 
-                # take absolute values of data but save intervals on which original 
-                # data was negative (paint them afterwards)
-                subset_j = subset.loc[1:, column]
-                subset_j_errors = subset_errors.loc[1:, column]
-                subset_abs = subset_j.abs()
-                paint = subset_j.where(subset_j<0).dropna().index.values
+                subset_j = subset.loc[:, column]
+                subset_j_errors = subset_errors.loc[:, column]
 
                 # add a subplot to the list of axes
                 axes.append(plt.subplot2grid((len(columns), len(ivals)), (c, i)))
                 # plot mean e_trajectory and insequrity interval
                 # also mark the area in which the mean data was negative
-                subset_abs.plot(ax = axes[-1])
-                plt.fill_between(subset_abs.index, 
-                        subset_abs - subset_j_errors,
-                        subset_abs + subset_j_errors,
-                        where = subset_abs - subset_j_errors > 0,
+                subset_j.plot(ax=axes[-1])
+                plt.fill_between(subset_j.index,
+                                 subset_j - subset_j_errors,
+                                 subset_j + subset_j_errors,
                         color='blue',
                         alpha=0.1)
-                (subset_abs - subset_j_errors).plot(ax = axes[-1], color='blue', alpha=0.3)
-                (subset_abs + subset_j_errors).plot(ax = axes[-1], color='blue', alpha=0.3)
-                if len(paint)>0:
-                    plt.axvspan(paint[0], paint[-1], alpha=0.2, color = 'red')
+                (subset_j - subset_j_errors).plot(ax=axes[-1], color='blue',
+                                                  alpha=0.3)
+                (subset_j + subset_j_errors).plot(ax=axes[-1], color='blue',
+                                                  alpha=0.3)
 
                 # change y axis scalling to 'log' for plots with nonzero data
-                if sum(np.sign(subset_abs))>0:
-                    axes[-1].set_yscale('log', nonposy='mask')
+                # if sum(np.sign(subset_j))>0:
+                #     axes[-1].set_yscale('log', nonposy='mask')
 
                 # adjust locator counts and add y axis label
                 plt.locator_params(axis='x', tight=True, nbins=5)
@@ -241,6 +245,7 @@ def plot_trajectories(loc, name, params, indices):
                     axes[-1].xaxis.set_visible(False)
 
         # adjust the grid layout to avoid overlapping plots and save the figure
+        print 'saving figure' + `round(jval, 4)`
         fig.tight_layout()
         fig.savefig(loc+'testfigure_'+`round(jval,4)`+'.pdf')
         fig.clf()
@@ -588,8 +593,11 @@ def plot_phase_transition(loc, name, ):
 
     with open(loc + name) as target:
         tmp = np.load(target)
-
-    print tmp
+    tmp = tmp.xs(0.5, level='alpha')[['<mean_remaining_resource_fraction>']]
+    print tmp.index.names
+    print list(tmp.index.levels[1])
+    tmp.unstack('N').plot()
+    plt.show()
 
 if __name__ == '__main__':
 	loc = sys.argv[1]
