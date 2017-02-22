@@ -158,6 +158,7 @@ def RUN_FUNC(ccount, phi, alpha,
 
         opinions = [np.random.randint(0, len(possible_opinions))
                     for x in range(N)]
+
         investment_clean = np.full((N), 0.1)
         investment_dirty = np.full((N), K_d0/N)
 

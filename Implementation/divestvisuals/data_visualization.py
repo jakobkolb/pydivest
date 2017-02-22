@@ -176,9 +176,18 @@ def plot_network(loc):
     fig2.savefig(loc+'_network_plot')
 
 
-def plot_m_trajectories(loc, name):
-    with open(loc + name) as target:
-        tmp = np.load(target)
+def plot_amsterdam(path, name, cues=['[0]', '[1]']):
+    data = np.load(path+name)
+
+    for i, letter in enumerate(['c', 'd']):
+        for cue in cues:
+            cues.append(letter + cue)
+    print cues
+
+    d_sem = data['sem_trajectory'].unstack(3)[cues]
+    print d_sem
+    d_mean = data['mean_trajectory']
+
 
 
 def plot_trajectories(loc, name, params, indices):
@@ -189,7 +198,6 @@ def plot_trajectories(loc, name, params, indices):
         tmp = np.load(target).replace([np.inf, -np.inf], np.nan)
     dataframe = tmp.where(tmp < 10**300, np.nan)
     print dataframe.columns
-    print dataframe.index.levels[2]
 
     # get the values of the first two index levels
     ivals = dataframe.index.levels[0]
@@ -245,7 +253,7 @@ def plot_trajectories(loc, name, params, indices):
                     axes[-1].xaxis.set_visible(False)
 
         # adjust the grid layout to avoid overlapping plots and save the figure
-        print 'saving figure' + `round(jval, 4)`
+        print 'saving figure ' + `round(jval, 4)`
         fig.tight_layout()
         fig.savefig(loc+'testfigure_'+`round(jval,4)`+'.pdf')
         fig.clf()

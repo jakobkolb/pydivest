@@ -37,7 +37,7 @@ class Divestment_Core:
         # toggle e_trajectory output
         self.e_trajectory_output = True
         self.m_trajectory_output = True
-        self.switchlist_output = True
+        self.switchlist_output = False
         # toggle whether to run full time or only until consensus
         self.run_full_time = True
         # toggle resource depletion
@@ -428,8 +428,8 @@ class Divestment_Core:
 
         candidate = 0
         while self.t < t_max:
-            if self.debug:
-                print self.t, t_max
+            # if self.debug:
+            #     print self.t, t_max
 
             # 1 find update candidate and respective update time
             (candidate, neighbor,
@@ -456,22 +456,23 @@ class Divestment_Core:
         # save final state to dictionary
         self.final_state = {
                 'adjacency': self.neighbors,
-            'investment_decisions': self.opinions,
+                'opinions': self.opinions,
                 'investment_clean': self.investment_clean,
                 'investment_dirty': self.investment_dirty,
                 'possible_opinions': self.possible_opinions,
                 'tau': self.tau, 'phi': self.phi, 'eps': self.eps,
                 'P': self.P, 'r_b': self.r_b, 'b_c': self.b_c,
                 'b_d': self.b_d, 's': self.s, 'd_c': self.d_c,
-            'b_r0': self.b_r0, 'e': self.e, 'G_0': self.G,
-            'c': self.C, 'xi': self.xi, 'beta': self.beta,
-                'learning': self.learning, 'campaign': self.campaign,
+                'b_r0': self.b_r0, 'e': self.e, 'G_0': self.G,
+                'C': self.C, 'beta': self.beta, 'xi': self.xi,
+                'learning': self.learning,
+                'campaign': self.campaign,
                 'test': self.debug, 'R_depletion': False}
 
         if self.converged:
             return 1        # good - consensus reached 
         elif not self.converged:
-            self.convergence_state = 0.
+            self.convergence_state = float('nan')
             self.convergence_time = self.t
             return 0        # no consensus found during run time
         elif candidate == -2:
@@ -1116,7 +1117,7 @@ if __name__ == '__main__':
         + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
     # Initial conditions:
-    FFH = False
+    FFH = True
 
     if FFH:
 
@@ -1129,12 +1130,12 @@ if __name__ == '__main__':
                              [4, 0],  # dirty conformer
                              [1],  # gutmensch
                              [0]]  # redneck
-        input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.4,
+        input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
                             'b_c': 1., 'phi': 0.8, 'e': 100,
-                            'G_0': 30000,
+                            'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
                             'possible_opinions': possible_opinions,
-                            'C': 100, 'xi': 1. / 8., 'beta': 0.03,
-                            'campaign': False, 'learning': False}
+                            'C': 1, 'xi': 1. / 8., 'beta': 0.06,
+                            'campaign': False, 'learning': True}
 
     if not FFH:
         # investment_decisions:
@@ -1195,7 +1196,7 @@ if __name__ == '__main__':
 
     # Run Model
     model.R_depletion = False
-    # model.run(t_max=200)
+    model.run(t_max=200)
     model.R_depletion = True
     model.run(t_max=600)
 
