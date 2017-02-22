@@ -1,3 +1,12 @@
+"""
+This experiment is meant to create trajectories of macroscopic variables from
+1) the numeric micro model and
+2) the analytic macro model
+that can be compared to evaluate the validity and qualtity of the analytic
+approximation.
+The variable Parameters are b_d and phi.
+"""
+
 import cPickle as cp
 import getpass
 import itertools as it
