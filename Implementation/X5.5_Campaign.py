@@ -165,7 +165,7 @@ def RUN_FUNC(ccount, phi, alpha,
         # input parameters
 
         input_params = {'adjacency': adjacency_matrix,
-                        'investment_decisions': opinions,
+                        'opinions': opinions,
                         'investment_clean': investment_clean,
                         'investment_dirty': investment_dirty,
                         'possible_opinions': possible_opinions,
@@ -206,7 +206,7 @@ def RUN_FUNC(ccount, phi, alpha,
         campaigner = len(possible_opinions) - 1
 
         # make fraction of ccount households campaigners
-        opinions = input_params['investment_decisions']
+        opinions = input_params['opinions']
         nccount = int(ccount*len(opinions))
         print nccount, len(opinions)
         j = 0
@@ -215,7 +215,7 @@ def RUN_FUNC(ccount, phi, alpha,
             if opinions[n] != campaigner:
                 opinions[n] = campaigner
                 j += 1
-        input_params['investment_decisions'] = opinions
+        input_params['opinions'] = opinions
         print opinions
 
         # set t_max for run
@@ -233,7 +233,7 @@ def RUN_FUNC(ccount, phi, alpha,
         pd.Series({"tau": m.tau,
                    "phi": m.phi,
                    "n": m.n,
-                   "P": p,
+                   "p": p,
                    "P": m.P,
                    "birth rate": m.r_b,
                    "savings rate": m.s,
@@ -245,10 +245,10 @@ def RUN_FUNC(ccount, phi, alpha,
                    "pi": m.pi,
                    "kappa_c": m.kappa_c,
                    "kappa_d": m.kappa_d,
-                   "rho": m.rho,
+                   "xi": m.xi,
                    "resource efficiency": m.e,
                    "epsilon": m.eps,
-                   "initial resource stock": m.g_0})
+                   "initial resource stock": m.G_0})
 
     # run the model
     start = time.clock()
@@ -270,7 +270,7 @@ def RUN_FUNC(ccount, phi, alpha,
 
     if exit_status in [0, 1]:
         res["convergence_data"] = \
-                pd.DataFrame({"Investment decisions": m.investment_decisions,
+                pd.DataFrame({"opinions": m.opinions,
                               "Investment clean": m.investment_clean,
                               "Investment dirty": m.investment_dirty})
         res["convergence_state"] = m.convergence_state

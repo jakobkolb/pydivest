@@ -4,7 +4,7 @@
 #SBATCH --job-name=X7.0_imi_E
 #SBATCH --output=%A_X7.0_imi_E.out
 #SBATCH --error=%A_X7.0_imi_E.err
-#SBATCH --nodes=4
+#SBATCH --nodes=8
 #SBATCH --tasks-per-node=16
 
 

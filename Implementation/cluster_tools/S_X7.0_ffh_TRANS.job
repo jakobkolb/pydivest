@@ -4,7 +4,7 @@
 #SBATCH --job-name=X7.0_ffh_T
 #SBATCH --output=%A_X7.0_ffh_T.out
 #SBATCH --error=%A_X7.0_ffh_T.err
-#SBATCH --nodes=4
+#SBATCH --nodes=12
 #SBATCH --tasks-per-node=16
 
 
@@ -17,4 +17,4 @@ echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
 cd ../
-srun -n $SLURM_NTASKS python X7.0_compare_campaign_in_FFH_to_AV.py 1 1 0 0
+srun -n $SLURM_NTASKS python X7.0_compare_campaign_in_FFH_to_AV.py 0 0 1 1
