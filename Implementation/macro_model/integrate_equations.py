@@ -184,7 +184,7 @@ class Integrate_Equations:
         # dictionary for final state
         self.final_state = {}
 
-    def _get_m_trj(self):
+    def get_m_trajectory(self):
 
         return self.m_trajectory
 

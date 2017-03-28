@@ -855,8 +855,8 @@ Households have $K_i^{(c)}$, $K_i^{(d)}$,  $L_i$ , $o_i \in [c, d]$ and income $
 Savings equations in single households are:
 
 \begin{align}
-	\dot{K_i^{(c)}} &= \delta_{o_i, c} s I_i - r_{\delta} K_i^{(c)} \nonumber \\
-	\dot{K_i^{(d)}} &= \delta_{o_i, d} s I_i - r_{\delta} K_i^{(d)} \nonumber
+	\dot{K_i^{(c)}} &= \delta_{o_i, c} s I_i - \alpha K_i^{(c)} \nonumber \\
+	\dot{K_i^{(d)}} &= \delta_{o_i, d} s I_i - \alpha K_i^{(d)} \nonumber
 \end{align}
 
 Resource extraction is given by
@@ -906,6 +906,35 @@ Definition of state space vector $\mathbf{S}$, jumps in state space $\Delta \mat
 
 \begin{equation}
 	\mathbf{S} = (X, Y, Z)^T, \quad \Delta \mathbf{S}_j, \quad W(\mathbf{S},\mathbf{S} + \Delta \mathbf{S}_j)
+\end{equation}
+
+The derivation of these shall be depicted by an example. A clean node imitating a dirty node. The rate of this is given by the rate of events times the probability to not be a noise event times the probability to select a clean node times the probability to select a dirty neighbor times the probability to imitate that dirty neighbor as follows:
+\begin{equation}
+	W_{c \rightarrow d} = \frac{N_c}{\tau} (1-\varepsilon) (1 - \varphi) \frac{N_c}{N}\frac{[cd]}{[cd] + 2 [cc]}\frac{1}{2}\left( \tanh(W_d - W_c) + 1 \right)
+	\label{cdswitchingprob}
+\end{equation}
+The change if state space variables is a little more tricky. Since the event is a clean node imitating a dirty node, we already know about one of the neighbors of the node. Then the remaining neighbors are determined by drawing $k_c - 1$ times from the distribution of neighbors that is assumed to be given by the probability for a neighbor to be dirty $p_d$ or clean $p_c$:
+\begin{equation}
+	p_c = \frac{2 [cc]}{2[cc] + [cd]}; \qquad p_d = \frac{cc}{2[cc] + [cd]}
+	\label{neighbordist}
+\end{equation}
+Which results in $n_c$ additional clean neighbors and $n_d$ additional dirty neighbors.
+\begin{equation}
+	n_c = (1-1/k_c)\frac{2[cc]}{N_c}; \quad n_d = (1-1/k_c)\frac{[cd]}{N_c}
+	\label{additional_neighbors}
+\end{equation}
+This results in the following changes in the state space variables:
+\begin{align}
+	\Delta N_c &= -1 \nonumber \\
+	\Delta N_d &= 1 \nonumber \\
+	\Delta [cc] &= \left( 1 - \frac{1}{k_c} \right)\frac{2[cc]}{N_c} \nonumber \\
+	\Delta [dd] &= \left( 1 - \frac{1}{k_c} \right)\frac{[cd]}{N_c} \nonumber \\
+	\Delta [cd] &= -1 + \left( 1 - \frac{1}{k_c} \right)\frac{2[cc] - [cd]}{N_c} \nonumber
+\end{align}
+So, summing up, the change in the state vector is given by:
+\begin{equation}
+	\Delta S_{c \rightarrow d} = \colvec{3}{-2}{-k_c}{-1 +  \left( 1 - \frac{1}{k_c} \right)\frac{2[cc] - [cd]}{N_c} }
+	\label{cdstatespacechange}
 \end{equation}
 
 In terms of these, the dynamics of the PBP can be written in terms of a master equation

@@ -28,6 +28,13 @@ class Divestment_Core:
 
         if possible_opinions is None:
             possible_opinions = [[0], [1]]
+
+        # check, if heuristic decision making of imitation only
+        self.heuristic_decision_making = False
+        for p in possible_opinions:
+            if p not in [[0], [1]]:
+                self.heuristic_decision_making = True
+
         self.mode = 2
 
         # General Parameters
@@ -248,29 +255,8 @@ class Divestment_Core:
             self.init_e_trajectory()
         if self.m_trajectory_output:
             self.init_m_trajectory()
-
-    def _get_m_trj(self):
-        # make up Dataframe from macro data:
-        columns = self.m_trajectory.pop(0)
-        df = pd.DataFrame(self.m_trajectory, columns=columns)
-        df = df.set_index('time')
-
-        return df
-
-    def _get_e_trj(self):
-        # make up DataFrame from micro data
-        columns = self.e_trajectory.pop(0)
-        df = pd.DataFrame(self.e_trajectory, columns=columns)
-        df = df.set_index('time')
-
-        return df
-
-    def _get_switch_list(self):
-        columns = self.switchlist.pop(0)
-        df = pd.DataFrame(self.switchlist, columns=columns)
-        df = df.set_index('time')
-
-        return df
+        if self.switchlist_output:
+            self.init_switchlist()
 
     def cue_0(self, i):
         """
@@ -457,6 +443,7 @@ class Divestment_Core:
         self.final_state = {
                 'adjacency': self.neighbors,
                 'opinions': self.opinions,
+                'investment decisions': self.investment_decisions,
                 'investment_clean': self.investment_clean,
                 'investment_dirty': self.investment_dirty,
                 'possible_opinions': self.possible_opinions,
@@ -471,7 +458,7 @@ class Divestment_Core:
 
         if self.converged:
             return 1        # good - consensus reached 
-        elif not self.converged:
+        elif not self.converged and self.R_depletion:
             self.convergence_state = float('nan')
             self.convergence_time = self.t
             return 0        # no consensus found during run time
@@ -642,20 +629,18 @@ class Divestment_Core:
                                  list(investment_dirty_dot),
                                  [P_dot, G_dot, C_dot]]),
             dtype='float')
-        # print for debugging:
-        # print [self.r_c, self.r_d, K_c, K_d, P_c, P_d, R]
         return x1
 
     def update_economy(self, update_time):
         """
-        This function integrates the economic equations of the
+        Integrates the economic equations of the
         model until the system time equals the update time.
 
-        It also keeps track of the capital return rates and estimates
+        Also keeps track of the capital return rates and estimates
         the time derivatives of capital return rates trough linear
         regression.
 
-        Finally, it appends the current system state to the systen e_trajectory.
+        Finally, appends the current system state to the system e_trajectory.
 
         Parameters:
         -----------
@@ -687,22 +672,26 @@ class Divestment_Core:
         self.G = x1[-2]
         self.C = x1[-1]
 
-        # memorize return rates for trend estimation
-        self.r_cs.append(self.r_c)
-        self.r_ds.append(self.r_d)
-        self.t_rs.append(self.t)
-        if len(self.r_cs) > self.N_mem:
-            self.r_cs.pop(0)
-            self.r_ds.pop(0)
-            self.t_rs.pop(0)
+        # memorize return rates for trend estimation.
+        # this is only necessary for heuristic decision making.
+        # for imitation only, this can be switched off.
+        if self.heuristic_decision_making:
+            self.r_cs.append(self.r_c)
+            self.r_ds.append(self.r_d)
+            self.t_rs.append(self.t)
+            if len(self.r_cs) > self.N_mem:
+                self.r_cs.pop(0)
+                self.r_ds.pop(0)
+                self.t_rs.pop(0)
 
-        # estimate trends in capital returns
-        self.r_c_dot = linregress(self.t_rs, self.r_cs)[0]
-        self.r_d_dot = linregress(self.t_rs, self.r_ds)[0]
-        if np.isnan(self.r_c_dot):
-            self.r_c_dot = 0
-        if np.isnan(self.r_d_dot):
-            self.r_d_dot = 0
+            # estimate trends in capital returns
+            self.r_c_dot = linregress(self.t_rs, self.r_cs)[0]
+            self.r_d_dot = linregress(self.t_rs, self.r_ds)[0]
+            if np.isnan(self.r_c_dot):
+                self.r_c_dot = 0
+            if np.isnan(self.r_d_dot):
+                self.r_d_dot = 0
+
         self.t = update_time
         self.steps += 1
 
@@ -719,10 +708,6 @@ class Divestment_Core:
 
     def find_update_candidates(self):
 
-        # For prototyping, use reduced opinion formation with only
-        # investment decision outcomes as opinion.
-
-        opinions = self.opinions
         i, n = np.unique(self.opinions,
                          return_counts=True)
         self.opinion_state = [n[list(i).index(j)] if j in i
@@ -784,10 +769,9 @@ class Divestment_Core:
 
                 # check if preferences of candidate and random
                 # neighbor differ
-                if opinions[candidate] == opinions[neighbor]:
+                if self.opinions[candidate] == self.opinions[neighbor]:
 
-                    # if candidate and neighbor have same
-                    # preferences, they
+                    # if candidate and neighbor have same preferences, they
                     # not suitable for update. (RETRY)
                     neighbor = self.n
 
@@ -797,7 +781,7 @@ class Divestment_Core:
             else:
                 i += 1
                 if i % self.n == 0:
-                    if self.detect_consensus_state(opinions):
+                    if self.detect_consensus_state(self.opinions):
                         # no update candidate found because of
                         # consensus state (GOD)
                         candidate = -1
@@ -851,10 +835,10 @@ class Divestment_Core:
         return 0
 
     def update_decision_making(self):
-        # update decision vector for all
-        # households depending on their
-        # preferences and the state of the
-        # economy
+        """
+        Updates the investment decision for all households depending on their
+        cue orders (opinion) and the state of the economy
+        """
 
         self.dirty_opinions = np.zeros((len(self.possible_opinions)))
         self.clean_opinions = np.zeros((len(self.possible_opinions)))
@@ -872,8 +856,6 @@ class Divestment_Core:
                 self.dirty_opinions[self.opinions[i]] += 1. / self.n
             elif decision == 1:
                 self.clean_opinions[self.opinions[i]] += 1. / self.n
-
-        # print sum(self.clean_opinions) + sum(self.dirty_opinions)
 
         self.decision_state = np.mean(self.investment_decisions)
 
@@ -922,6 +904,8 @@ class Divestment_Core:
 
         attractor = 2./3.
         dist = attractor - state
+        # if self.debug == True:
+        #     print dist, self.t, self.convergence_state
         alpha = (self.b_r0 / self.e) ** (1. / 2.)
 
         if self.eps > 0 and dist < 0. and np.isnan(self.convergence_time):
@@ -1012,6 +996,14 @@ class Divestment_Core:
              self.dirty_opinions]))
         self.e_trajectory.append(element)
 
+    def get_e_trajectory(self):
+        # make up DataFrame from micro data
+        columns = self.e_trajectory.pop(0)
+        df = pd.DataFrame(self.e_trajectory, columns=columns)
+        df = df.set_index('time')
+
+        return df
+
     def init_m_trajectory(self):
         """
         This function initializes the e_trajectory for the output of the
@@ -1057,14 +1049,8 @@ class Divestment_Core:
             """
             assert len(x) == len(y)
 
-            n = len(x)
-            ccc = 0
+            return float(np.dot(x, np.dot(adj, y)))
 
-            for i in range(n):
-                for j in range(n):
-                    ccc += x[i] * adj[i, j] * y[j]
-
-            return float(ccc)
 
         adj = self.neighbors
         c = self.investment_decisions
@@ -1095,13 +1081,40 @@ class Divestment_Core:
                  self.G / n]
         self.m_trajectory.append(entry)
 
+    def get_m_trajectory(self):
+        # make up Dataframe from macro data:
+        columns = self.m_trajectory.pop(0)
+        df = pd.DataFrame(self.m_trajectory, columns=columns)
+        df = df.set_index('time')
+
+        return df
+
+    def init_switchlist(self):
+        """Initializes the switchlist by naming the collumns"""
+        self.switchlist = [['time', '$K^{(c)}$', '$K^{(d)}$', 'direction']]
+
     def save_switch(self, i, direction):
-        if len(self.switchlist) == 0:
-            self.switchlist = [['time', '$K^{(c)}$', '$K^{(d)}$', 'direction']]
+        """
+        Adds an entry to the switchlist.
+
+        Parameters
+        ----------
+        i : int
+            the index of the household that switched its opinion
+        direction : int
+            the direction that it switched in
+        """
         self.switchlist.append([self.t,
                                 self.investment_clean[i],
                                 self.investment_dirty[i],
                                 direction])
+
+    def get_switch_list(self):
+        columns = self.switchlist.pop(0)
+        df = pd.DataFrame(self.switchlist, columns=columns)
+        df = df.set_index('time')
+
+        return df
 
 
 if __name__ == '__main__':
@@ -1117,7 +1130,7 @@ if __name__ == '__main__':
         + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
     # Initial conditions:
-    FFH = True
+    FFH = False
 
     if FFH:
 
@@ -1188,6 +1201,8 @@ if __name__ == '__main__':
     model = Divestment_Core(*init_conditions,
                             **input_parameters)
 
+    print('heuristic decision making', model.heuristic_decision_making)
+
     # Turn off economic trajectory
     model.e_trajectory_output = True
 
@@ -1196,7 +1211,7 @@ if __name__ == '__main__':
 
     # Run Model
     model.R_depletion = False
-    model.run(t_max=200)
+    model.run(t_max=100)
     model.R_depletion = True
     model.run(t_max=600)
 
@@ -1212,7 +1227,7 @@ if __name__ == '__main__':
 
     colors = [c for c in 'gk']
 
-    df = model._get_e_trj()
+    df = model.get_e_trajectory()
     print df.columns
 
     fig = mp.figure()
