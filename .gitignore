@@ -70,3 +70,16 @@ Implementation/divestdata/*
 #pymofa and cyexploit
 cyexploit
 Implementation/pymofa
+
+#output files:
+*.pdf
+*.png
+*.jpg
+*.profile
+*.pkl
+
+#latex tmp files
+*.aux
+*.bbl
+*.blg
+*.out
