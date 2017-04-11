@@ -237,7 +237,7 @@ def RUN_FUNC(t_a, phi, alpha,
     with open(filename, 'wb') as dumpfile:
         cp.dump(res, dumpfile)
 
-    return exit_status
+    return 1
 
 def run_experiment(argv):
     """
@@ -275,7 +275,7 @@ def run_experiment(argv):
         mode = int(argv[2])
     else:
         mode = 1
-
+    # switch
     if len(argv) > 3:
         transition = [bool(int(argv[3]))]
     else:
@@ -296,7 +296,9 @@ def run_experiment(argv):
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":
-        tmppath = "/P/tmp/kolb/Divest_Experiments"
+        tmppath = "/p/tmp/kolb/Divest_Experiments"
+    else:
+        tmppath = "./"
 
 
     folder = 'X5o2'
@@ -367,7 +369,7 @@ def run_experiment(argv):
     """
     Default values of variable parameter in this experiment
     """
-    t_a, phi, alpha, t_d, test = [0.1], [0.8], [0.1], [30.], [0]
+    t_a, phi, alpha, t_d= [0.1], [0.8], [0.1], [30.]
 
     NAME = 'Cue_order_testing'
     INDEX = {
@@ -387,30 +389,27 @@ def run_experiment(argv):
     different experiment modes.
     Make sure, opinion_presets are not expanded
     """
-    if mode == 1:  # Production
+    if mode == 0:  # Production
         PARAM_COMBS = list(it.product(
             t_as, phis, alphas, t_d,
             [opinion_presets], eps,
-            transition, test))
+            transition, [test]))
 
-    elif mode == 2:  # test
+    elif mode == 1:  # test
         PARAM_COMBS = list(it.product(
             t_as, phis, alphas, t_d,
             [opinion_presets], eps,
-            transition, test))
-
-    elif mode == 3:  # messy
-        test = [True]
-        t_as = [round(x, 5) for x in list(10**np.linspace(0., 2., 4))]
-        phis = [round(x, 2) for x in list(np.linspace(0.0, 1.0, 5))[1:-1]]
-        PARAM_COMBS = list(it.product(
-            t_as, phis, alpha, t_d,
-            [opinion_presets], eps,
-            transition, test))
+            transition, [test]))
     else:
-        print mode, ' is not a valid experiment mode.\
-        valid modes are 1: production, 2: test, 3: messy'
+        print(mode, ' is not a valid experiment mode. '
+                    'valid modes are 1: production, 2: local')
         sys.exit()
+
+    if test:
+        PARAM_COMBS = list(it.product(
+            t_as[:2], phis[:2], alphas, t_d,
+            [opinion_presets], eps,
+            transition, [test]))
 
     # names and function dictionaries for post processing:
 
@@ -462,40 +461,24 @@ def run_experiment(argv):
             }
 
     # Cluster - computation and plotting
-    if mode == 1:
-        SAMPLE_SIZE = 20
+    if mode == 0:
+        SAMPLE_SIZE = 100 if not test else 2
         handle = experiment_handling(
                 SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
         handle.compute(RUN_FUNC)
-        handle.resave(EVA1, NAME1)
+        handle.resave(EVA1, NAME1, sortlevel=1)
         handle.resave(EVA2, NAME2)
         plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
         plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
                       file_extension='.pdf')
 
     # Local - only plotting
-    elif mode == 2:
-        SAMPLE_SIZE = 100
-        handle = experiment_handling(
-                SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
-        # handle.compute(RUN_FUNC)
-        # handle.resave(EVA1, NAME1)
-        # handle.resave(EVA2, NAME2)
+    elif mode == 1:
         plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
         plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
                       file_extension='.pdf')
 
-    # test mode
-    elif test:
-        SAMPLE_SIZE = 3
-        handle = experiment_handling(
-                SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
-        handle.compute(RUN_FUNC)
-        handle.resave(EVA1, NAME1)
-        handle.resave(EVA2, NAME2)
-        plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-        plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
-                      file_extension='.pdf')
+    return 1
 
 if __name__ == "__main__":
     cmdline_arguments = sys.argv
