@@ -211,10 +211,7 @@ def RUN_FUNC(t_a, phi, alpha,
 
     # store exit status
     res["convergence"] = exit_status
-    if test:
-        print 'test output of variables'
-        print (m.tau, m.phi, exit_status,
-               m.convergence_state, m.convergence_time)
+
     # store data in case of successful run
 
     res["convergence_data"] = \
@@ -277,7 +274,7 @@ def run_experiment(argv):
     if len(argv) > 2:
         mode = int(argv[2])
     else:
-        mode = 0
+        mode = 1
 
     if len(argv) > 3:
         transition = [bool(int(argv[3]))]
@@ -295,59 +292,31 @@ def run_experiment(argv):
     conditions for transition in run function.
     """
 
-    respath = os.path.dirname(os.path.realpath(__file__))
-    cluster_tmppath = "/P/tmp/kolb/Divest_Experiments"
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/divestdata"
+    if getpass.getuser() == "jakob":
+        tmppath = respath
+    elif getpass.getuser() == "kolb":
+        tmppath = "/P/tmp/kolb/Divest_Experiments"
+
 
     folder = 'X5o2'
 
     sub_experiments = ['Dirty_Equilibrium',
                       'Dirty_Clean_Transition']
-    sub_experiment = sub_experiments[int(transition)]
+    sub_experiment = sub_experiments[int(transition[0])]
     heuristics = ['TTB', 'No_TTB'][int(no_heuristics)]
+    test_folder = 'test_output/' if test else ''
 
-
-    [FOLDER_EQUI, FOLDER_TRANS] = \
-        ["{}_{}_{}".format(folder, se, heuristics)
-         for se in sub_experiments]
-
-    if not any(transition):
-        print 'EQUI'
-        folder = FOLDER_EQUI
-    elif any(transition):
-        print 'TRANS'
-        folder = FOLDER_TRANS
-
-    SAVE_PATH_RAW = "{}/{}_{}_{}".format(cluster_tmppath, folder,
+    SAVE_PATH_RAW = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw', folder,
                                          sub_experiment, heuristics)
+    SAVE_PATH_RES = "{}/{}{}_{}_{}".format(respath, test_folder, folder,
+                                         sub_experiment, heuristics)
+    SAVE_PATH_INIT = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw', folder,
+                                         sub_experiments[0], heuristics)
 
-    """
-    set path variables according to local of cluster environment
-    """
-    if getpass.getuser() == "kolb":
-        SAVE_PATH_RAW = \
-            "/P/tmp/kolb/Divest_Experiments/divestdata/" \
-            + folder + "/raw_data"
-        SAVE_PATH_RES =\
-            "/home/kolb/Divest_Experiments/divestdata/"\
-            + folder + "/results"
-    elif getpass.getuser() == "jakob":
-        SAVE_PATH_RAW = \
-            "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
-            + folder + "/raw_data"
-        SAVE_PATH_RES = \
-            "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
-            + folder + "/results"
-    """
-    set path variable for initial conditions for transition runs
-    """
-    if getpass.getuser() == "kolb":
-        SAVE_PATH_INIT = \
-            "/P/tmp/kolb/Divest_Experiments/divestdata/" \
-            + FOLDER_EQUI + "/raw_data"
-    elif getpass.getuser() == "jakob":
-        SAVE_PATH_INIT = \
-            "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
-            + FOLDER_EQUI + "/raw_data"
+    print(SAVE_PATH_RAW)
+    print(SAVE_PATH_RES)
+    print(SAVE_PATH_INIT)
 
     """
     Make different types of decision makers. Cues are
@@ -492,7 +461,7 @@ def run_experiment(argv):
                                    for f in fnames]),
             }
 
-    # full run
+    # Cluster - computation and plotting
     if mode == 1:
         SAMPLE_SIZE = 20
         handle = experiment_handling(
@@ -504,20 +473,20 @@ def run_experiment(argv):
         plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
                       file_extension='.pdf')
 
-    # test run
-    if mode == 2:
+    # Local - only plotting
+    elif mode == 2:
         SAMPLE_SIZE = 100
         handle = experiment_handling(
                 SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
         # handle.compute(RUN_FUNC)
         # handle.resave(EVA1, NAME1)
         # handle.resave(EVA2, NAME2)
-        # plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
+        plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
         plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
                       file_extension='.pdf')
 
-    # debug and mess around mode:
-    if mode == 3:
+    # test mode
+    elif test:
         SAMPLE_SIZE = 3
         handle = experiment_handling(
                 SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
