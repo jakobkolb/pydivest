@@ -18,4 +18,4 @@ echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
 cd ../
-srun -n $SLURM_NTASKS python X5.2_Dirty_Equilibrium.py 0 1 1
+srun -n $SLURM_NTASKS python X5o2_Dirty_Equilibrium.py 0 0 1

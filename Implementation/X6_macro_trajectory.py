@@ -14,6 +14,7 @@ import getpass
 import itertools as it
 import numpy as np
 import sys
+import os
 import time
 
 import networkx as nx
@@ -200,6 +201,14 @@ def run_experiment(argv):
     set input/output paths
     """
 
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/divestdata"
+    if getpass.getuser() == "jakob":
+        tmppath = respath
+    elif getpass.getuser() == "kolb":
+        tmppath = "/p/tmp/kolb/Divest_Experiments"
+    else:
+        tmppath = "./"
+
     sub_experiment = ['micro', 'macro'][approximate]
     folder = 'X6'
 
@@ -207,26 +216,12 @@ def run_experiment(argv):
 
     test_folder = ['', 'test_output/'][int(test)]
 
-    # check if cluster or local and set paths accordingly
-    if getpass.getuser() == "kolb":
-        SAVE_PATH_RAW = \
-            "/p/tmp/kolb/Divest_Experiments/divestdata/{}{}/{}/" \
-            .format(test_folder, folder, sub_experiment)
-        SAVE_PATH_RES = \
-            "/home/kolb/Divest_Experiments/divestdata/{}{}/{}/" \
-            .format(test_folder, folder, sub_experiment)
-    elif getpass.getuser() == "jakob":
-        SAVE_PATH_RAW = \
-            "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/" \
-            "raw/{}{}/{}/".format(test_folder, folder, sub_experiment)
-        SAVE_PATH_RES = \
-            "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/" \
-            "{}{}/{}/".format(test_folder, folder, sub_experiment)
-    else:
-        SAVE_PATH_RAW = \
-            "./raw/{}{}/{}/".format(test_folder, folder, sub_experiment)
-        SAVE_PATH_RES = \
-            "./{}{}/{}/".format(test_folder, folder, sub_experiment)
+    SAVE_PATH_RAW = \
+        "{}/{}{}/{}/" \
+        .format(tmppath, test_folder, folder, sub_experiment)
+    SAVE_PATH_RES = \
+        "{}/{}{}/{}/" \
+        .format(respath, test_folder, folder, sub_experiment)
 
     """
     create parameter combinations and index
