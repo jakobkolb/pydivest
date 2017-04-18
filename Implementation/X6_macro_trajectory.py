@@ -7,8 +7,6 @@ approximation.
 The variable Parameters are b_d and phi.
 """
 
-from __future__ import print_function
-
 import pickle as cp
 import getpass
 import itertools as it

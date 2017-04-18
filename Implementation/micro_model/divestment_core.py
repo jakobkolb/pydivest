@@ -802,7 +802,7 @@ class Divestment_Core:
         if (self.phi == 1 or (self.phi != 1
                               and np.random.uniform() < self.phi)):
             # if rewire
-            for i in xrange(self.n):
+            for i in range(self.n):
                 # campaigners rewire to everybody
                 if (self.campaign is True and
                         opinion[candidate] == len(self.possible_opinions)):
@@ -1217,18 +1217,18 @@ if __name__ == '__main__':
 
     # Print some output
 
-    print connected_components(model.neighbors, directed=False)
-    print 'investment decisions:'
-    print model.investment_decisions
-    print 'consensus reached?', model.converged
-    print model.convergence_state
-    print 'finish time', model.t
-    print 'steps computed', model.steps
+    print (connected_components(model.neighbors, directed=False))
+    print ('investment decisions:')
+    print (model.investment_decisions)
+    print ('consensus reached?', model.converged)
+    print (model.convergence_state)
+    print ('finish time', model.t)
+    print ('steps computed', model.steps)
 
     colors = [c for c in 'gk']
 
     df = model.get_e_trajectory()
-    print df.columns
+    print (df.columns)
 
     fig = mp.figure()
     ax1 = fig.add_subplot(221)

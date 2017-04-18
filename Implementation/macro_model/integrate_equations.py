@@ -1,9 +1,10 @@
 # coding: utf-8
 
+from __future__ import print_function
+from __future__ import print_function
 from scipy.integrate import odeint
-import numpy as np
 import sympy as sp
-import pandas as pd
+import numpy as np
 
 
 class Integrate_Equations:
@@ -227,7 +228,7 @@ class Integrate_Equations:
             self.G = self.g * self.n
             self.t = t_max
         elif t_max <= self.t:
-            print 'upper time limit is smaller than system time', self.t
+            print('upper time limit is smaller than system time', self.t)
 
         return 1
 
@@ -292,7 +293,7 @@ if __name__ == '__main__':
 
     trj = model.m_trajectory
 
-    print trj
+    print(trj)
 
     fig = plt.figure()
 

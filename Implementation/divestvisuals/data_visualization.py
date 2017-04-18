@@ -1,3 +1,19 @@
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
+from __future__ import print_function
 import sys
 import numpy as np
 import networkx as nx
@@ -41,7 +57,7 @@ def plot_tau_phi(SAVE_PATH, NAME, xlog=False,
     for p in parameter_combinations:
         d_slice = data.xs(key=p, level=levels)
         save_name = zip(parameter_level_names, [str(x) for x in p])
-        print d_slice
+        print(d_slice)
         for level in list(d_slice.unstack().columns.levels[0]):
             TwoDFrame = d_slice[level].unstack().dropna()
             if TwoDFrame.empty \
@@ -63,7 +79,7 @@ def plot_tau_phi(SAVE_PATH, NAME, xlog=False,
                     vmax=vmax,
                     xlog=xlog,
                     ylog=ylog)
-            target = SAVE_PATH + '/' + level.strip('<>') + `save_name`
+            target = SAVE_PATH + '/' + level.strip('<>') + repr(save_name)
             fig.savefig(target + fextension)
             fig.clf()
             plt.close()
@@ -81,15 +97,15 @@ def tau_phi_linear(SAVE_PATH, NAME, xlog=False,
     parameter_combinations = list(it.product(*parameter_levels))
 
     for p in parameter_combinations:
-        print p, levels
+        print(p, levels)
         d_slice = data.xs(key=p, level=levels)
         save_name = zip(parameter_level_names, [str(x) for x in p])
 
-        print d_slice.columns
-        print save_name
+        print(d_slice.columns)
+        print(save_name)
         d_slice_mean = d_slice['<mean_convergence_state>'].unstack('c_count')
         d_slice_err = d_slice['<sem_convergence_state>'].unstack('c_count')
-        print d_slice.columns
+        print(d_slice.columns)
         d_slice_mean.plot(style='-o', yerr=d_slice_err)
         plt.show()
 
@@ -99,11 +115,11 @@ def tau_phi_final(SAVE_PATH, NAME, xlog=False,
 
     data = np.load(SAVE_PATH + NAME)['<mean_trajectory>'].xs(key=('R', 0.05,
         300),
-            level=('observables', 'alpha', 'timesteps'))
-    print data
+        level=('observables', 'alpha', 'timesteps'))
+    print(data)
     fig = plt.figure()
     ax = fig.add_subplot(111)
-    data[data>239].plot.hist(legend=False, ax=ax, bins=20)
+    data[data > 239].plot.hist(legend=False, ax=ax, bins=20)
     ax.set_yscale('log')
     #ax.set_xlim([50, 300])
     #ax.set_ylim([10**2, 10**2.5])
@@ -195,7 +211,7 @@ def plot_amsterdam(path, name, cues=['[0]', '[1]']):
     cds = cols[len(cues):2*len(cues)]
     dds = cols[2*len(cues):3*len(cues)]
 
-    print frequencies, cds, dds
+    print(frequencies, cds, dds)
 
     for i in indices:
 
@@ -215,7 +231,7 @@ def plot_amsterdam(path, name, cues=['[0]', '[1]']):
 
         # plot decision according to opinions
         ax2 = plt.subplot2grid((3, 2), (1, 0), rowspan=2, colspan=2)
-        cd_mean[cds+dds].plot.area(ax=ax2, alpha=0.2, colors=colors, legend=False)
+        cd_mean[cds+dds].plot.area(ax=ax2, alpha=0.2, color=colors, legend=False)
         cd_mean['decision state'].plot(lw=3, color='red', legend=False)
         ax2.set_ylim(top=1.)
         ax2.set_ylabel('decisions according to cue order')
@@ -261,12 +277,12 @@ def plot_parameter_dict(SAVE_PATH, NAME):
 
 def plot_trajectories(loc, name, params, indices):
 
-    print 'plotting trajectories'
+    print('plotting trajectories')
 
     with open(loc+name) as target:
         tmp = np.load(target).replace([np.inf, -np.inf], np.nan)
     dataframe = tmp.where(tmp < 10**300, np.nan)
-    print dataframe.columns
+    print(dataframe.columns)
 
     # get the values of the first two index levels
     ivals = dataframe.index.levels[0]
@@ -322,9 +338,9 @@ def plot_trajectories(loc, name, params, indices):
                     axes[-1].xaxis.set_visible(False)
 
         # adjust the grid layout to avoid overlapping plots and save the figure
-        print 'saving figure ' + `round(jval, 4)`
+        print('saving figure {5.2f}'.format(jval))
         fig.tight_layout()
-        fig.savefig(loc+'testfigure_'+`round(jval,4)`+'.pdf')
+        fig.savefig(loc+'testfigure_{5.2f}.pdf'.format(jval))
         fig.clf()
         plt.close()
 
@@ -351,8 +367,8 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, t_max=None, file_ex
         file type for images.
     """
 
-    print 'plotting observable grid'
-    print SAVE_PATH
+    print('plotting observable grid')
+    print(SAVE_PATH)
 
     trj_data = np.load(SAVE_PATH + NAME_TRJ)
     cns_data = np.load(SAVE_PATH + NAME_CNS)
@@ -439,7 +455,7 @@ def plot_observables(t_data_in, c_data_in, loc,
     labelsize_2 = 30
     bgcolor_alpha = 0.3
 
-    print 'plotting observable grids'
+    print('plotting observable grids')
 
     # clean e_trajectory data
     t_data = t_data_in.where(t_data_in < 10**300, np.nan)
@@ -472,7 +488,7 @@ def plot_observables(t_data_in, c_data_in, loc,
             colors = colorlist[-1]
         else:
             colors = colorlist
-        print 'plotting ' + `pl` + ' to grid'
+        print('plotting {} to grid'.format(pl))
 
         # create figure with enough space for ivals*columns plots
         # plus color map at the side
@@ -582,8 +598,7 @@ def plot_observables(t_data_in, c_data_in, loc,
                 # add tau and phi values to rows and columns
                 if ind_names[1] != 'opinion':
                     if i == len(ivals) - 1:
-                        plt.title(ind_names[1] + ' = '
-                                               + `round(jval, 2)`,
+                        plt.title('{0} = {1:4.2f}'.format(ind_names[0], jval),
                                   fontsize=labelsize_2)
                 # if initial types are given,
                 # create a string representation of the initial
@@ -613,7 +628,7 @@ def plot_observables(t_data_in, c_data_in, loc,
                         plt.ylabel(title, fontsize=labelsize_2)
                 else:
                     if j == 0:
-                        plt.ylabel(ind_names[0] + ' = ' + `round(ival, 3)`,
+                        plt.ylabel('{0} = {1:5.2f}'.format(ind_names[0], ival),
                                    fontsize=labelsize_2)
 
                 # remove x axis for all but the lowest row
@@ -653,10 +668,11 @@ def plot_observables(t_data_in, c_data_in, loc,
             cbar.ax.tick_params(labelsize=labelsize_2)
 
         # adjust the grid layout to avoid overlapping plots and save the figure
-        sloc = loc\
-            + title_list[p].replace(' ', '_') \
-               + `save_name[0]`.strip('()').replace(', ', '=') \
-                   .replace('.', 'o')\
+        tit = title_list[p].replace(' ', '_')
+        snm = repr(save_name[0]).strip('()').replace(', ', '=').replace('.', 'o')
+        sloc = loc \
+            + tit \
+            + snm \
             + file_extension
         fig.tight_layout()
         fig.savefig(sloc, bbox_extra_artists=(leg,), bbox_inches='tight')
@@ -671,12 +687,12 @@ def plot_phase_transition(loc, name, ):
     with open(loc + name) as target:
         tmp = np.load(target)
     tmp = tmp.xs(0.5, level='alpha')[['<mean_remaining_resource_fraction>']]
-    print tmp.index.names
-    print list(tmp.index.levels[1])
+    print(tmp.index.names)
+    print(list(tmp.index.levels[1]))
     tmp.unstack('N').plot()
     plt.show()
 
 if __name__ == '__main__':
-	loc = sys.argv[1]
-        plot_trajectories(loc, 'phi')
+    loc = sys.argv[1]
+    plot_trajectories(loc, 'phi')
 
