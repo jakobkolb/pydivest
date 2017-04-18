@@ -5,9 +5,8 @@ Both cases have equal parameters and comparable initial conditions (equilibrium
 with abundant fossil resource) as well as the same campaign starting size and
 dynamics.
 """
-from __future__ import print_function
 
-import cPickle as cp
+import pickle as cp
 import getpass
 import glob
 import itertools as it

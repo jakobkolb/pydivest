@@ -32,7 +32,7 @@ import numpy as np
 import scipy.stats as st
 import networkx as nx
 import pandas as pd
-import cPickle as cp
+import pickle as cp
 import itertools as it
 import sys
 import os
@@ -86,7 +86,7 @@ def RUN_FUNC(t_a, phi, alpha,
     filename: string
         filename for the results of the run
     """
-    assert isinstance(test, types.IntType),\
+    assert isinstance(test, int),\
         'test must be int, is {!r}'.format(test)
     assert alpha < 1,\
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
@@ -373,7 +373,7 @@ def run_experiment(argv):
 
     NAME = 'Cue_order_testing'
     INDEX = {
-            0: "t_a",
+            parameters["t_a"]: "t_a",
             parameters['phi']: "phi",
             parameters['alpha']: "alpha"}
     """
@@ -385,27 +385,15 @@ def run_experiment(argv):
     SAVE_PATH_INIT += '_N'
 
     """
-    create list of parameter combinations for
-    different experiment modes.
+    create list of parameter combinations according to testing mode.
     Make sure, opinion_presets are not expanded
     """
-    if mode == 0:  # Production
-        PARAM_COMBS = list(it.product(
-            t_as, phis, alphas, t_d,
-            [opinion_presets], eps,
-            transition, [test]))
-
-    elif mode == 1:  # test
+    if not test:
         PARAM_COMBS = list(it.product(
             t_as, phis, alphas, t_d,
             [opinion_presets], eps,
             transition, [test]))
     else:
-        print(mode, ' is not a valid experiment mode. '
-                    'valid modes are 1: production, 2: local')
-        sys.exit()
-
-    if test:
         PARAM_COMBS = list(it.product(
             t_as[:2], phis[:2], alphas, t_d,
             [opinion_presets], eps,
@@ -429,12 +417,6 @@ def run_experiment(argv):
                                       for f in
                                       fnames]).groupby(level=0).max()
             }
-
-
-    def foo(fnames):
-        for f in fnames:
-            print np.load(f)['convergence_state']
-            print f
 
     NAME2 = NAME+'_convergence'
     EVA2 = {"<mean_convergence_state>":
@@ -477,6 +459,11 @@ def run_experiment(argv):
         plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
         plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
                       file_extension='.pdf')
+    # No valid mode - exit
+    else:
+        print(mode, ' is not a valid experiment mode. '
+                    'valid modes are 1: production, 2: local')
+        sys.exit()
 
     return 1
 

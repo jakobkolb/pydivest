@@ -1,6 +1,12 @@
 """Test for X7 experiment."""
 
-from Implementation import X5o2_Dirty_Equilibrium as X5o2
+import sys
+import os
+myPath = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, myPath + '/../')
+
+import X5o2_Dirty_Equilibrium as X5o2
+
 
 for i in [0, 1]:
     for j in [0, 1]:

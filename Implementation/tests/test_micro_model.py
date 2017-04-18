@@ -4,8 +4,11 @@ import datetime
 from random import shuffle
 import networkx as nx
 import numpy as np
+import sys, os
+myPath = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, myPath + '/../')
 
-from Implementation.micro_model import divestment_core as dc
+from micro_model import divestment_core as dc
 
 output_location = \
     'test_output/' \
