@@ -56,7 +56,7 @@ def plot_tau_phi(SAVE_PATH, NAME, xlog=False,
 
     for p in parameter_combinations:
         d_slice = data.xs(key=p, level=levels)
-        save_name = zip(parameter_level_names, [str(x) for x in p])
+        save_name = list(zip(parameter_level_names, [str(x) for x in p]))
         print(d_slice)
         for level in list(d_slice.unstack().columns.levels[0]):
             TwoDFrame = d_slice[level].unstack().dropna()
@@ -99,7 +99,7 @@ def tau_phi_linear(SAVE_PATH, NAME, xlog=False,
     for p in parameter_combinations:
         print(p, levels)
         d_slice = data.xs(key=p, level=levels)
-        save_name = zip(parameter_level_names, [str(x) for x in p])
+        save_name = list(zip(parameter_level_names, [str(x) for x in p]))
 
         print(d_slice.columns)
         print(save_name)
@@ -383,7 +383,7 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, t_max=None, file_ex
         trj_d_slice = trj_data.xs(key=p, level=levels)
         cns_d_slice = cns_data.xs(key=p, level=levels)
         p = (round(x, 4) for x in p)
-        save_name = zip(parameter_level_names, p)
+        save_name = list(zip(parameter_level_names, p))
 
         plot_observables(trj_d_slice, cns_d_slice,
                          SAVE_PATH, save_name, pos, t_max, file_extension)
