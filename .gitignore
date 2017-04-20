@@ -83,3 +83,6 @@ Implementation/pymofa
 *.bbl
 *.blg
 *.out
+
+#pycharm project files
+.idea/
