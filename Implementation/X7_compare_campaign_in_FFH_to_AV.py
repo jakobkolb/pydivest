@@ -142,15 +142,15 @@ def RUN_FUNC(b_d, phi, ffh, test, transition, filename):
 
         # make fraction of ccount households campaigners
         opinions = input_params['opinions']
-        decisions = input_params['investment decisions']
-        del input_params['investment decisions']
+        decisions = input_params['investment_decisions']
+        del input_params['investment_decisions']
         nccount = int(ccount * len(opinions))
         j = 0
         i = 0
         while j < nccount:
             i += 1
             n = np.random.randint(0, len(opinions))
-            # recruit campaigners only people in favor of the cause
+            # recruit campaigners only from people in favor of the cause
             if opinions[n] != campaigner and decisions[n] == 1:
                 opinions[n] = campaigner
                 j += 1

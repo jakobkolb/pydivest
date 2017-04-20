@@ -15,6 +15,7 @@ class Divestment_Core:
     def __init__(self, adjacency=None, opinions=None,
                  investment_clean=None, investment_dirty=None,
                  possible_opinions=None,
+                 investment_decisions=None,
                  tau=0.8, phi=.7, eps=0.05,
                  P=100., r_b=0, b_c=1., b_d=1.5, s=0.23, d_c=0.06,
                  b_r0=1., e=10, G_0=3000,
@@ -443,7 +444,7 @@ class Divestment_Core:
         self.final_state = {
                 'adjacency': self.neighbors,
                 'opinions': self.opinions,
-                'investment decisions': self.investment_decisions,
+                'investment_decisions': self.investment_decisions,
                 'investment_clean': self.investment_clean,
                 'investment_dirty': self.investment_dirty,
                 'possible_opinions': self.possible_opinions,
@@ -1070,12 +1071,19 @@ class Divestment_Core:
         y = float(cc - dd) / k
         z = float(cd) / k
 
-        mucc = sum(self.investment_decisions * self.investment_clean) / nc
-        mucd = sum(self.investment_decisions * self.investment_dirty) / nc
-        mudc = sum((1 - self.investment_decisions)
-                   * self.investment_clean) / nd
-        mudd = sum((1 - self.investment_decisions)
-                   * self.investment_dirty) / nd
+        if nc > 0:
+            mucc = sum(self.investment_decisions * self.investment_clean) / nc
+            mucd = sum(self.investment_decisions * self.investment_dirty) / nc
+        else:
+            mucc = mucd = 0
+
+        if nd > 0:
+            mudc = sum((1 - self.investment_decisions)
+                       * self.investment_clean) / nd
+            mudd = sum((1 - self.investment_decisions)
+                       * self.investment_dirty) / nd
+        else:
+            mudc = mudd = 0
 
         entry = [self.t, x, y, z, mucc, mucd, mudc, mudd, self.C / n,
                  self.G / n]

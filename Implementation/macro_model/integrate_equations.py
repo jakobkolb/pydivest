@@ -1,10 +1,11 @@
 # coding: utf-8
 
 from __future__ import print_function
-from __future__ import print_function
+
 from scipy.integrate import odeint
-import sympy as sp
 import numpy as np
+import pandas as pd
+import sympy as sp
 
 
 class Integrate_Equations:

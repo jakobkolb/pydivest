@@ -1,19 +1,5 @@
 from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
-from __future__ import print_function
+
 import sys
 import numpy as np
 import networkx as nx
@@ -45,7 +31,8 @@ def plot_tau_phi(SAVE_PATH, NAME, xlog=False,
     ylog : bool
         Wheter y axis is log scaled
     """
-
+    if not SAVE_PATH.endswith('/'):
+        SAVE_PATH += '/'
     data = np.load(SAVE_PATH + NAME)
 
     parameter_levels = [list(p.values) for p in data.index.levels[2:]]
@@ -57,7 +44,7 @@ def plot_tau_phi(SAVE_PATH, NAME, xlog=False,
     for p in parameter_combinations:
         d_slice = data.xs(key=p, level=levels)
         save_name = list(zip(parameter_level_names, [str(x) for x in p]))
-        print(d_slice)
+
         for level in list(d_slice.unstack().columns.levels[0]):
             TwoDFrame = d_slice[level].unstack().dropna()
             if TwoDFrame.empty \
@@ -88,6 +75,9 @@ def plot_tau_phi(SAVE_PATH, NAME, xlog=False,
 def tau_phi_linear(SAVE_PATH, NAME, xlog=False,
                    ylog=False, fextension='.png'):
 
+    if not SAVE_PATH.endswith('/'):
+        SAVE_PATH += '/'
+
     data = np.load(SAVE_PATH + NAME)
 
     parameter_levels = [list(p.values) for p in data.index.levels[2:]]
@@ -97,15 +87,13 @@ def tau_phi_linear(SAVE_PATH, NAME, xlog=False,
     parameter_combinations = list(it.product(*parameter_levels))
 
     for p in parameter_combinations:
-        print(p, levels)
         d_slice = data.xs(key=p, level=levels)
         save_name = list(zip(parameter_level_names, [str(x) for x in p]))
 
-        print(d_slice.columns)
         print(save_name)
         d_slice_mean = d_slice['<mean_convergence_state>'].unstack('c_count')
         d_slice_err = d_slice['<sem_convergence_state>'].unstack('c_count')
-        print(d_slice.columns)
+
         d_slice_mean.plot(style='-o', yerr=d_slice_err)
         plt.show()
 
@@ -113,10 +101,12 @@ def tau_phi_linear(SAVE_PATH, NAME, xlog=False,
 def tau_phi_final(SAVE_PATH, NAME, xlog=False,
                   ylog=False, fextension='.png'):
 
-    data = np.load(SAVE_PATH + NAME)['<mean_trajectory>'].xs(key=('R', 0.05,
-        300),
-        level=('observables', 'alpha', 'timesteps'))
-    print(data)
+    if not SAVE_PATH.endswith('/'):
+        SAVE_PATH += '/'
+
+    data = np.load(SAVE_PATH + NAME)['<mean_trajectory>']\
+        .xs(key=('R', 0.05, 300),
+            level=('observables', 'alpha', 'timesteps'))
     fig = plt.figure()
     ax = fig.add_subplot(111)
     data[data > 239].plot.hist(legend=False, ax=ax, bins=20)
@@ -194,6 +184,9 @@ def plot_network(loc):
 
 def plot_amsterdam(path, name, cues=['[0]', '[1]']):
 
+    if not path.endswith('/'):
+        path += '/'
+
     data = np.load(path+name)
     colors = [x for x in "brwcmygk"][:len(cues)]
     if cues[-1] == '[5]':
@@ -210,8 +203,6 @@ def plot_amsterdam(path, name, cues=['[0]', '[1]']):
     frequencies = cols[:len(cues)]
     cds = cols[len(cues):2*len(cues)]
     dds = cols[2*len(cues):3*len(cues)]
-
-    print(frequencies, cds, dds)
 
     for i in indices:
 
@@ -258,6 +249,9 @@ def plot_amsterdam(path, name, cues=['[0]', '[1]']):
 
 def plot_parameter_dict(SAVE_PATH, NAME):
 
+    if not SAVE_PATH.endswith('/'):
+        SAVE_PATH += '/'
+
     data = np.load(SAVE_PATH + NAME)
 
     fig = plt.figure()
@@ -277,12 +271,14 @@ def plot_parameter_dict(SAVE_PATH, NAME):
 
 def plot_trajectories(loc, name, params, indices):
 
+    if not loc.endswith('/'):
+        loc += '/'
+
     print('plotting trajectories')
 
-    with open(loc+name) as target:
-        tmp = np.load(target).replace([np.inf, -np.inf], np.nan)
+    tmp = np.load(loc+name)
+    tmp = tmp.replace([np.inf, -np.inf], np.nan)
     dataframe = tmp.where(tmp < 10**300, np.nan)
-    print(dataframe.columns)
 
     # get the values of the first two index levels
     ivals = dataframe.index.levels[0]
@@ -338,14 +334,14 @@ def plot_trajectories(loc, name, params, indices):
                     axes[-1].xaxis.set_visible(False)
 
         # adjust the grid layout to avoid overlapping plots and save the figure
-        print('saving figure {5.2f}'.format(jval))
+        print('saving figure {:5.2f}'.format(jval))
         fig.tight_layout()
-        fig.savefig(loc+'testfigure_{5.2f}.pdf'.format(jval))
+        fig.savefig(loc+'testfigure_{:5.2f}.pdf'.format(jval))
         fig.clf()
         plt.close()
 
 
-def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, t_max=None, file_extension='.png'):
+def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, t_max=None, file_extension='.png', test=False):
 
     """
     Loads the dataframe NAME of postprocessed data
@@ -367,8 +363,10 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, t_max=None, file_ex
         file type for images.
     """
 
+    if not SAVE_PATH.endswith('/'):
+        SAVE_PATH += '/'
+
     print('plotting observable grid')
-    print(SAVE_PATH)
 
     trj_data = np.load(SAVE_PATH + NAME_TRJ)
     cns_data = np.load(SAVE_PATH + NAME_CNS)
@@ -386,11 +384,11 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, t_max=None, file_ex
         save_name = list(zip(parameter_level_names, p))
 
         plot_observables(trj_d_slice, cns_d_slice,
-                         SAVE_PATH, save_name, pos, t_max, file_extension)
+                         SAVE_PATH, save_name, pos, t_max, file_extension, test=test)
 
 
 def plot_observables(t_data_in, c_data_in, loc,
-        save_name, pos=None, t_max=None, file_extension='.png'):
+        save_name, pos=None, t_max=None, file_extension='.png', test=False):
     """
     function to create a grid of plots of the values of
     the observable for the values of the parameters given in
@@ -541,7 +539,7 @@ def plot_observables(t_data_in, c_data_in, loc,
 
                 # plot stacked decision for mean decision state:
                 if title_list[p] == 'decisions':
-                    pt = subset.unstack('observables')[cops + dops]\
+                    subset.unstack('observables')[cops + dops]\
                         .plot.area(color=colorlist, ax=axes[-1], alpha=0.3,
                                    legend=(j == 0 and i == 0))
                     pt = subset_j.plot(ax=axes[-1], legend=False,
@@ -674,21 +672,25 @@ def plot_observables(t_data_in, c_data_in, loc,
             + tit \
             + snm \
             + file_extension
-        fig.tight_layout()
-        fig.savefig(sloc, bbox_extra_artists=(leg,), bbox_inches='tight')
+
+        if not test:
+            fig.tight_layout()
+            fig.savefig(sloc, bbox_extra_artists=(leg,), bbox_inches='tight')
+        else:
+            print(sloc)
         fig.clf()
         plt.close()
 
 
 def plot_phase_transition(loc, name, ):
+
     if not loc.endswith('/'):
         loc += '/'
 
     with open(loc + name) as target:
         tmp = np.load(target)
     tmp = tmp.xs(0.5, level='alpha')[['<mean_remaining_resource_fraction>']]
-    print(tmp.index.names)
-    print(list(tmp.index.levels[1]))
+
     tmp.unstack('N').plot()
     plt.show()
 

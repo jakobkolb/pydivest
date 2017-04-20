@@ -56,9 +56,11 @@ import time
 import types
 import glob
 
+save_path_init = ""
+
 
 def RUN_FUNC(phi, N, alpha,
-             possible_opinions, eps, transition, test, save_path_init, filename):
+             possible_opinions, eps, transition, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -160,7 +162,6 @@ def RUN_FUNC(phi, N, alpha,
 
     # ROUND TWO: TRANSITION
     elif transition:
-        print('transition')
         # build list of initial conditions
         # phi, alpha and t_d are relevant,
         # t_a is not. Parse filename to get
@@ -312,7 +313,7 @@ def run_experiment(argv):
 
     sub_experiments = ['Dirty_Equilibrium',
                        'Dirty_Clean_Transition']
-    sub_experiment = sub_experiments[int(transition[0])]
+    sub_experiment = sub_experiments[int(transition)]
     heuristics = ['TTB', 'No_TTB'][int(no_heuristics)]
     test_folder = 'test_output/' if test else ''
 
@@ -323,9 +324,9 @@ def run_experiment(argv):
     SAVE_PATH_INIT = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw', folder,
                                                sub_experiments[0], heuristics)
 
-    print(SAVE_PATH_RAW)
-    print(SAVE_PATH_RES)
-    print(SAVE_PATH_INIT)
+    # make init path global, so run function can access it.
+    global save_path_init
+    save_path_init = SAVE_PATH_INIT
 
     """
     Make different types of decision makers. Cues are
@@ -397,7 +398,7 @@ def run_experiment(argv):
         PARAM_COMBS = list(it.product(
             phis, Ns, alphas,
             [opinion_presets], eps,
-            [transition], [test], [SAVE_PATH_INIT]))
+            [transition], [test]))
 
     else:  # test
         """define reduced parameter sets for testing"""
@@ -407,7 +408,7 @@ def run_experiment(argv):
         PARAM_COMBS = list(it.product(
             phis, Ns, alphas,
             [opinion_presets], eps,
-            [transition], [test], [SAVE_PATH_INIT]))
+            [transition], [test]))
 
     # names and function dictionaries for post processing:
 
@@ -447,13 +448,11 @@ def run_experiment(argv):
     # Cluster - computation and plotting
     if mode == 0:
         SAMPLE_SIZE = 100 if not test else 2
-        if not transition:
-            SAMPLE_SIZE = 50 if not test else 2
         handle = experiment_handling(
             SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
         handle.compute(RUN_FUNC)
-        handle.resave(EVA2, NAME2)
         if transition:
+            handle.resave(EVA2, NAME2)
             plot_phase_transition(SAVE_PATH_RES, NAME2)
 
     # Local - only plotting
