@@ -1,10 +1,13 @@
 """Test the micro model."""
 
 import datetime
+import sys
+import os
 from random import shuffle
 import networkx as nx
 import numpy as np
-import sys, os
+
+
 myPath = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, myPath + '/../')
 
