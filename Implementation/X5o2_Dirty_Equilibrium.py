@@ -41,6 +41,8 @@ import time
 import types
 import glob
 
+save_path_init = ""
+
 
 def RUN_FUNC(t_a, phi, alpha,
              t_d, possible_opinions, eps, transition, test, filename):
@@ -153,13 +155,13 @@ def RUN_FUNC(t_a, phi, alpha,
         # wildcard for all relevant files.
         # replace characters before first
         # underscore with *
-        path = (SAVE_PATH_INIT
-                + "/*_"
-                + filename.split('/')[-1].split('_', 1)[-1].split('True')[0]
-                + '*_final')
+        path = (save_path_init
+                + "/"
+                + filename.split('/')[-1].split('True')[0]
+                + '*.pkl_final')
         init_files = glob.glob(path)
-        input_params = np.load(
-            init_files[np.random.randint(0, len(init_files))])
+        init_file = init_files[np.random.randint(0, len(init_files))]
+        input_params = np.load(init_file)['final_state']
 
         # adapt parameters where necessary
 
@@ -205,9 +207,7 @@ def RUN_FUNC(t_a, phi, alpha,
 
     # for equilibration runs, save final state of the model:
     if not transition:
-        final_state = m.final_state
-        with open(filename + '_final', 'wb') as dumpfile:
-            cp.dump(final_state, dumpfile)
+        res['final_state'] = m.final_state
 
     # store exit status
     res["convergence"] = exit_status
@@ -222,20 +222,22 @@ def RUN_FUNC(t_a, phi, alpha,
     res["convergence_time"] = m.convergence_time
 
     # interpolate e_trajectory to get evenly spaced time series.
-    trajectory = m.e_trajectory
-    headers = trajectory.pop(0)
 
-    df = pd.DataFrame(trajectory, columns=headers)
-    df = df.set_index('time')
-    dfo = even_time_series_spacing(df, 101, 0., t_max)
-    res["economic_trajectory"] = dfo
+    res["e_trajectory"] = \
+        even_time_series_spacing(m.get_e_trajectory(), 201, 0., t_max)
+    res["m_trajectory"] = \
+        even_time_series_spacing(m.get_m_trajectory(), 201, 0., t_max)
 
     end = time.clock()
     res["runtime"] = end-start
 
     # save data
-    with open(filename, 'wb') as dumpfile:
-        cp.dump(res, dumpfile)
+    if transition:
+        with open(filename, 'wb') as dumpfile:
+            cp.dump(res, dumpfile)
+    else:
+        with open(filename + '_final', 'wb') as dumpfile:
+            cp.dump(res, dumpfile)
 
     return 1
 
@@ -269,17 +271,17 @@ def run_experiment(argv):
     if len(argv) > 1:
         test = bool(int(argv[1]))
     else:
-        test = False
+        test = True
     # switch sub_experiment mode
     if len(argv) > 2:
         mode = int(argv[2])
     else:
-        mode = 1
+        mode = 0
     # switch
     if len(argv) > 3:
-        transition = [bool(int(argv[3]))]
+        transition = bool(int(argv[3]))
     else:
-        transition = [False]
+        transition = False
     if len(argv) > 4:
         no_heuristics = bool(int(argv[4]))
     else:
@@ -305,7 +307,7 @@ def run_experiment(argv):
 
     sub_experiments = ['Dirty_Equilibrium',
                       'Dirty_Clean_Transition']
-    sub_experiment = sub_experiments[int(transition[0])]
+    sub_experiment = sub_experiments[int(transition)]
     heuristics = ['TTB', 'No_TTB'][int(no_heuristics)]
     test_folder = 'test_output/' if test else ''
 
@@ -316,9 +318,9 @@ def run_experiment(argv):
     SAVE_PATH_INIT = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw', folder,
                                          sub_experiments[0], heuristics)
 
-    print(SAVE_PATH_RAW)
-    print(SAVE_PATH_RES)
-    print(SAVE_PATH_INIT)
+    # make init path global, so run function can access it.
+    global save_path_init
+    save_path_init = SAVE_PATH_INIT
 
     """
     Make different types of decision makers. Cues are
@@ -369,20 +371,13 @@ def run_experiment(argv):
     """
     Default values of variable parameter in this experiment
     """
-    t_a, phi, alpha, t_d= [0.1], [0.8], [0.1], [30.]
+    t_a, phi, alpha, t_d, eps = [0.1], [0.8], [0.1], [30.], [0.05]
 
     NAME = 'Cue_order_testing'
     INDEX = {
             parameters["t_a"]: "t_a",
             parameters['phi']: "phi",
             parameters['alpha']: "alpha"}
-    """
-    set eps according to nose settings
-    """
-    eps = [0.05]
-    SAVE_PATH_RAW += '_N/'
-    SAVE_PATH_RES += '_N/'
-    SAVE_PATH_INIT += '_N'
 
     """
     create list of parameter combinations according to testing mode.
@@ -392,28 +387,30 @@ def run_experiment(argv):
         PARAM_COMBS = list(it.product(
             t_as, phis, alphas, t_d,
             [opinion_presets], eps,
-            transition, [test]))
+            [transition], [test]))
+        file_extension = '.pdf'
     else:
         PARAM_COMBS = list(it.product(
             t_as[:2], phis[:2], alphas, t_d,
             [opinion_presets], eps,
-            transition, [test]))
+            [transition], [test]))
+        file_extension = '.png'
 
     # names and function dictionaries for post processing:
 
     NAME1 = NAME+'_trajectory'
     EVA1 = {"<mean_trajectory>":
-            lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+            lambda fnames: pd.concat([np.load(f)["e_trajectory"]
                                       for f in fnames]).groupby(level=0).mean(),
             "<sem_trajectory>":
-            lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+            lambda fnames: pd.concat([np.load(f)["e_trajectory"]
                                       for f in fnames]).groupby(level=0).sem(),
             "<min_trajectory>":
-            lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+            lambda fnames: pd.concat([np.load(f)["e_trajectory"]
                                       for f in
                                       fnames]).groupby(level=0).min(),
             "<max_trajectory>":
-            lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+            lambda fnames: pd.concat([np.load(f)["e_trajectory"]
                                       for f in
                                       fnames]).groupby(level=0).max()
             }
@@ -448,17 +445,19 @@ def run_experiment(argv):
         handle = experiment_handling(
                 SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
         handle.compute(RUN_FUNC)
-        handle.resave(EVA1, NAME1, sortlevel=1)
-        handle.resave(EVA2, NAME2)
-        plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-        plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
-                      file_extension='.pdf')
+        if transition:
+            handle.resave(EVA1, NAME1)  # economic trajectories
+            handle.resave(EVA2, NAME2)  # final states
+            plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
+            plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
+                          file_extension=file_extension, test=test)
 
     # Local - only plotting
     elif mode == 1:
-        plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-        plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
-                      file_extension='.pdf')
+        if transition:
+            plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
+            plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
+                          file_extension=file_extension, test=test)
     # No valid mode - exit
     else:
         print(mode, ' is not a valid experiment mode. '

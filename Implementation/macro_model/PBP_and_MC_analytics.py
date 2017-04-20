@@ -16,7 +16,7 @@ s.init_printing()
 
 # Define variables and parameters for the adaptive voter model
 
-print 'define variables,'
+print('define variables,')
 
 # number of nodes
 N = s.Symbol('N', integer=True)
@@ -65,7 +65,7 @@ Xc, Xd, XR = s.symbols('X_c X_d X_R', positive=True, real=True)
 # Defination of relations between variables and calculation of substitution of
 # *primitive variables* by *state variables* of the system
 
-print 'define derived variables and derive substitutions,'
+print('define derived variables and derive substitutions,')
 
 eqs = [
     Nd + Nc - N,
@@ -86,7 +86,7 @@ subs1[s.tanh(Wc - Wd)] = rc * (mucc - mudc) + rd * (mucd - mudd)
 
 # Effect of events on state vector S = (X, Y, Z)
 
-print 'define stochiometric matrix and probabilities,'
+print('define stochiometric matrix and probabilities,')
 
 # regular adaptive voter events
 s1 = s.Matrix([0, 1, -1])  # clean investor rewires
@@ -133,7 +133,7 @@ for j, pj in enumerate(
         [s.Matrix([p]) for p in [p2, p3, p4, p5, p6, p7, p8, p9, p10]]):
     r = r.col_insert(j + 1, pj)
 
-print 'simplify rhs for PBP jump process,'
+print('simplify rhs for PBP jump process,')
 
 # Write down right hand side for PBP and substitute primitive with system state variables:
 
@@ -173,7 +173,7 @@ subs4 = {Kc: (N / 2. * (1. + x) * mucc + N / 2. * (1. - x) * mudc),
 subs5 = {kappac: 1. - pi - xi,
          kappad: 1. - pi}
 
-print 'define economic equations,'
+print('define economic equations,')
 
 # Write down dynamic equations for the economic subsystem in terms of means
 # of clean and dirty capital stocks for clean and dirty households
@@ -210,20 +210,20 @@ rhsECO = rhsECO + rhsECO_switch
 # 1)primitive variables for dependent variables (subs2)
 # 2)dependent variables for system variables (subs3)
 
-print 'subsitute macro variables in economic equations,'
+print('subsitute macro variables in economic equations,')
 
 rhsECO = rhsECO.subs(subs1).subs(subs2).subs(subs3).subs(subs4).subs(subs5)
 
 # In the PBP rhs substitute:
 # dependent variables for system variables
 
-print 'substitute macro variables in pair based proxy,'
+print('substitute macro variables in pair based proxy,')
 
 rhsPBP = rhsPBP.subs(subs1).subs(subs2).subs(subs3).subs(subs4).subs(subs5)
 
 # Combine dynamic equations of economic and social subsystem:
 
-print 'combine and save,'
+print('combine and save,')
 
 rhs = s.Matrix([rhsPBP, rhsECO]).subs(subs1)
 
@@ -236,4 +236,4 @@ pcl = s.Matrix([rc, rd, Kc, Kd, Pc, Pd, R]).subs(subs1).subs(subs2).subs(
 with open('pcl.pkl', 'wb') as outf:
     pkl.dump(pcl, outf)
 
-print 'done.'
+print('done.')
