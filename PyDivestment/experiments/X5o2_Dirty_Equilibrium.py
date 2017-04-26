@@ -26,10 +26,10 @@ Variable parameters are:
 
 
 
-from pymofa.experiment_handling import (experiment_handling,
+from ..pymofa.experiment_handling import (experiment_handling,
                                         even_time_series_spacing)
-from micro_model import divestment_core as model
-from divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
+from ..micro_model import divestment_core as model
+from ..divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
 import numpy as np
 import scipy.stats as st
 import networkx as nx

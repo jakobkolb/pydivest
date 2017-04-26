@@ -1,17 +1,11 @@
 """Test the micro model."""
 
 import datetime
-import sys
-import os
 from random import shuffle
 import networkx as nx
 import numpy as np
 
-
-myPath = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, myPath + '/../')
-
-from micro_model import divestment_core as dc
+from ..micro_model import divestment_core as dc
 
 output_location = \
     'test_output/' \
@@ -38,7 +32,7 @@ for FFH in [False, True]:
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
                             'campaign': False, 'learning': True}
 
-    if not FFH:
+    else:
         # investment_decisions:
         nopinions = [10, 10]
         possible_opinions = [[0], [1]]
@@ -54,12 +48,10 @@ for FFH in [False, True]:
 
     cops = ['c' + str(x) for x in possible_opinions]
     dops = ['d' + str(x) for x in possible_opinions]
-    colors = [np.random.rand(3, 1) for x in possible_opinions]
-    colors = colors + colors
 
     opinions = []
     for i, n in enumerate(nopinions):
-        opinions.append(np.full((n), i, dtype='I'))
+        opinions.append(np.full(n, i, dtype='I'))
     opinions = [item for sublist in opinions for item in sublist]
     shuffle(opinions)
 
@@ -77,8 +69,8 @@ for FFH in [False, True]:
 
     op = np.array(opinions)
 
-    clean_investment = mucc * (op) + mudc * (1 - op)
-    dirty_investment = mucd * (op) + mudd * (1 - op)
+    clean_investment = mucc * op + mudc * (1 - op)
+    dirty_investment = mucd * op + mudd * (1 - op)
 
     init_conditions = (adjacency_matrix, opinions,
                        clean_investment, dirty_investment)

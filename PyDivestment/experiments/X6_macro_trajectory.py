@@ -18,11 +18,11 @@ import time
 import networkx as nx
 import pandas as pd
 
-from macro_model import integrate_equations as macro_model
-from micro_model import divestment_core as micro_model
-from pymofa.experiment_handling import experiment_handling, \
+from ..macro_model import integrate_equations as macro_model
+from ..micro_model import divestment_core as micro_model
+from ..pymofa.experiment_handling import experiment_handling, \
     even_time_series_spacing
-from divestvisuals.data_visualization import plot_trajectories
+from ..divestvisuals.data_visualization import plot_trajectories
 
 
 def RUN_FUNC(b_d, phi, approximate, test, filename):
