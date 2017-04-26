@@ -2,33 +2,22 @@
 Description of the Experiment:
 ------------------------------
 
-This experiment focuses on the effects of learning in the clean
-sector.
+This experiment focuses on the test of combinations of
+different cue orders for the Take The Best Heuristic
+in the dirty clean transition.
 
-To emulate a clean -> dirty transition this experiment consists of
-two steps:
-1) Equilibrating the model with abundant fossil resources
-2) Switch on fossil resource depletion and record transition
-   to a clean economy.
+Therefore, in a first step, resource depreciation is turned
+off to reach a dirty equilibrium economy.
+Then in a second step, the final state of the system in the
+first step is taken as initial conditions and the resource
+depreciation is turned on to start the transition.
 
-Unlike previous experiments, this experiment incorporates learning
-in the clean sector. This means, that the system has two stable states
-(even with abundant fossil resource) where one is mostly dirty with
-little clean investment and low clean technology knowledge and the other
-is mostly clean with large clean investment and high clean technology
-knowledge.
-To make the system bistable, parameters have to be chosen such, that
-with low knowledge stock r_d > r_c and with high knowledge stock r_d < r_c
-
-Additionally, the experiment has two modi:
-
-A) With heuristic decision making and several different types of
-   households
-
-B) Without heuristic decision making, only two types of households
-   and only decision (instead of cue order) imitation in the
-   social learning process.
-
+Since it is not possible to reproduce the authentic network
+structure of the adaptive voter dynamics without imitation
+(which we don't want, since we preserve fixed opinion shares)
+the next best we can do is using directed and random rewiring
+only to get at least some clustering amongst opinions that
+scales with phi.
 
 Time scales in the experiment:
 ------------------------------
@@ -41,43 +30,43 @@ Time scales in the experiment:
    given one opinion dominates the other.
     t_a = tau*(1-phi)
 
-
 Discussion of variable parameters (degrees of freedom):
 -------------------------------------------------------
 
-1) alpha, as it indicates the proximity of the
-   initial state to the depreciation of the fossil
-   resource,
+tau and phi are of no interest so far, since the adaptive
+voter dynamics is disabled.
+t_d is fixed by standard values for d_c=0.06
+and kappa_c=0.5.
 
-2) phi, as it governs the clustering amongst similar
-   opinions,
+Focus in terms of timescales is set to the last two remaining
+degrees of freedom:
 
-3) d_c as it sets the timescale for capital accumulation
-   and is therefore thought to change the qualitative
-   nature of the transition.
+t_G sets the value for G_0 as all other parameters
+are assumed to be fixed.
+
+the ratio alpha = b_R/e<0 determines the share of the initial
+resource that can be economically harvested.
 """
 
-import cPickle
-import getpass
-import glob
-import itertools
+from ..pymofa.experiment_handling import (experiment_handling,
+                                        even_time_series_spacing)
+from ..micro_model import divestment_core as model
+from ..divestvisuals.data_visualization import plot_obs_grid
+from random import shuffle
 import numpy as np
 import scipy.stats as st
-import sys
-import time
-import types
-
 import networkx as nx
 import pandas as pd
+import cPickle as cp
+import itertools as it
+import sys
+import getpass
+import time
+import types
+import glob
 
-from micro_model import divestment_core as model
-from divestvisuals.data_visualization import (plot_obs_grid, plot_tau_phi,
-                                              tau_phi_final)
-from pymofa.experiment_handling import (experiment_handling,
-                                        even_time_series_spacing)
 
-
-def RUN_FUNC(t_a, phi, alpha,
+def RUN_FUNC(nopinions, phi, alpha,
              t_d, possible_opinions, eps, transition, test, filename):
     """
     Set up the model for various parameters and determine
@@ -126,48 +115,51 @@ def RUN_FUNC(t_a, phi, alpha,
     assert alpha < 1,\
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
-    (n, p, tau, p, b_d, b_c, b_r0, e, s) =\
-        (100, 0.125, 0.8, 500, 1.2, 0.32, 1., 100, 0.23)
+    (N, p, tau, p, b_d, b_r0, e, s) = \
+        (sum(nopinions), 0.125, 1, 500, 1.2, 1., 100, 0.23)
 
     # ROUND ONE: FIND EQUILIBRIUM DISTRIBUTIONS:
     if not transition:
-        tau = 1
+        if test:
+            tau = 1.
         # capital accumulation of dirty capital
         # (t_d = 1/(d_c*(1-kappa_c)) with kappa_c = 0.5 :
         d_c = 2./t_d
 
-        # set t_g to some value approx. half of run time
-        t_g = 50*t_d
+        # set t_G to some value approx. half of run time
+        t_G = 50*t_d
 
         # set G_0 according to resource depletion time:
-        # t_g = G_0*e*d_c/(P*s*b_d**2)
-        g_0 = t_g*p*s*b_d**2/(e*d_c)
+        # t_G = G_0*e*d_c/(P*s*b_d**2)
+        g_0 = t_G * p * s * b_d ** 2 / (e * d_c)
 
         # set b_r0 according to alpha and e:
         # alpha = (b_r0/e)**(1/2)
-        b_r0 = alpha**2 * e
+        b_r0 = alpha ** 2 * e
 
         # calculate equilibrium dirty capital
         # for full on dirty economy
-        k_d0 = (s / d_c * b_d * p ** (1. / 2.) * (1 - alpha ** 2)) ** 2.
+        K_d0 = (s / d_c * b_d * p ** (1. / 2.) * (1 - alpha ** 2)) ** 2.
 
         # set t_max for run
-        t_max = 300
+        t_max = 50 if test else 300
 
         # building initial conditions
 
         while True:
-            net = nx.erdos_renyi_graph(n, p)
+            net = nx.erdos_renyi_graph(N, p)
             if len(list(net)) > 1:
                 break
         adjacency_matrix = nx.adj_matrix(net).toarray()
 
-        opinions = [np.random.randint(0, len(possible_opinions))
-                    for x in range(n)]
-        if len(possible_opinions) == 2:
-            opinions = [1 for x in range(n)]
-        investment_clean = np.full((n, ), 0.1)
-        investment_dirty = np.full((n, ), k_d0 / n)
+        opinions = []
+        for i, n in enumerate(nopinions):
+            opinions.append(np.full(n, i, dtype='I'))
+        opinions = [item for sublist in opinions for item in sublist]
+        shuffle(opinions)
+
+        investment_clean = np.full((N), 0.1)
+        investment_dirty = np.full((N), K_d0/N)
 
         # input parameters
 
@@ -179,29 +171,64 @@ def RUN_FUNC(t_a, phi, alpha,
                         'tau': tau, 'phi': phi, 'eps': eps,
                         'P': p, 'b_d': b_d, 'b_r0': b_r0, 'G_0': g_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
-                        'b_c': b_c, 'learning': True,
                         'r_depletion': transition}
     # ROUND TWO: TRANSITION
-    else:
+    if transition:
         # build list of initial conditions
         # phi, alpha and t_d are relevant,
         # t_a is not. Parse filename to get
         # wildcard for all relevant files.
         # replace characters before first
         # underscore with *
-        path = (SAVE_PATH_INIT
-                + "/*_"
-                + filename.split('/')[-1].split('_', 1)[-1].split('True')[0]
+        path = (SAVE_PATH_INIT + '/'
+                + filename.split('/')[-1].split('True')[0]
                 + '*_final')
         init_files = glob.glob(path)
         input_params = np.load(
             init_files[np.random.randint(0, len(init_files))])
 
-        # adapt parameters where necessary
+        opinions = input_params["investment_decisions"]
+        adjacency = input_params["adjacency"]
 
-        # set tau according to t_a and phi
+        # make list of kinds and locations of investment_decisions
+        op_kinds = list(np.unique(opinions))
+        op_locs = []
+        for o in op_kinds:
+            op_o = []
+            for i in range(len(opinions)):
+                if opinions[i] == o:
+                    op_o.append(i)
+            op_locs.append(op_o)
+
+        # count links in and in between groups:
+        pairs = it.combinations(range(len(opinions)), 2)
+        ingroup = 0
+        intergroup = 0
+        for i, j in pairs:
+            if adjacency[i, j] == 1:
+                if opinions[i] == opinions[j]:
+                    ingroup += 1
+                else:
+                    intergroup += 1
+
+        k = 0
+        l = 0
+        while k < phi*intergroup and l < len(opinions)**4:
+            i, j = np.random.randint(len(opinions), size=2)
+            if opinions[i] != opinions[j] and adjacency[i, j] == 1:
+                np.random.shuffle(op_locs[op_kinds.index(opinions[i])])
+                for n in op_locs[op_kinds.index(opinions[i])]:
+                    if adjacency[i, n] == 0 and n != i:
+                        adjacency[i, n] = 1
+                        adjacency[n, i] = 1
+                        adjacency[i, j] = 0
+                        adjacency[j, i] = 0
+                        k += 1
+                        break
+            l += 1
+
+        # adapt parameters where necessary
         input_params['r_depletion'] = True
-        input_params['learning'] = True
 
         # set t_max for run
         t_max = 300
@@ -210,29 +237,33 @@ def RUN_FUNC(t_a, phi, alpha,
 
     m = model.Divestment_Core(**input_params)
 
-    if transition and t_a > 10.:
-        m.mode = 1
+    # turn off avm since fragmentation of network is handles manually
+    m.mode = 1
 
     # storing initial conditions and parameters
 
-    res = {"parameters": pd.Series({"tau": m.tau,
-                                    "phi": m.phi,
-                                    "n": m.n,
-                                    "P": m.P,
-                                    "birth rate": m.r_b,
-                                    "savings rate": m.s,
-                                    "clean capital depreciation rate": m.d_c,
-                                    "dirty capital depreciation rate": m.d_d,
-                                    "resource extraction efficiency": m.b_r0,
-                                    "Solov residual clean": m.b_c,
-                                    "Solov residual dirty": m.b_d,
-                                    "pi": m.pi,
-                                    "kappa_c": m.kappa_c,
-                                    "kappa_d": m.kappa_d,
-                                    "rho": m.rho,
-                                    "resource efficiency": m.e,
-                                    "epsilon": m.eps,
-                                    "initial resource stock": m.g_0})}
+    res = {}
+
+    res["parameters"] = \
+        pd.Series({"tau": m.tau,
+                   "phi": m.phi,
+                   "n": m.n,
+                   "P": p,
+                   "P": m.P,
+                   "birth rate": m.r_b,
+                   "savings rate": m.s,
+                   "clean capital depreciation rate": m.d_c,
+                   "dirty capital depreciation rate": m.d_d,
+                   "resource extraction efficiency": m.b_r0,
+                   "Solov residual clean": m.b_c,
+                   "Solov residual dirty": m.b_d,
+                   "pi": m.pi,
+                   "kappa_c": m.kappa_c,
+                   "kappa_d": m.kappa_d,
+                   "rho": m.rho,
+                   "resource efficiency": m.e,
+                   "epsilon": m.eps,
+                   "initial resource stock": m.g_0})
 
     # run the model
     start = time.clock()
@@ -242,7 +273,7 @@ def RUN_FUNC(t_a, phi, alpha,
     if not transition:
         final_state = m.final_state
         with open(filename + '_final', 'wb') as dumpfile:
-            cPickle.dump(final_state, dumpfile)
+            cp.dump(final_state, dumpfile)
 
     # store exit status
     res["convergence"] = exit_status
@@ -266,7 +297,7 @@ def RUN_FUNC(t_a, phi, alpha,
 
         df = pd.DataFrame(trajectory, columns=headers)
         df = df.set_index('time')
-        dfo = even_time_series_spacing(df, 201, 0., t_max)
+        dfo = even_time_series_spacing(df, 101, 0., t_max)
         res["economic_trajectory"] = dfo
 
     end = time.clock()
@@ -274,7 +305,7 @@ def RUN_FUNC(t_a, phi, alpha,
 
     # save data
     with open(filename, 'wb') as dumpfile:
-        cPickle.dump(res, dumpfile)
+        cp.dump(res, dumpfile)
 
     return exit_status
 
@@ -287,29 +318,18 @@ if len(sys.argv) > 2:
     transition = [bool(int(sys.argv[2]))]
 else:
     transition = [False]
-if len(sys.argv) > 3:
-    no_heuristics = bool(int(sys.argv[3]))
-else:
-    no_heuristics = False
 
 """
 Set different output folders for equilibrium and transition.
-Differentiate between runs with and without Heuristics.
 Make folder names global variables to be able to access initial
 conditions for transition in run function.
 """
-
-if no_heuristics:
-    FOLDER_EQUI = 'X5o4_Dirty_Equilibrium_No_TTB'
-    FOLDER_TRANS = 'X5o4_Dirty_Clean_Transition_No_TTB'
-else:
-    FOLDER_EQUI = 'X5o4_Dirty_Equilibrium'
-    FOLDER_TRANS = 'X5o4_Dirty_Clean_Transition'
-
+FOLDER_EQUI = 'X5o3_Types_Equilibrium'
+FOLDER_TRANS = 'X5o3_Types_Transition'
 if not any(transition):
     print 'EQUI'
     folder = FOLDER_EQUI
-else:
+elif any(transition):
     print 'TRANS'
     folder = FOLDER_TRANS
 
@@ -330,12 +350,6 @@ elif getpass.getuser() == "jakob":
     SAVE_PATH_RES = \
         "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
         + folder + "/results"
-else:
-    SAVE_PATH_RAW = \
-        "./" + folder + "/raw_data"
-    SAVE_PATH_RES = \
-        "./" + folder + "/results"
-
 """
 set path variable for initial conditions for transition runs
 """
@@ -347,9 +361,6 @@ elif getpass.getuser() == "jakob":
     SAVE_PATH_INIT = \
         "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
         + FOLDER_EQUI + "/raw_data"
-else:
-    SAVE_PATH_INIT = \
-        "./" + FOLDER_EQUI + "/raw_data"
 
 """
 Make different types of decision makers. Cues are
@@ -368,14 +379,19 @@ opinion_presets = [[2, 3],  # short term investor
                    [4, 0],  # dirty conformer
                    [1],     # gutmensch
                    [0]]     # redneck
-if no_heuristics:
-    opinion_presets = [[1], [0]]
 
 """
-set different times for resource depletion
-in units of capital accumulation time t_d = 1/(d_c*(1-kappa_d))
+Set different combinations of types of decision makers in
+terms of cue order frequencies.
 """
-b_cs = [1, 3, 100]
+opinions = [
+        [10, 10, 10, 10, 10, 10, 10, 10],   # all equal
+        [50, 0, 0, 0, 50, 0, 0, 0],         # shorty and green conf
+        [40, 0, 0, 0, 50, 0, 10, 0],        # shorty, green conf & gutmensch
+        [20, 0, 70, 0, 0, 0, 10, 0],        # shorty, short herder & gutmensch
+        [40, 0, 0, 0, 40, 0, 10, 10],       # shorty, green conf, gutm & rednck
+        [0, 0, 50, 0, 50, 0, 10, 10],       # short herder and green conf
+        [0, 0, 40, 0, 40, 0, 10, 0]]        # short herder, green conf & gutm
 
 """
 set array of phis to generate equilibrium conditions for
@@ -393,18 +409,19 @@ dictionary of the variable parameters in this experiment together with their
 position in the index of the dictionary of results
 """
 parameters = {
-    'b_c': 0,
+        'opinion': 0,
         'phi': 1,
         'alpha': 2,
         'test': 3}
 """
 Default values of variable parameter in this experiment
 """
-t_a, phi, alpha, t_d, test = [0.1], [0.8], [0.1], [30.], [0]
+opinion, phi, alpha, t_d, test =\
+    [[10, 10, 10, 10, 10, 10, 10, 10]], [0.8], [0.1], [30.], [0]
 
 NAME = 'Cue_order_testing'
 INDEX = {
-        0: "t_a",
+        0: "opinion",
         parameters['phi']: "phi",
         parameters['alpha']: "alpha"}
 """
@@ -420,28 +437,21 @@ create list of parameter combinations for
 different experiment modes.
 Make sure, opinion_presets are not expanded
 """
-print mode
 if mode == 1:  # Production
-    PARAM_COMBS = list(itertools.product(
-        b_cs, phis, alphas, t_d,
-        [opinion_presets], eps,
-        transition, test))
+    PARAM_COMBS = list(it.product(
+        opinions, phis, alphas, t_d, [opinion_presets], eps, transition, test))
 
 elif mode == 2:  # test
-    PARAM_COMBS = list(itertools.product(
-        b_cs, phis, alphas, t_d,
-        [opinion_presets], eps,
-        transition, test))
+    PARAM_COMBS = list(it.product(
+            opinions, phis, alphas,
+            t_d, [opinion_presets], eps, transition, test))
 
 elif mode == 3:  # messy
     test = [True]
-    phis = [round(x, 2) for x in list(np.linspace(0.0, 1.0, 5))[1:-1]]
-    PARAM_COMBS = list(itertools.product(
-        b_cs, phis, alpha, t_d,
-        [opinion_presets], eps,
-        transition, test))
-elif mode == 4:
-    print 'just experimental plotting'
+    phis = [round(x, 2) for x in list(np.linspace(0.0, 1.0, 5))]
+    PARAM_COMBS = list(it.product(
+        opinions[:3], phis, alpha,
+            t_d, [opinion_presets], eps, transition, test))
 else:
     print mode, ' is not a valid experiment mode.\
     valid modes are 1: production, 2: test, 3: messy'
@@ -449,10 +459,16 @@ else:
 
 # names and function dictionaries for post processing:
 
+
+def foo(fnames):
+    print pd.concat([np.load(f)['economic_trajectory']
+                     for f in fnames]).groupby(level=0).min()
+
 NAME1 = NAME+'_trajectory'
 EVA1 = {"<mean_trajectory>":
         lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
                                   for f in fnames]).groupby(level=0).mean(),
+        #foo,
         "<sem_trajectory>":
         lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
                                   for f in fnames]).groupby(level=0).sem(),
@@ -466,11 +482,6 @@ EVA1 = {"<mean_trajectory>":
                                   fnames]).groupby(level=0).max()
         }
 
-
-def foo(fnames):
-    for f in fnames:
-        print np.load(f)['convergence_state']
-        print f
 
 NAME2 = NAME+'_convergence'
 EVA2 = {"<mean_convergence_state>":
@@ -504,19 +515,18 @@ if mode == 1:
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
-    plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets)
+    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
+                  file_extension='.pdf')
 
 # test run
 if mode == 2:
     SAMPLE_SIZE = 100
     handle = experiment_handling(
             SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
-    # handle.compute(RUN_FUNC)
-    # handle.resave(EVA1, NAME1)
-    # handle.resave(EVA2, NAME2)
-    # plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets, t_max=400,
+    #handle.compute(RUN_FUNC)
+    #handle.resave(EVA1, NAME1)
+    #handle.resave(EVA2, NAME2)
+    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
                   file_extension='.pdf')
 
 # debug and mess around mode:
@@ -527,9 +537,5 @@ if mode == 3:
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
-    plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets)
-
-if mode == 4:
-    #tau_phi_linear(SAVE_PATH_RES, NAME2)
-    tau_phi_final(SAVE_PATH_RES, NAME1)
+    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
+                  file_extension='.pdf')

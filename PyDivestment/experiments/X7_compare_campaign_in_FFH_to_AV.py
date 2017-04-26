@@ -18,11 +18,11 @@ import time
 import networkx as nx
 import pandas as pd
 
-from micro_model \
+from ..micro_model \
     import divestment_core as micro_model
-from pymofa.experiment_handling \
+from ..pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
-from divestvisuals.data_visualization \
+from ..divestvisuals.data_visualization \
     import plot_trajectories, plot_amsterdam
 
 

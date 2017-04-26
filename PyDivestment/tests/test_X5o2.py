@@ -1,8 +1,5 @@
 """Test for X7 experiment."""
 
-import sys
-import os
-
 from ..experiments import X5o2_Dirty_Equilibrium as X5o2
 
 for i in [0, 1]:

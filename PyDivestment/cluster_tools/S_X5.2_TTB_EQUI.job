@@ -16,5 +16,5 @@ echo "SLURM JOB ID: $SLURM_JOBID"
 echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
-cd ../
+cd ../experiments
 srun -n $SLURM_NTASKS python X5o2_Dirty_Equilibrium.py 0 0 0

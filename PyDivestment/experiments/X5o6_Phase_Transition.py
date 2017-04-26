@@ -39,10 +39,10 @@ Just for the fun of it, I will check the pure adaptive
 voter case against the case with heuristic decision making.
 """
 
-from pymofa.experiment_handling import \
+from ..pymofa.experiment_handling import \
     experiment_handling, even_time_series_spacing
-from micro_model import divestment_core as model
-from divestvisuals.data_visualization import plot_phase_transition
+from ..micro_model import divestment_core as model
+from ..divestvisuals.data_visualization import plot_phase_transition
 import numpy as np
 import scipy.stats as st
 import networkx as nx
