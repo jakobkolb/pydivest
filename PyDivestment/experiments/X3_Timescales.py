@@ -27,16 +27,19 @@ depletion process.
 """
 
 
-from pymofa.experiment_handling import experiment_handle, even_time_series_spacing
-from divestcore import divestment_core as model
-from divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
+from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
+from pydivest.micro_model import divestment_core as model
+from pydivest.divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
 
 from scipy import interpolate as ip
 import numpy as np
 import scipy.stats as st
 import networkx as nx
 import pandas as pd
-import cPickle as cp
+try:
+    import cPickle as cp
+except:
+    import pickle as cp
 import itertools as it
 import sys
 import getpass
@@ -162,7 +165,7 @@ def RUN_FUNC(t_a, phi, eps, t_G, alpha, test, filename):
 
     #run the model
     if test:
-        print input_params
+        print(input_params)
 
     t_max = 300 if test == 0 else 50
     start = time.clock()
@@ -171,8 +174,8 @@ def RUN_FUNC(t_a, phi, eps, t_G, alpha, test, filename):
     #store exit status
     res["convergence"] = exit_status
     if test:
-        print 'test output of variables'
-        print m.tau, m.phi, exit_status, m.convergence_state, m.convergence_time
+        print('test output of variables')
+        print(m.tau, m.phi, exit_status, m.convergence_state, m.convergence_time)
     #store data in case of successful run
 
     if exit_status in [0,1]:
@@ -201,8 +204,8 @@ def RUN_FUNC(t_a, phi, eps, t_G, alpha, test, filename):
     try:
         tmp = np.load(filename)
     except IOError:
-        print "writing results failed for " + filename
-    
+        print("writing results failed for " + filename)
+
     return exit_status
 
 #get sub experiment and mode from command line
@@ -223,11 +226,11 @@ folder = 'X3Noise' if noise else 'X3NoNoise'
 
 #check if cluster or local
 if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW = "/p/tmp/kolb/Divest_Experiments/divestdata/"+folder+"/raw_data" + '_' + `input_int` + '/'
-    SAVE_PATH_RES = "/home/kolb/Divest_Experiments/divestdata/"+folder+"/results" + '_' + `input_int` + '/'
+    SAVE_PATH_RAW = '/p/tmp/kolb/Divest_Experiments/divestdata/{}/raw_data_{}/'.format(folder, input_int)
+    SAVE_PATH_RES = '/home/kolb/Divest_Experiments/divestdata/{}/raw_data_{}/'.format(folder, input_int)
 elif getpass.getuser() == "jakob":
-    SAVE_PATH_RAW = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"+folder+"/raw_data" + '_' + `input_int` + '/'
-    SAVE_PATH_RES = "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"+folder+"/results" + '_' + `input_int` + '/'
+    SAVE_PATH_RAW = '/home/jakob/PhD/Project_Divestment/Implementation/divestdata/{}/raw_data_{}/'.format(folder, input_int)
+    SAVE_PATH_RES = 'home/jakob/PhD/Project_Divestment/Implementation/divestdata/{}/raw_data_{}/'.format(folder, input_int)
 
 t_as = [round(x,5) for x in list(10**np.linspace(-2.0, 2.0, 11))]
 phis = [round(x,5) for x in list(np.linspace( 0.0, 1.0, 11))[1:-1]]
@@ -243,7 +246,7 @@ if noise:
     eps = [0.05]
 
 
-NAME = 't_a_vs_phi_r_R0=' + `input_int` + '_timescales'
+NAME = 't_a_vs_phi_r_R0={}_timescales'.format(input_int)
 INDEX = {0: "tau", 1: "phi", parameters['t_G']: 3}
 
 if input_int < len(alphas) and input_int != None:
@@ -255,7 +258,7 @@ elif input_int == None:
         phis, eps, t_Gs, alpha, tests))
 
 else:
-    print input_int, ' is not in the list of possible experiments'
+    print(input_int, ' is not in the list of possible experiments')
     sys.exit()
 
 #names and function dictionaries for post processing:
@@ -288,7 +291,7 @@ EVA2={  "<mean_convergence_state>":
 # full run
 if mode == 0:
     SAMPLE_SIZE = 100
-    handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+    handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
@@ -298,7 +301,7 @@ if mode == 0:
 # test run
 if mode == 1:
     SAMPLE_SIZE = 2
-    handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+    handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
@@ -308,7 +311,7 @@ if mode == 1:
 # debug and mess around mode:
 if mode == None:
     SAMPLE_SIZE = 2
-    handle = experiment_handle(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+    handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
