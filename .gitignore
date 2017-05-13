@@ -65,11 +65,11 @@ target/
 .*.swp
 
 #output data
-Implementation/divestdata/*
+PyDivestment/divestdata/*
 
 #pymofa and cyexploit
 cyexploit
-Implementation/pymofa
+PyDivestment/pymofa
 
 #output files:
 *.pdf
@@ -83,3 +83,6 @@ Implementation/pymofa
 *.bbl
 *.blg
 *.out
+
+#pycharm project files
+.idea/

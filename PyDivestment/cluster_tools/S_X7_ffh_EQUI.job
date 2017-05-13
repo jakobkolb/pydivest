@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
+#SBATCH --qos=short
+#SBATCH --job-name=X7.0_ffh_E
+#SBATCH --output=%A_X7.0_ffh_E.out
+#SBATCH --error=%A_X7.0_ffh_E.err
+#SBATCH --nodes=12
+#SBATCH --tasks-per-node=16
+
+
+module load hpc/2015 anaconda/2.3.0
+export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
+
+echo "_______________________________________________"
+echo "SLURM JOB ID: $SLURM_JOBID"
+echo "$SLURM_NTASKS tasks"
+echo "_______________________________________________"
+
+cd ../experiments/
+srun -n $SLURM_NTASKS python X7_compare_campaign_in_FFH_to_AV.py 0 0 1 0
