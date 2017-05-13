@@ -26,22 +26,23 @@ Variable parameters are:
 
 
 
-from ..pymofa.experiment_handling import (experiment_handling,
-                                        even_time_series_spacing)
-from ..micro_model import divestment_core as model
-from ..divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
-import numpy as np
-import scipy.stats as st
-import networkx as nx
-import pandas as pd
-import pickle as cp
-import itertools as it
-import sys
-import os
 import getpass
-import time
-import types
 import glob
+import itertools as it
+import os
+import pickle as cp
+import sys
+import time
+
+import networkx as nx
+import numpy as np
+import pandas as pd
+import scipy.stats as st
+
+from PyDivestment.pydivest.divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
+from PyDivestment.pydivest.micro_model import divestment_core as model
+from ..pymofa.experiment_handling import (experiment_handling,
+                                          even_time_series_spacing)
 
 save_path_init = ""
 

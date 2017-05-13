@@ -48,22 +48,24 @@ the ratio alpha = b_R/e<0 determines the share of the initial
 resource that can be economically harvested.
 """
 
-from ..pymofa.experiment_handling import (experiment_handling,
-                                        even_time_series_spacing)
-from ..micro_model import divestment_core as model
-from ..divestvisuals.data_visualization import plot_obs_grid
-from random import shuffle
-import numpy as np
-import scipy.stats as st
-import networkx as nx
-import pandas as pd
 import cPickle as cp
+import getpass
+import glob
 import itertools as it
 import sys
-import getpass
 import time
 import types
-import glob
+from random import shuffle
+
+import networkx as nx
+import numpy as np
+import pandas as pd
+import scipy.stats as st
+
+from PyDivestment.pydivest.divestvisuals.data_visualization import plot_obs_grid
+from PyDivestment.pydivest.micro_model import divestment_core as model
+from ..pymofa.experiment_handling import (experiment_handling,
+                                          even_time_series_spacing)
 
 
 def RUN_FUNC(nopinions, phi, alpha,

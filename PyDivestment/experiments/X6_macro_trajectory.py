@@ -7,22 +7,22 @@ approximation.
 The variable Parameters are b_d and phi.
 """
 
-import pickle as cp
 import getpass
 import itertools as it
-import numpy as np
-import sys
 import os
+import pickle as cp
+import sys
 import time
 
 import networkx as nx
+import numpy as np
 import pandas as pd
 
-from ..macro_model import integrate_equations as macro_model
-from ..micro_model import divestment_core as micro_model
+from PyDivestment.pydivest.divestvisuals.data_visualization import plot_trajectories
+from PyDivestment.pydivest.macro_model import integrate_equations as macro_model
+from PyDivestment.pydivest.micro_model import divestment_core as micro_model
 from ..pymofa.experiment_handling import experiment_handling, \
     even_time_series_spacing
-from ..divestvisuals.data_visualization import plot_trajectories
 
 
 def RUN_FUNC(b_d, phi, approximate, test, filename):

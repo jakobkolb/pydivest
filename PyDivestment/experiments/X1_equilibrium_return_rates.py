@@ -1,13 +1,15 @@
 """
-Compare campaign dynamics in the full Fast and Frugal Heuristics mode to
-the strapped down "adaptive voter" case.
-Both cases have equal parameters and comparable initial conditions (equilibrium
-with abundant fossil resource) as well as the same campaign starting size and
-dynamics.
+I want to know, whether the imitation process leads to equal return rates in both sectors.
+Parameters that this could depend on are
+
+1) the rate of exploration (random changes in opinion and rewiring),
+2) also, the rate of rewiring could have an effect.
+
+This should only work in the equilibrium condition where the environment stays constant.
+
 """
 
 import getpass
-import glob
 import itertools as it
 import os
 import pickle as cp
@@ -26,7 +28,7 @@ from pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
 
 
-def RUN_FUNC(b_d, phi, ffh, test, transition, filename):
+def RUN_FUNC(eps, phi, ffh, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -38,8 +40,8 @@ def RUN_FUNC(b_d, phi, ffh, test, transition, filename):
     -----------
     b_d : float > 0
         the solow residual in the dirty sector
-    phi : float \in [0,1]
-        the rewiring probability for the network update
+    xi : float \in [0,0.5]
+        exponent for knowledge stock in the clean production function
     ffh: bool
         if True: run with fast and frugal heuristics
         if False: run with imitation only
@@ -50,18 +52,8 @@ def RUN_FUNC(b_d, phi, ffh, test, transition, filename):
         filename for the results of the run
     """
 
-    # fraction of households that will start the campaign
-    ccount = .05
-
     # Make different types of decision makers. Cues are
 
-    cue_names = {
-        0: 'always dirty',
-        1: 'always clean',
-        2: 'capital rent',
-        3: 'capital rent trend',
-        4: 'peer pressure',
-        5: 'campaignee'}
     if ffh:
         possible_opinions = [[2, 3],  # short term investor
                              [3, 2],  # long term investor
@@ -77,7 +69,7 @@ def RUN_FUNC(b_d, phi, ffh, test, transition, filename):
     # Parameters:
 
     input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
-                    'eps': 0.05, 'b_d': b_d, 'e': 100.,
+                    'eps': eps, 'b_d': 1.5, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,  # alpha^2 * e
                     'possible_opinions': possible_opinions,
                     'xi': 1. / 8., 'beta': 0.06,
@@ -87,82 +79,34 @@ def RUN_FUNC(b_d, phi, ffh, test, transition, filename):
 
     # building initial conditions
 
-    if not transition:
-        # network:
-        N = 100
-        k = 10
-        if test:
-            N = 30
-            k = 3
+    # network:
+    n = 100
+    k = 10
+    if test:
+        n = 30
+        k = 3
 
-        p = float(k) / N
-        while True:
-            net = nx.erdos_renyi_graph(N, p)
-            if len(list(net)) > 1:
-                break
-        adjacency_matrix = nx.adj_matrix(net).toarray()
+    p = float(k) / n
+    while True:
+        net = nx.erdos_renyi_graph(n, p)
+        if len(list(net)) > 1:
+            break
+    adjacency_matrix = nx.adj_matrix(net).toarray()
 
-        # opinions and investment
+    # opinions and investment
 
-        opinions = [np.random.randint(0, len(possible_opinions))
-                    for x in range(N)]
-        clean_investment = np.ones(N) * 50. / float(N)
-        dirty_investment = np.ones(N) * 50. / float(N)
+    opinions = [np.random.randint(0, len(possible_opinions))
+                for x in range(n)]
+    clean_investment = np.ones(n) * 50. / float(n)
+    dirty_investment = np.ones(n) * 50. / float(n)
 
-        init_conditions = (adjacency_matrix, opinions,
-                           clean_investment, dirty_investment)
+    init_conditions = (adjacency_matrix, opinions,
+                       clean_investment, dirty_investment)
 
-        t_1 = 400
-        t_2 = 0
+    t_1 = 400
 
-        # initializing the model
-        m = micro_model.Divestment_Core(*init_conditions, **input_params)
-
-    else:
-        # build list of initial conditions
-        # phi, alpha and t_d are relevant,
-        # t_a is not. Parse filename to get
-        # wildcard for all relevant files.
-        # replace characters before first
-        # underscore with *
-        [path, fname] = filename.rsplit('/', 1)
-        plen = len(path)
-        path += '/*' + fname.rsplit('True', 1)[0] + 'False_*.pkl'
-        if phi == 1.0:
-            path = path[:plen + 6] + '0o9' + path[plen + 9:]
-        path = path.replace('trans', 'equi')
-        init_files = glob.glob(path)
-        input_params = np.load(
-            init_files[np.random.randint(0, len(init_files))])['final_state']
-
-        # update input parameters where necessary
-        input_params['campaign'] = True
-        input_params['possible_opinions'].append([5])
-        campaigner = len(input_params['possible_opinions']) - 1
-
-        # make fraction of ccount households campaigners
-        opinions = input_params['opinions']
-        decisions = input_params['investment_decisions']
-        del input_params['investment_decisions']
-        nccount = int(ccount * len(opinions))
-        j = 0
-        i = 0
-        while j < nccount:
-            i += 1
-            n = np.random.randint(0, len(opinions))
-            # recruit campaigners only from people in favor of the cause
-            if opinions[n] != campaigner and decisions[n] == 1:
-                opinions[n] = campaigner
-                j += 1
-            if i > 100 * len(opinions):
-                break
-        input_params['opinions'] = opinions
-
-        t_1 = 400
-        t_2 = 600
-
-        # initializing the model
-        m = micro_model.Divestment_Core(**input_params)
+    # initializing the model
+    m = micro_model.Divestment_Core(*init_conditions, **input_params)
 
     # storing initial conditions and parameters
     res = {
@@ -171,7 +115,7 @@ def RUN_FUNC(b_d, phi, ffh, test, transition, filename):
                                   "Investment dirty": m.investment_dirty}),
         "parameters": pd.Series({"tau": m.tau,
                                  "phi": m.phi,
-                                 "N": m.n,
+                                 "n": m.n,
                                  "P": m.P,
                                  "savings rate": m.s,
                                  "clean capital depreciation rate": m.d_c,
@@ -193,16 +137,7 @@ def RUN_FUNC(b_d, phi, ffh, test, transition, filename):
     # run model with abundant resource
     t_max = t_1 if not test else 1
     m.R_depletion = False
-    m.run(t_max=t_max)
-
-    # run model with resource depletion
-    t_max += t_2 if not test else 1
-    m.R_depletion = True
     exit_status = m.run(t_max=t_max)
-
-    # for equilibration runs, save final state of the model:
-    if not transition:
-        res['final_state'] = m.final_state
 
     res["runtime"] = time.clock() - t_start
 
@@ -270,12 +205,6 @@ def run_experiment(argv):
         ffh = bool(int(argv[3]))
     else:
         ffh = True
-    # switch transition
-    if len(argv) > 4:
-        transition = bool(int(argv[4]))
-    else:
-        transition = False
-
 
     """
     set input/output paths
@@ -288,8 +217,7 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    sub_experiment = ['imitation', 'ffh'][int(ffh)] \
-                 + ['_equi', '_trans'][int(transition)]
+    sub_experiment = ['imitation', 'ffh'][int(ffh)]
     folder = 'X7'
 
     # make sure, testing output goes to its own folder:
@@ -297,10 +225,10 @@ def run_experiment(argv):
     test_folder = ['', 'test_output/'][int(test)]
 
     # check if cluster or local and set paths accordingly
-    SAVE_PATH_RAW = \
+    save_path_raw = \
         "{}/{}{}/{}/" \
         .format(tmppath, test_folder, folder, sub_experiment)
-    SAVE_PATH_RES = \
+    save_path_res = \
         "{}/{}{}/{}/" \
         .format(respath, test_folder, folder, sub_experiment)
 
@@ -308,9 +236,9 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 11))]
-    b_ds = [round(x, 5) for x in list(np.linspace(1., 2., 11))]
-    b_d, phi = [1.75, 2.0], [.7, .8, .9]
+    epss = [round(x, 5) for x in list(np.linspace(0.0, 0.1, 11))]
+    phis = [round(x, 5) for x in list(np.linspace(0., 1., 11))]
+    eps, phi = [0., 0.5], [.7, .9]
 
     if ffh:
         possible_opinions = [[2, 3],  # short term investor
@@ -325,57 +253,53 @@ def run_experiment(argv):
         possible_opinions = [[1], [0]]
 
     cue_list = [str(o) for o in possible_opinions]
-    if transition:
-        cue_list.append('[5]')
 
     if test:
-        PARAM_COMBS = list(it.product(b_d, phi, [ffh], [test], [transition]))
+        param_combs = list(it.product(eps, phi, [ffh], [test]))
     else:
-        PARAM_COMBS = list(it.product(b_ds, phis, [ffh], [test], [transition]))
+        param_combs = list(it.product(epss, phis, [ffh], [test]))
 
-    INDEX = {0: "b_c", 1: "phi"}
-
+    index = {0: "eps", 1: "phi"}
 
     """
     create names and dicts of callables for post processing
     """
 
-    NAME = 'b_c_scan_' + sub_experiment + '_trajectory'
+    name = 'b_c_scan_' + sub_experiment + '_trajectory'
 
-    NAME1 = NAME + '_trajectory'
-    EVA1 = {"mean_trajectory":
-                lambda fnames: pd.concat([np.load(f)["micro_trajectory"]
-                                          for f in fnames]).groupby(
+    name1 = name + '_trajectory'
+    eva1 = {"mean_trajectory":
+            lambda fnames: pd.concat([np.load(f)["micro_trajectory"]
+                                      for f in fnames]).groupby(
                     level=0).mean(),
             "sem_trajectory":
-                lambda fnames: pd.concat([np.load(f)["micro_trajectory"]
-                                          for f in fnames]).groupby(
+            lambda fnames: pd.concat([np.load(f)["micro_trajectory"]
+                                      for f in fnames]).groupby(
                     level=0).std()
             }
-    NAME2 = NAME + '_convergence'
-    EVA2 = {'times_mean':
-                lambda fnames: np.nanmean([np.load(f)["convergence_time"]
-                                           for f in fnames]),
-            'states_mean':
-                lambda fnames: np.nanmean([np.load(f)["convergence_state"]
-                                           for f in fnames]),
-            'times_std':
-                lambda fnames: np.std([np.load(f)["convergence_time"]
+    name2 = name + '_convergence'
+    eva2 = {'times_mean':
+            lambda fnames: np.nanmean([np.load(f)["convergence_time"]
                                        for f in fnames]),
+            'states_mean':
+            lambda fnames: np.nanmean([np.load(f)["convergence_state"]
+                                       for f in fnames]),
+            'times_std':
+            lambda fnames: np.std([np.load(f)["convergence_time"]
+                                   for f in fnames]),
             'states_std':
-                lambda fnames: np.std([np.load(f)["convergence_state"]
-                                       for f in fnames])
+            lambda fnames: np.std([np.load(f)["convergence_state"]
+                                   for f in fnames])
             }
-    NAME3 = NAME + '_convergence_times'
-    CF3 = {'times':
-               lambda fnames: pd.DataFrame(data=[np.load(f)["convergence_time"]
-                                                 for f in fnames]).sortlevel(
+    name3 = name + '_convergence_times'
+    cf3 = {'times':
+           lambda fnames: pd.DataFrame(data=[np.load(f)["convergence_time"]
+                                             for f in fnames]).sortlevel(
                    level=0),
            'states':
-               lambda fnames: pd.DataFrame(
+           lambda fnames: pd.DataFrame(
                    data=[np.load(f)["convergence_state"]
-                         for f in fnames])
-                   .sortlevel(level=0)
+                         for f in fnames]).sortlevel(level=0)
            }
 
     """
@@ -387,14 +311,14 @@ def run_experiment(argv):
         print('cluster mode')
         sys.stdout.flush()
 
-        SAMPLE_SIZE = 100 if not test else 2
+        sample_size = 100 if not test else 2
 
-        handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
-                                     SAVE_PATH_RAW, SAVE_PATH_RES)
+        handle = experiment_handling(sample_size, param_combs, index,
+                                     save_path_raw, save_path_res)
         handle.compute(RUN_FUNC)
-        handle.resave(EVA1, NAME1)
-        handle.resave(EVA2, NAME2)
-        handle.collect(CF3, NAME3)
+        handle.resave(eva1, name1)
+        handle.resave(eva2, name2)
+        handle.collect(cf3, name3)
 
         return 1
 
@@ -403,8 +327,8 @@ def run_experiment(argv):
         print('plot mode')
         sys.stdout.flush()
 
-        plot_amsterdam(SAVE_PATH_RES, NAME1, cues=cue_list)
-        plot_trajectories(SAVE_PATH_RES, NAME1, None, None)
+        plot_amsterdam(save_path_res, name1, cues=cue_list)
+        plot_trajectories(save_path_res, name1, None, None)
 
         return 1
 
