@@ -142,7 +142,7 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     res["runtime"] = time.clock() - t_start
 
     # store data in case of successful run
-    if exit_status in [0, 1]:
+    if exit_status in [0, 1] or test:
         res["micro_trajectory"] = \
             even_time_series_spacing(m.get_e_trajectory(), 401, 0., t_max)
         res["convergence_state"] = m.convergence_state
@@ -224,6 +224,8 @@ def run_experiment(argv):
 
     test_folder = ['', 'test_output/'][int(test)]
 
+    print(test_folder)
+
     # check if cluster or local and set paths accordingly
     save_path_raw = \
         "{}/{}{}/{}/" \
@@ -231,6 +233,8 @@ def run_experiment(argv):
     save_path_res = \
         "{}/{}{}/{}/" \
         .format(respath, test_folder, folder, sub_experiment)
+
+    print(save_path_raw)
 
     """
     create parameter combinations and index
