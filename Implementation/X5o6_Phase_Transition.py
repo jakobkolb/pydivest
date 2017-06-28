@@ -1,4 +1,3 @@
-from __future__ import print_function
 
 """
 This experiment investigates the phase transition in the adaptive voter
@@ -39,10 +38,9 @@ Just for the fun of it, I will check the pure adaptive
 voter case against the case with heuristic decision making.
 """
 
-from pymofa.experiment_handling import \
-    experiment_handling, even_time_series_spacing
-from micro_model import divestment_core as model
-from divestvisuals.data_visualization import plot_phase_transition
+from __future__ import print_function
+
+
 import numpy as np
 import scipy.stats as st
 import networkx as nx
@@ -55,6 +53,11 @@ import getpass
 import time
 import types
 import glob
+
+from pymofa.experiment_handling import \
+    experiment_handling, even_time_series_spacing
+from micro_model import divestment_core as model
+from divestvisuals.data_visualization import plot_phase_transition
 
 save_path_init = ""
 
@@ -463,3 +466,8 @@ def run_experiment(argv):
         print(mode, ' is not a valid experiment mode.\
         valid modes are 1: production, 2: test, 3: messy')
         sys.exit()
+
+
+if __name__ == "__main__":
+    cmdline_arguments = sys.argv
+    run_experiment(cmdline_arguments)
