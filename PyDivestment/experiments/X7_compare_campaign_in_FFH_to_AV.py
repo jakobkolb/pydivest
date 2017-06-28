@@ -275,6 +275,11 @@ def run_experiment(argv):
         transition = bool(int(argv[4]))
     else:
         transition = False
+    # switch campaign
+    if len(argv) > 5:
+        campaign = bool(int(argv[5]))
+    else:
+        campaign = False
 
 
     """
@@ -289,6 +294,7 @@ def run_experiment(argv):
         tmppath = "./"
 
     sub_experiment = ['imitation', 'ffh'][int(ffh)] \
+                 + ['', '_nocampaign'][int(campaign)] \
                  + ['_equi', '_trans'][int(transition)]
     folder = 'X7'
 
@@ -325,15 +331,15 @@ def run_experiment(argv):
         possible_opinions = [[1], [0]]
 
     cue_list = [str(o) for o in possible_opinions]
-    if transition:
+    if transition and campaign:
         cue_list.append('[5]')
 
     if test:
-        PARAM_COMBS = list(it.product(b_d, phi, [ffh], [test], [transition]))
+        param_combs = list(it.product(b_d, phi, [ffh], [test], [transition]))
     else:
-        PARAM_COMBS = list(it.product(b_ds, phis, [ffh], [test], [transition]))
+        param_combs = list(it.product(b_ds, phis, [ffh], [test], [transition]))
 
-    INDEX = {0: "b_c", 1: "phi"}
+    index = {0: "b_c", 1: "phi"}
 
 
     """
@@ -389,7 +395,7 @@ def run_experiment(argv):
 
         SAMPLE_SIZE = 100 if not test else 2
 
-        handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
+        handle = experiment_handling(SAMPLE_SIZE, param_combs, index,
                                      SAVE_PATH_RAW, SAVE_PATH_RES)
         handle.compute(RUN_FUNC)
         handle.resave(EVA1, NAME1)
