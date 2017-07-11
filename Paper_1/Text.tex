@@ -1,18 +1,55 @@
 
 
-\section{Abstract}
+\section*{Abstract}
 
-Macroeconomic models formulate dependencies between aggregate economic variables. Since Lucas' critique in the 70s, is has become the dominating paradigm that to be credible, such models have to be built upon microfoundations. However, for the sake of mathematical traceability, even contemporary DSGE models commonly formulate their microfoundation assuming representative agents or, if they model heterogeneous agents, assuming mutually independent rational decision makers. \\
-Yet, besides the fact that representative agent modeling is prone to fallacy of composition, assuming independent individuals is generally far off realities in which individual behavior is strongly influenced by social processes. \\
-We show, that methods from statistical physics allow for the formulation of dependencies between aggregate economic variables, that are literally derived from an agent based model with interdependent social learners. 
-We analyze effects of the assumptions underlying the aggregation process and evaluate them by comparison to results from numerical simulations as well as the trivial assumption of one representative household. \\
-This shall illustrate that agent based modeling and analytical work in macroeconomics are by no means antithetical, but that there are methods with the potential to connect the two branches of theory. \\
+Macroeconomic models formulate dependencies between aggregate economic variables. Since Lucas' critique in the 70s, it has become the dominating paradigm that to be credible in the mainstream, such models have to be built upon microfoundations i.e. the decisions of single agents such as households and firms. However, for the sake of mathematical traceability, even contemporary DSGE models commonly formulate their microfoundation assuming representative agents or, if they model heterogeneous agents, assuming mutually independent rational decision makers. \\
+Yet, besides the fact that representative agent modeling is prone to fallacy of composition i.e. wrongly deducing properties of the whole from the properties of its parts, assuming independent individuals is generally far off realities in which individual behavior is strongly influenced by social processes. \\
+We show that methods from statistical physics allow for the derivation of dependencies between aggregate economic variables from an agent based model with interdependent social learners. 
+We analyze effects of the assumptions underlying this analytic aggregation process via pair approximation and moment closure and evaluate them by comparison to results from numerical simulations as well as model dynamics with one representative household. \\
+We illustrate that agent based modeling and analytical work in macroeconomics are by no means antithetical, but that there are methods with the potential to connect the two branches of theory. \\
 
-\section{Contents}
+\section*{Contents}
 \begin{itemize}
 	\item Recapitulate Lucas' critique on macroeconomics without microfoundations as well as Kirmans critique of the representative individual,
-	\item Elaborate on the strengths and weaknesses of agent based models,
+	\item Elaborate on the strengths and weaknesses of agent based models and current DSGE approaches,
 	\item Explain/Link to particular statistical physics methods (moment closure, pair based approximation) useful to find aggregate solutions.
 	\item Show prove of concept (explain the model and derive approximate solution)
 	\item Discuss results: validity of solution and its dependence on the assumptions made during aggregation.
+	\item Discuss limitation of the approach: only feasible with simple micro-models.
 \end{itemize}
+
+\section{Introduction}
+
+IN COLAB WITH FINN
+
+\section{Model Description}
+In the following, we outline a conceptual endogenous growth model with two characterizing features. First, production takes place in two sectors, one of which depends on a non renewable resource and second households as owners of capital and labor are heterogeneous and individually deciding on the sector that they invest their savings in.
+
+\subsection{Economic Production}
+The two sectors in the economic production process are denoted with $\cs$ and $\ds$ They differ in their production functions respective input factors. For convenience, we will call them the ``clean'' and the ``dirty'' sector. The clean sector uses labor $L$ capital $K_\cs$ and a knowledge stock $C$ as input factors, the dirty sector uses labor $L$, capital $K_\ds$ and an additional resource $R$ as input factor. We assume, that the technology used in the second sector depends on the supply of the resource and that the associated physical capital cannot be used in the first sector, hence the different subscript. We also assume that capital and labor are mutual substitutes but that the additional resource cannot be substituted. To satisfy these requirements, we use the following production functions: 
+
+\begin{equation}
+	Y_\cs = b_\cs L_\cs^{\alpha_\cs} K_\cs^{\beta_\cs} C^{\gamma_\cs},\qquad Y_\ds = \min\left(b_\ds L_\ds^{\alpha_\ds} K_\ds^{\beta_\ds}, \ e R \right)
+\end{equation}
+
+where $\alpha$, $\beta$ and $\gamma$ are the elasticities of the respective input factors and $e$ is the resource efficiency.
+The remaining stock of the resource $R$ is depleted by its usage:
+\begin{equation}
+	\dot{G} = -R.
+	\label{resource_extraction}
+\end{equation}
+and cost flow for resource extraction $c_R$ scales with $R^{\varepsilon}$ and additionally depends on the remaining resource stock:
+\begin{equation}
+	c_R = b_R R^{\varepsilon} \left( \frac{G_0}{G} \right)^{2}.
+	\label{resource_extraction_cost}
+\end{equation}
+
+The knowledge stock 
+
+\subsection{Heterogeneous Households}
+
+\section{Aggregation Methods}
+
+\section{Discussion}
+
+\section{Conclusion}
