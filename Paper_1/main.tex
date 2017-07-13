@@ -136,12 +136,12 @@
 %Kopf- unf Fuﬂzeilen
 \newpagestyle{newstyle}{
       \setheadrule{.4pt}% Header rule
-        \sethead[Preliminary results - Do not circulate!]% even left
+        \sethead[Working Paper]% even left
             []% even centre
             [\thepage]% even right
             {\thepage}% odd left
             {}% odd centre
-            {Fast and Frugal Heuristics in Earth System Models}% odd right
+            {Micro-Macro transition from an Agent Based Savings Model}% odd right
         }
     
     \pagestyle{newstyle}
@@ -153,9 +153,16 @@
 %\fancyhf[CF]{\thepage}
 %\renewcommand{\headrulewidth}{0.4pt}
 %\renewcommand{\footrulewidth}{0.4pt}
+\newcommand{\cs}{c}
+\newcommand{\ds}{d}
 
 \begin{document}
 \setcounter{page}{1}%
 %Einbinden von externen Dateien
-\input{Text.tex}
+\input{Abstract.tex}
+\input{Introduction.tex}
+\input{Model_Description.tex}
+\input{Approximate_Solution}
+\input{Discussion.tex}
+\input{Conclusion.tex}
 \end{document}

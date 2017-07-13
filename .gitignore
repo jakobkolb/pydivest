@@ -65,7 +65,7 @@ target/
 .*.swp
 
 #output data
-PyDivestment/divestdata/*
+PyDivestment/output_data/*
 
 #pymofa and cyexploit
 cyexploit
