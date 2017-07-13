@@ -1,19 +1,19 @@
 \section{Model Description}
-\label{Model_Description}
+\label{sec:Model_Description}
 The model consists of to processes. One for the economic production process and one for social learning about investment decisions amongst heterogeneous households.
 
 \subsection{Economic production}
-\label{model_description}
+\label{sec:model_description}
 
 Economic production takes place in two sectors. For convenience, they will be called the \textit{clean} and the \textit{dirty} sector. The dirty sector uses labor $L$, dirty capital $K_d$ and a fossil resource $R$ as input factors, the clean sector uses labor $L$, clean capital $K_c$ and a renewable technology stock $C$ as input factors. It is assumed that the physical capital of one sector cannot be used in the other sector due to different technologies. We also assume that capital labor and knowledge are mutual substitutes but that the additional resource cannot be substituted. To satisfy these requirements, we use the following production functions:
 \begin{equation}
 	Y_c = b_c L_c^{\alpha_c}K_c^{\beta_c}C^{\gamma_c}, 
-	\label{clean_production}
+	\label{eq:clean_production}
 \end{equation}
 in the clean sector, where $b_c$ is the Solow residual in the clean sector and $\alpha_c$, $\beta_c$ and $\gamma_c$ are the elasticities of the respective input factors and
 \begin{equation}
 	Y_d = {\rm min}\left( b_d L_d^{\alpha_d}K_d^{\beta_d}, e R \right),
-	\label{dirty_production}
+	\label{eq:dirty_production}
 \end{equation}
 in the dirty sector, where $b_d$ is the Solow residual in the dirty sector, $\alpha_d$ and $\beta_d$ are the input factors of the respective input factors and $e$ is the conversion efficiency of the fossil resource.
 Additionally, it is assumed that
@@ -21,27 +21,38 @@ Additionally, it is assumed that
 	\item the usage of the fossil resource $R$ depletes geological resource stock $G$:
 		\begin{equation}
 			\dot{G} = -R, \quad G(t=0) = G_0
-			\label{resource_depletion}
+			\label{eq:resource_depletion}
 		\end{equation}
 	\item the cost for the usage of the fossil resource depends on the resource use $R$ and the fraction of the remaining fossil resource stock $G/G_0$:
 		\begin{equation}
-			c_R = b_R R^{\rho}\left( \frac{G}{G_0} \right)^{\mu}
-			\label{resource cost}
+			c_R = b_R R^{\rho} = \tilde{b}_R R^{\rho}\left( \frac{G}{G_0} \right)^{\mu}
+			\label{eq:resource_cost}
 		\end{equation}
 	\item perfect labor mobility and competition for labor between the two sectors, leading to an equilibrium wage that equals the marginal return for labor:
 		\begin{equation}
 			w = \frac{\partial Y_c}{\partial L_c} = \frac{\partial Y_d}{\partial L_d} - \frac{\partial c_R}{\partial L_d}
-			\label{equilibrium_wage}
+			\label{eq:equilibrium_wage}
 		\end{equation}
+		where the sum of the labor shares equals the total amount of labor available:
+		\begin{equation}
+			L_c + L_d = L.
+			\label{eq:population}
+		\end{equation}
+
 	\item technology specific capital, that can only be used in the sector that it has initially been invested in, leading to independent capital return rates for the two kinds of capital:
 		\begin{align}
-			r_c &= \frac{\partial Y_c}{\partial K_c} \\
-			r_d &= \frac{\partial Y_d}{\partial K_d} - \frac{\partial c_R}{\partial K_d}
+			r_c &= \frac{\partial Y_c}{\partial K_c} \label{eq:clean_capital_rent}\\
+			r_d &= \frac{\partial Y_d}{\partial K_d} - \frac{\partial c_R}{\partial K_d} \label{eq:dirty_capital_rent}
 		\end{align}
 	\item learning by doing with a chance of forgetting in the clean sector, leading to change in the renewable technology stock $C$:
 		\begin{equation}
 			\dot{C} = Y_c - \chi C
 			\label{learning_by_doing}
+		\end{equation}
+	\item Lastly, we assume efficient allocation of resources in the dirty sector which is equivalent to
+		\begin{equation}
+			e R = b_d L^{\alpha_d}K^{\beta_d}.
+			\label{eq:resources}
 		\end{equation}
 \end{itemize}
 
