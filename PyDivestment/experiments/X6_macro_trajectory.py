@@ -17,10 +17,9 @@ import time
 import networkx as nx
 import numpy as np
 import pandas as pd
-
 from pydivest.divestvisuals.data_visualization import plot_trajectories
 from pydivest.macro_model import integrate_equations as macro_model
-from pydivest.micro_model import divestment_core as micro_model
+from pydivest.micro_model import divestmentcore as micro_model
 from pymofa.experiment_handling import experiment_handling, \
     even_time_series_spacing
 
@@ -86,7 +85,7 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     if approximate:
         m = macro_model.Integrate_Equations(*init_conditions, **input_params)
     else:
-        m = micro_model.Divestment_Core(*init_conditions, **input_params)
+        m = micro_model.DivestmentCore(*init_conditions, **input_params)
         m.init_switchlist()
 
     # storing initial conditions and parameters
@@ -216,10 +215,10 @@ def run_experiment(argv):
 
     SAVE_PATH_RAW = \
         "{}/{}{}/{}/" \
-        .format(tmppath, test_folder, folder, sub_experiment)
+            .format(tmppath, test_folder, folder, sub_experiment)
     SAVE_PATH_RES = \
         "{}/{}{}/{}/" \
-        .format(respath, test_folder, folder, sub_experiment)
+            .format(respath, test_folder, folder, sub_experiment)
 
     """
     create parameter combinations and index
@@ -244,17 +243,18 @@ def run_experiment(argv):
 
     NAME1 = NAME + '_trajectory'
     EVA1 = {"mean_trajectory":
-            lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
-                                      for f in fnames]).groupby(
+                lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
+                                          for f in fnames]).groupby(
                     level=0).mean(),
             "sem_trajectory":
-            lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
-                                      for f in fnames]).groupby(level=0).std()
+                lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
+                                          for f in fnames]).groupby(
+                    level=0).std()
             }
     NAME2 = NAME + '_switchlist'
     CF2 = {"switching_capital":
-           lambda fnames: pd.concat([np.load(f)["switchlist"]
-                                     for f in fnames]).sortlevel(level=0)
+               lambda fnames: pd.concat([np.load(f)["switchlist"]
+                                         for f in fnames]).sortlevel(level=0)
            }
 
     """

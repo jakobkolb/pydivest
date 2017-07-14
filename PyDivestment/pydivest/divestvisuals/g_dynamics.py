@@ -3,8 +3,8 @@ This little script is meant to evaluate the resource depletion
 dynamic and the actual relevance of the resource depletion timescale.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from scipy.integrate import odeint
 
 t_G = 100
@@ -32,7 +32,8 @@ for i, alpha in enumerate(alphas):
 
 
     def dot_G(G, t):
-        print G
+        print
+        G
         return -s / (e * d_c) * P * (1 - b_R / e * (G_0 / G) ** 2) * b_d ** 2
 
 

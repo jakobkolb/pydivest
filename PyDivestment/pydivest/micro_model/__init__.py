@@ -1,1 +1,1 @@
-#__init__ of divestment_core
+# __init__ of divestment_core

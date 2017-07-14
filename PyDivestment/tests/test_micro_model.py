@@ -5,7 +5,6 @@ from random import shuffle
 
 import networkx as nx
 import numpy as np
-
 from PyDivestment.pydivest.micro_model import divestment_core as dc
 
 output_location = \

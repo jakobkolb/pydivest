@@ -57,17 +57,15 @@ import glob
 import itertools as it
 import sys
 import time
-import types
 from random import shuffle
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 import scipy.stats as st
-
 from pydivest.divestvisuals.data_visualization \
-    import plot_obs_grid, plot_tau_phi, tau_phi_final
-from pydivest.micro_model import divestment_core as model
+    import plot_obs_grid
+from pydivest.micro_model import divestmentcore as model
 from pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
 
@@ -116,9 +114,9 @@ def RUN_FUNC(nopinions, phi, alpha,
     filename: string
         filename for the results of the run
     """
-    assert isinstance(test, int),\
+    assert isinstance(test, int), \
         'test must be int, is {!r}'.format(test)
-    assert alpha < 1,\
+    assert alpha < 1, \
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
     (N, p, tau, p, b_d, b_r0, e, s) = \
@@ -130,10 +128,10 @@ def RUN_FUNC(nopinions, phi, alpha,
             tau = 1.
         # capital accumulation of dirty capital
         # (t_d = 1/(d_c*(1-kappa_c)) with kappa_c = 0.5 :
-        d_c = 2./t_d
+        d_c = 2. / t_d
 
         # set t_G to some value approx. half of run time
-        t_G = 50*t_d
+        t_G = 50 * t_d
 
         # set G_0 according to resource depletion time:
         # t_G = G_0*e*d_c/(P*s*b_d**2)
@@ -165,7 +163,7 @@ def RUN_FUNC(nopinions, phi, alpha,
         shuffle(opinions)
 
         investment_clean = np.full((N), 0.1)
-        investment_dirty = np.full((N), K_d0/N)
+        investment_dirty = np.full((N), K_d0 / N)
 
         # input parameters
 
@@ -219,7 +217,7 @@ def RUN_FUNC(nopinions, phi, alpha,
 
         k = 0
         l = 0
-        while k < phi*intergroup and l < len(opinions)**4:
+        while k < phi * intergroup and l < len(opinions) ** 4:
             i, j = np.random.randint(len(opinions), size=2)
             if opinions[i] != opinions[j] and adjacency[i, j] == 1:
                 np.random.shuffle(op_locs[op_kinds.index(opinions[i])])
@@ -241,7 +239,7 @@ def RUN_FUNC(nopinions, phi, alpha,
 
     # initializing the model
 
-    m = model.Divestment_Core(**input_params)
+    m = model.DivestmentCore(**input_params)
 
     # turn off avm since fragmentation of network is handles manually
     m.mode = 1
@@ -291,9 +289,9 @@ def RUN_FUNC(nopinions, phi, alpha,
 
     if exit_status in [0, 1]:
         res["convergence_data"] = \
-                pd.DataFrame({"Investment decisions": m.investment_decisions,
-                              "Investment clean": m.investment_clean,
-                              "Investment dirty": m.investment_dirty})
+            pd.DataFrame({"Investment decisions": m.investment_decisions,
+                          "Investment clean": m.investment_clean,
+                          "Investment dirty": m.investment_dirty})
         res["convergence_state"] = m.convergence_state
         res["convergence_time"] = m.convergence_time
 
@@ -307,7 +305,7 @@ def RUN_FUNC(nopinions, phi, alpha,
         res["economic_trajectory"] = dfo
 
     end = time.clock()
-    res["runtime"] = end-start
+    res["runtime"] = end - start
 
     # save data
     with open(filename, 'wb') as dumpfile:
@@ -315,9 +313,10 @@ def RUN_FUNC(nopinions, phi, alpha,
 
     return exit_status
 
+
 # get sub experiment and mode from command line
 if len(sys.argv) > 1:
-    mode = int(sys.argv[1])     # sets mode (1:production, 2:test, 3:messy)
+    mode = int(sys.argv[1])  # sets mode (1:production, 2:test, 3:messy)
 else:
     mode = 3
 if len(sys.argv) > 2:
@@ -346,15 +345,15 @@ if getpass.getuser() == "kolb":
     SAVE_PATH_RAW = \
         "/P/tmp/kolb/Divest_Experiments/divestdata/" \
         + folder + "/raw_data"
-    SAVE_PATH_RES =\
-        "/home/kolb/Divest_Experiments/divestdata/"\
+    SAVE_PATH_RES = \
+        "/home/kolb/Divest_Experiments/divestdata/" \
         + folder + "/results"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_RAW = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
+        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/" \
         + folder + "/raw_data"
     SAVE_PATH_RES = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
+        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/" \
         + folder + "/results"
 """
 set path variable for initial conditions for transition runs
@@ -365,39 +364,39 @@ if getpass.getuser() == "kolb":
         + FOLDER_EQUI + "/raw_data"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_INIT = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
+        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/" \
         + FOLDER_EQUI + "/raw_data"
 
 """
 Make different types of decision makers. Cues are
 """
 cue_names = {
-        0: 'always dirty',
-        1: 'always clean',
-        2: 'capital rent',
-        3: 'capital rent trend',
-        4: 'peer pressure'}
+    0: 'always dirty',
+    1: 'always clean',
+    2: 'capital rent',
+    3: 'capital rent trend',
+    4: 'peer pressure'}
 opinion_presets = [[2, 3],  # short term investor
                    [3, 2],  # long term investor
                    [4, 2],  # short term herder
                    [4, 3],  # trending herder
                    [4, 1],  # green conformer
                    [4, 0],  # dirty conformer
-                   [1],     # gutmensch
-                   [0]]     # redneck
+                   [1],  # gutmensch
+                   [0]]  # redneck
 
 """
 Set different combinations of types of decision makers in
 terms of cue order frequencies.
 """
 opinions = [
-        [10, 10, 10, 10, 10, 10, 10, 10],   # all equal
-        [50, 0, 0, 0, 50, 0, 0, 0],         # shorty and green conf
-        [40, 0, 0, 0, 50, 0, 10, 0],        # shorty, green conf & gutmensch
-        [20, 0, 70, 0, 0, 0, 10, 0],        # shorty, short herder & gutmensch
-        [40, 0, 0, 0, 40, 0, 10, 10],       # shorty, green conf, gutm & rednck
-        [0, 0, 50, 0, 50, 0, 10, 10],       # short herder and green conf
-        [0, 0, 40, 0, 40, 0, 10, 0]]        # short herder, green conf & gutm
+    [10, 10, 10, 10, 10, 10, 10, 10],  # all equal
+    [50, 0, 0, 0, 50, 0, 0, 0],  # shorty and green conf
+    [40, 0, 0, 0, 50, 0, 10, 0],  # shorty, green conf & gutmensch
+    [20, 0, 70, 0, 0, 0, 10, 0],  # shorty, short herder & gutmensch
+    [40, 0, 0, 0, 40, 0, 10, 10],  # shorty, green conf, gutm & rednck
+    [0, 0, 50, 0, 50, 0, 10, 10],  # short herder and green conf
+    [0, 0, 40, 0, 40, 0, 10, 0]]  # short herder, green conf & gutm
 
 """
 set array of phis to generate equilibrium conditions for
@@ -415,21 +414,21 @@ dictionary of the variable parameters in this experiment together with their
 position in the index of the dictionary of results
 """
 parameters = {
-        'opinion': 0,
-        'phi': 1,
-        'alpha': 2,
-        'test': 3}
+    'opinion': 0,
+    'phi': 1,
+    'alpha': 2,
+    'test': 3}
 """
 Default values of variable parameter in this experiment
 """
-opinion, phi, alpha, t_d, test =\
+opinion, phi, alpha, t_d, test = \
     [[10, 10, 10, 10, 10, 10, 10, 10]], [0.8], [0.1], [30.], [0]
 
 NAME = 'Cue_order_testing'
 INDEX = {
-        0: "opinion",
-        parameters['phi']: "phi",
-        parameters['alpha']: "alpha"}
+    0: "opinion",
+    parameters['phi']: "phi",
+    parameters['alpha']: "alpha"}
 """
 set eps according to nose settings
 """
@@ -449,19 +448,20 @@ if mode == 1:  # Production
 
 elif mode == 2:  # test
     PARAM_COMBS = list(it.product(
-            opinions, phis, alphas,
-            t_d, [opinion_presets], eps, transition, test))
+        opinions, phis, alphas,
+        t_d, [opinion_presets], eps, transition, test))
 
 elif mode == 3:  # messy
     test = [True]
     phis = [round(x, 2) for x in list(np.linspace(0.0, 1.0, 5))]
     PARAM_COMBS = list(it.product(
         opinions[:3], phis, alpha,
-            t_d, [opinion_presets], eps, transition, test))
+        t_d, [opinion_presets], eps, transition, test))
 else:
     print(mode, ' is not a valid experiment mode.\
     valid modes are 1: production, 2: test, 3: messy')
     sys.exit()
+
 
 # names and function dictionaries for post processing:
 
@@ -470,54 +470,54 @@ def foo(fnames):
     print(pd.concat([np.load(f)['economic_trajectory']
                      for f in fnames]).groupby(level=0).min())
 
-NAME1 = NAME+'_trajectory'
+
+NAME1 = NAME + '_trajectory'
 EVA1 = {"<mean_trajectory>":
-        lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
-                                  for f in fnames]).groupby(level=0).mean(),
-        #foo,
+            lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+                                      for f in fnames]).groupby(level=0).mean(),
+        # foo,
         "<sem_trajectory>":
-        lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
-                                  for f in fnames]).groupby(level=0).sem(),
+            lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+                                      for f in fnames]).groupby(level=0).sem(),
         "<min_trajectory>":
-        lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
-                                  for f in
-                                  fnames]).groupby(level=0).min(),
+            lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+                                      for f in
+                                      fnames]).groupby(level=0).min(),
         "<max_trajectory>":
-        lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
-                                  for f in
-                                  fnames]).groupby(level=0).max()
+            lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+                                      for f in
+                                      fnames]).groupby(level=0).max()
         }
 
-
-NAME2 = NAME+'_convergence'
+NAME2 = NAME + '_convergence'
 EVA2 = {"<mean_convergence_state>":
-        lambda fnames: np.nanmean([np.load(f)["convergence_state"]
-                                   for f in fnames]),
+            lambda fnames: np.nanmean([np.load(f)["convergence_state"]
+                                       for f in fnames]),
         "<mean_convergence_time>":
-        lambda fnames: np.nanmean([np.load(f)["convergence_time"]
-                                   for f in fnames]),
+            lambda fnames: np.nanmean([np.load(f)["convergence_time"]
+                                       for f in fnames]),
         "<min_convergence_time>":
-        lambda fnames: np.nanmin([np.load(f)["convergence_time"]
-                                  for f in fnames]),
+            lambda fnames: np.nanmin([np.load(f)["convergence_time"]
+                                      for f in fnames]),
         "<max_convergence_time>":
-        lambda fnames: np.max([np.load(f)["convergence_time"]
-                               for f in fnames]),
+            lambda fnames: np.max([np.load(f)["convergence_time"]
+                                   for f in fnames]),
         "<nanmax_convergence_time>":
-        lambda fnames: np.nanmax([np.load(f)["convergence_time"]
-                                  for f in fnames]),
+            lambda fnames: np.nanmax([np.load(f)["convergence_time"]
+                                      for f in fnames]),
         "<sem_convergence_time>":
-        lambda fnames: st.sem([np.load(f)["convergence_time"]
-                               for f in fnames]),
+            lambda fnames: st.sem([np.load(f)["convergence_time"]
+                                   for f in fnames]),
         "<runtime>":
-        lambda fnames: st.sem([np.load(f)["runtime"]
-                               for f in fnames]),
+            lambda fnames: st.sem([np.load(f)["runtime"]
+                                   for f in fnames]),
         }
 
 # full run
 if mode == 1:
     SAMPLE_SIZE = 100
     handle = experiment_handling(
-            SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+        SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
@@ -528,10 +528,10 @@ if mode == 1:
 if mode == 2:
     SAMPLE_SIZE = 100
     handle = experiment_handling(
-            SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
-    #handle.compute(RUN_FUNC)
-    #handle.resave(EVA1, NAME1)
-    #handle.resave(EVA2, NAME2)
+        SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+    # handle.compute(RUN_FUNC)
+    # handle.resave(EVA1, NAME1)
+    # handle.resave(EVA2, NAME2)
     plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
                   file_extension='.pdf')
 
@@ -539,7 +539,7 @@ if mode == 2:
 if mode == 3:
     SAMPLE_SIZE = 10
     handle = experiment_handling(
-            SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+        SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)

@@ -19,10 +19,10 @@ setup(name="pydivest",
       packages=["pydivest"],
       include_package_data=True,
       install_requires=[
-            "numpy>=1.11.0",
-            "pymofa>=0.1.0",
-            "pylama>=7.0.0",
-            "pytest-cov>=2.5.1",
+          "numpy>=1.11.0",
+          "pymofa>=0.1.0",
+          "pylama>=7.0.0",
+          "pytest-cov>=2.5.1",
       ],
       # see http://stackoverflow.com/questions/15869473/what-is-the-advantage-
       # of-setting-zip-safe-to-true-when-packaging-a-python-projec

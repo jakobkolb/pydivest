@@ -6,10 +6,11 @@
 
 # In[1]:
 
-import sympy as s
 import pickle as pkl
-from sympy.abc import epsilon, phi, tau
+
+import sympy as s
 from IPython.core.display import display, HTML
+from sympy.abc import epsilon, phi, tau
 
 display(HTML("<style>.container { width:100% !important; }</style>"))
 s.init_printing()
@@ -46,7 +47,6 @@ Z = s.Symbol('Z', real=True, positive=True)
 Wd = s.Symbol('W_d')
 # wealth of clean node
 Wc = s.Symbol('W_c')
-
 
 # Define variables and parameters for the economic subsystem:
 
@@ -92,9 +92,9 @@ print('define stochiometric matrix and probabilities,')
 s1 = s.Matrix([0, 1, -1])  # clean investor rewires
 s2 = s.Matrix([0, -1, -1])  # dirty investor rewires
 s3 = s.Matrix([-2, -kc, -1 + (1 - 1. / kc) * (
-(2 * cc - cd) / Nc)])  # clean investor imitates c -> d
+    (2 * cc - cd) / Nc)])  # clean investor imitates c -> d
 s4 = s.Matrix([2, kd, -1 + (1 - 1. / kd) * (
-(2 * dd - cd) / Nd)])  # dirty investor imitates d -> c
+    (2 * dd - cd) / Nd)])  # dirty investor imitates d -> c
 
 # noise events
 s5 = s.Matrix([-2, -(2 * cc + cd) / Nc, (2 * cc - cd) / Nc])  # c -> d

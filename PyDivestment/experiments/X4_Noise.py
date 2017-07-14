@@ -3,20 +3,17 @@ try:
 except ImportError:
     import pickle as cp
 import getpass
-import glob
 import itertools as it
 import sys
 import time
-import types
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 import scipy.stats as st
-
 from pydivest.divestvisuals.data_visualization \
-    import plot_obs_grid, plot_tau_phi, tau_phi_final
-from pydivest.micro_model import divestment_core as model
+    import plot_obs_grid, plot_tau_phi
+from pydivest.micro_model import divestmentcore as model
 from pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
 
@@ -82,12 +79,12 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
     investment_decisions = np.random.randint(low=0, high=2, size=N)
-    
+
     init_conditions = (adjacency_matrix, investment_decisions)
 
     # initializing the model
 
-    m = model.Divestment_Core(*init_conditions, **input_params)
+    m = model.DivestmentCore(*init_conditions, **input_params)
 
     # storing initial conditions and parameters
 
@@ -123,7 +120,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
     res["convergence"] = exit_status
     if test:
         print(m.tau, m.phi, exit_status, \
-            m.convergence_state, m.convergence_time)
+              m.convergence_state, m.convergence_time)
 
     # store data in case of successful run
 
@@ -145,7 +142,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
         res["economic_trajectory"] = dfo
 
     end = time.clock()
-    res["runtime"] = end-start
+    res["runtime"] = end - start
 
     # save data
     with open(filename, 'wb') as dumpfile:
@@ -154,7 +151,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
         tmp = np.load(filename)
     except IOError:
         print("writing results failed for " + filename)
-    
+
     return exit_status
 
 
@@ -224,7 +221,7 @@ elif sub_experiment == 'e':
 elif sub_experiment == 'P':
     PARAM_COMBS = list(it.product(taus, phis, eps, N, ps, P, b_d,
                                   b_R, e, d_c, test))
-    
+
 elif sub_experiment == 'test':
     PARAM_COMBS = list(it.product(taus, phis, eps, N, p, P, b_d,
                                   b_R, e, d_c, tests))
@@ -236,7 +233,7 @@ else:
 
 # names and function dictionaries for post processing:
 
-NAME1 = NAME+'_trajectory'
+NAME1 = NAME + '_trajectory'
 EVA1 = {"<mean_trajectory>":
             lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
                                       for f in fnames]).groupby(
@@ -245,7 +242,7 @@ EVA1 = {"<mean_trajectory>":
             lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
                                       for f in fnames]).groupby(level=0).sem()}
 
-NAME2 = NAME+'_convergence'
+NAME2 = NAME + '_convergence'
 EVA2 = {"<mean_convergence_state>":
             lambda fnames: np.nanmean([np.load(f)["convergence_state"]
                                        for f in fnames]),

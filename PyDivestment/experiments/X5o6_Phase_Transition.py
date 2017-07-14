@@ -1,4 +1,3 @@
-
 """
 This experiment investigates the phase transition in the adaptive voter
 dynamics and finite size scaling for the number of households.
@@ -40,24 +39,23 @@ voter case against the case with heuristic decision making.
 
 from __future__ import print_function
 
-
-import numpy as np
-import scipy.stats as st
-import networkx as nx
-import pandas as pd
-import pickle as cp
+import getpass
+import glob
 import itertools as it
 import os
+import pickle as cp
 import sys
-import getpass
 import time
 import types
-import glob
 
+import networkx as nx
+import numpy as np
+import pandas as pd
+import scipy.stats as st
+from pydivest.divestvisuals.data_visualization import plot_phase_transition
+from pydivest.micro_model import divestmentcore as model
 from pymofa.experiment_handling import \
     experiment_handling, even_time_series_spacing
-from pydivest.micro_model import divestment_core as model
-from pydivest.divestvisuals.data_visualization import plot_phase_transition
 
 save_path_init = ""
 
@@ -189,7 +187,7 @@ def RUN_FUNC(phi, N, alpha,
 
     # initializing the model
 
-    m = model.Divestment_Core(**input_params)
+    m = model.DivestmentCore(**input_params)
 
     # storing initial conditions and parameters
 
@@ -320,11 +318,13 @@ def run_experiment(argv):
     heuristics = ['TTB', 'No_TTB'][int(no_heuristics)]
     test_folder = 'test_output/' if test else ''
 
-    SAVE_PATH_RAW = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw', folder,
+    SAVE_PATH_RAW = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw',
+                                              folder,
                                               sub_experiment, heuristics)
     SAVE_PATH_RES = "{}/{}{}_{}_{}".format(respath, test_folder, folder,
                                            sub_experiment, heuristics)
-    SAVE_PATH_INIT = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw', folder,
+    SAVE_PATH_INIT = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw',
+                                               folder,
                                                sub_experiments[0], heuristics)
 
     # make init path global, so run function can access it.
@@ -407,7 +407,7 @@ def run_experiment(argv):
         """define reduced parameter sets for testing"""
         phis = [round(x, 2) for x in list(np.linspace(0.0, 1.0, 5))[:-1]]
         Ns = [10, 100]
-        alphas = [0.01,0.5]
+        alphas = [0.01, 0.5]
         PARAM_COMBS = list(it.product(
             phis, Ns, alphas,
             [opinion_presets], eps,

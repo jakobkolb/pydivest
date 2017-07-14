@@ -3,8 +3,8 @@ Using streamplot to produce some phase space plots of the
 ode systems for capital accumulation to put on the
 documentation.
 """
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 delta = 0.06
 eps = 0.25
