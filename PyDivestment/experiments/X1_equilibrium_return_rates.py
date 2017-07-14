@@ -14,26 +14,22 @@ try:
 except ImportError:
     import pickle as cp
 import getpass
-import glob
 import itertools as it
+import os
 import sys
 import time
-import types
-import os
 
 import networkx as nx
 import numpy as np
 import pandas as pd
-import scipy.stats as st
-
 from pydivest.divestvisuals.data_visualization \
     import plot_amsterdam, plot_trajectories
-from pydivest.micro_model import divestment_core as model
+from pydivest.micro_model import divestmentcore as model
 from pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
 
 
-def RUN_FUNC(eps, phi, ffh, test, filename):
+def run_func(eps, phi, ffh, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -111,7 +107,7 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     t_1 = 400
 
     # initializing the model
-    m = model.Divestment_Core(*init_conditions, **input_params)
+    m = model.DivestmentCore(*init_conditions, **input_params)
 
     # storing initial conditions and parameters
     res = {
@@ -289,10 +285,10 @@ def run_experiment(argv):
     name2 = name + '_convergence'
     eva2 = {'times_mean':
             lambda fnames: np.nanmean([np.load(f)["convergence_time"]
-                                       for f in fnames]),
+                                      for f in fnames]),
             'states_mean':
             lambda fnames: np.nanmean([np.load(f)["convergence_state"]
-                                       for f in fnames]),
+                                      for f in fnames]),
             'times_std':
             lambda fnames: np.std([np.load(f)["convergence_time"]
                                    for f in fnames]),
@@ -300,16 +296,16 @@ def run_experiment(argv):
             lambda fnames: np.std([np.load(f)["convergence_state"]
                                    for f in fnames])
             }
-    name3 = name + '_convergence_times'
-    cf3 = {'times':
-           lambda fnames: pd.DataFrame(data=[np.load(f)["convergence_time"]
-                                             for f in fnames]).sortlevel(
-                   level=0),
-           'states':
-           lambda fnames: pd.DataFrame(
-                   data=[np.load(f)["convergence_state"]
-                         for f in fnames]).sortlevel(level=0)
-           }
+    # name3 = name + '_convergence_times'
+    # cf3 = {'times':
+    #        lambda fnames: pd.DataFrame(data=[np.load(f)["convergence_time"]
+    #                                          for f in fnames]).sortlevel(
+    #                level=0),
+    #        'states':
+    #        lambda fnames: pd.DataFrame(
+    #                data=[np.load(f)["convergence_state"]
+    #                      for f in fnames]).sortlevel(level=0)
+    #        }
 
     """
     run computation and/or post processing and/or plotting
@@ -324,10 +320,10 @@ def run_experiment(argv):
 
         handle = experiment_handling(sample_size, param_combs, index,
                                      save_path_raw, save_path_res)
-        handle.compute(RUN_FUNC)
+        handle.compute(run_func)
         handle.resave(eva1, name1)
         handle.resave(eva2, name2)
-        handle.collect(cf3, name3)
+        # handle.collect(cf3, name3)
 
         return 1
 

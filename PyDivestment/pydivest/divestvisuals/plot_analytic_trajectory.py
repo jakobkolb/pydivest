@@ -19,7 +19,8 @@ trj[indices[0:3]].plot(ax=ax1)
 ax2 = fig.add_subplot(222)
 trj[indices[3:7]].plot(ax=ax2)
 
-print trj[[7]]
+print
+trj[[7]]
 ax3 = fig.add_subplot(223)
 trj[[7]].plot(ax=ax3)
 

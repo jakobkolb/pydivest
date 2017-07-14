@@ -2,10 +2,8 @@
 
 from __future__ import print_function
 
-from scipy.integrate import odeint
-import numpy as np
-import pandas as pd
 import sympy as sp
+from scipy.integrate import odeint
 
 
 class Integrate_Equations:

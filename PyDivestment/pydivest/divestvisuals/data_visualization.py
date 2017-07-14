@@ -1,14 +1,14 @@
 from __future__ import print_function
 
-import sys
-import numpy as np
-import networkx as nx
 import itertools as it
-import matplotlib as mpl
-#mpl.use('Agg')
-import matplotlib.pyplot as plt
-import matplotlib.colors as cl
+import sys
+
 import matplotlib.cm as cm
+import matplotlib.colors as cl
+# mpl.use('Agg')
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
 
 
 def plot_tau_phi(SAVE_PATH, NAME, xlog=False,
@@ -37,7 +37,7 @@ def plot_tau_phi(SAVE_PATH, NAME, xlog=False,
 
     parameter_levels = [list(p.values) for p in data.index.levels[2:]]
     parameter_level_names = [name for name in data.index.names[2:]]
-    levels = tuple(i+2 for i in range(len(parameter_levels)))
+    levels = tuple(i + 2 for i in range(len(parameter_levels)))
 
     parameter_combinations = list(it.product(*parameter_levels))
 
@@ -58,14 +58,14 @@ def plot_tau_phi(SAVE_PATH, NAME, xlog=False,
             cmap.set_under('yellow')
             cmap.set_over('black')
             fig = explore_Parameterspace(
-                    TwoDFrame,
-                    title=level,
-                    cmap=cmap,
-                    norm=cl.Normalize(vmin=0, vmax=vmax),
-                    vmin=vmin,
-                    vmax=vmax,
-                    xlog=xlog,
-                    ylog=ylog)
+                TwoDFrame,
+                title=level,
+                cmap=cmap,
+                norm=cl.Normalize(vmin=0, vmax=vmax),
+                vmin=vmin,
+                vmax=vmax,
+                xlog=xlog,
+                ylog=ylog)
             target = SAVE_PATH + '/' + level.strip('<>') + repr(save_name)
             fig.savefig(target + fextension)
             fig.clf()
@@ -74,7 +74,6 @@ def plot_tau_phi(SAVE_PATH, NAME, xlog=False,
 
 def tau_phi_linear(SAVE_PATH, NAME, xlog=False,
                    ylog=False, fextension='.png'):
-
     if not SAVE_PATH.endswith('/'):
         SAVE_PATH += '/'
 
@@ -82,7 +81,7 @@ def tau_phi_linear(SAVE_PATH, NAME, xlog=False,
 
     parameter_levels = [list(p.values) for p in data.index.levels[2:]]
     parameter_level_names = [name for name in data.index.names[2:]]
-    levels = tuple(i+2 for i in range(len(parameter_levels)))
+    levels = tuple(i + 2 for i in range(len(parameter_levels)))
 
     parameter_combinations = list(it.product(*parameter_levels))
 
@@ -100,19 +99,18 @@ def tau_phi_linear(SAVE_PATH, NAME, xlog=False,
 
 def tau_phi_final(SAVE_PATH, NAME, xlog=False,
                   ylog=False, fextension='.png'):
-
     if not SAVE_PATH.endswith('/'):
         SAVE_PATH += '/'
 
-    data = np.load(SAVE_PATH + NAME)['<mean_trajectory>']\
+    data = np.load(SAVE_PATH + NAME)['<mean_trajectory>'] \
         .xs(key=('R', 0.05, 300),
             level=('observables', 'alpha', 'timesteps'))
     fig = plt.figure()
     ax = fig.add_subplot(111)
     data[data > 239].plot.hist(legend=False, ax=ax, bins=20)
     ax.set_yscale('log')
-    #ax.set_xlim([50, 300])
-    #ax.set_ylim([10**2, 10**2.5])
+    # ax.set_xlim([50, 300])
+    # ax.set_ylim([10**2, 10**2.5])
     plt.show()
 
 
@@ -167,7 +165,6 @@ def explore_Parameterspace(TwoDFrame, title="",
 
 
 def plot_network(loc):
-
     adjacency = np.loadtxt(loc + '_network')
     labels = np.loadtxt(loc + '_labels')
 
@@ -179,19 +176,17 @@ def plot_network(loc):
     nx.draw_networkx_nodes(G, pos=layout, node_color=labels, node_size=20)
     nx.draw_networkx_edges(G, pos=layout, width=.2)
 
-    fig2.savefig(loc+'_network_plot')
+    fig2.savefig(loc + '_network_plot')
 
 
 def plot_amsterdam(path, name, cues=['[0]', '[1]']):
-
     if not path.endswith('/'):
         path += '/'
 
-    data = np.load(path+name)
+    data = np.load(path + name)
     colors = [x for x in "brwcmygk"][:len(cues)]
     if cues[-1] == '[5]':
         colors.append('#2E8B57')
-
 
     # create list of variable parameter combinations
     indices = it.product(*[j.tolist() for j in data.index.levels[:2]])
@@ -201,12 +196,10 @@ def plot_amsterdam(path, name, cues=['[0]', '[1]']):
     cols.append('decision state')
     # split list of observable names into parts
     frequencies = cols[:len(cues)]
-    cds = cols[len(cues):2*len(cues)]
-    dds = cols[2*len(cues):3*len(cues)]
+    cds = cols[len(cues):2 * len(cues)]
+    dds = cols[2 * len(cues):3 * len(cues)]
 
     for i in indices:
-
-
         cd_sem = data['sem_trajectory'].unstack(3)[cols].xs(i)
         cd_mean = data['mean_trajectory'].unstack(3)[cols].xs(i)
 
@@ -217,12 +210,14 @@ def plot_amsterdam(path, name, cues=['[0]', '[1]']):
         # plot opinion frequencies
         ax1 = plt.subplot2grid((3, 2), (0, 0), colspan=2)
         cd_mean[frequencies].plot.area(ax=ax1, alpha=0.2, color=colors)
-        ax1.set_ylim(top=sum(cd_mean[frequencies].xs(cd_mean[frequencies].index.values[1]).values))
+        ax1.set_ylim(top=sum(cd_mean[frequencies].xs(
+            cd_mean[frequencies].index.values[1]).values))
         ax1.set_ylabel('capital return')
 
         # plot decision according to opinions
         ax2 = plt.subplot2grid((3, 2), (1, 0), rowspan=2, colspan=2)
-        cd_mean[cds+dds].plot.area(ax=ax2, alpha=0.2, color=colors, legend=False)
+        cd_mean[cds + dds].plot.area(ax=ax2, alpha=0.2, color=colors,
+                                     legend=False)
         cd_mean['decision state'].plot(lw=3, color='red', legend=False)
         ax2.set_ylim(top=1.)
         ax2.set_ylabel('decisions according to cue order')
@@ -235,20 +230,21 @@ def plot_amsterdam(path, name, cues=['[0]', '[1]']):
         labels.append(line.get_label())
         patches.append(line)
 
-
         ax1.clear()
         ax1.locator_params(axis='both', nticks=4)
         d_mean[['r_c', 'r_d']].plot(ax=ax1, color=['g', 'k'])
         ax1.set_ylabel('capital return')
 
         # draw legend
-        leg = ax2.legend(patches, labels, bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+        leg = ax2.legend(patches, labels, bbox_to_anchor=(1.05, 1), loc=2,
+                         borderaxespad=0.)
 
         # save figures
-        plt.savefig(path + 'amsterdam_{}_{}.png'.format(*i), bbox_extra_artists=(leg,), bbox_inches='tight')
+        plt.savefig(path + 'amsterdam_{}_{}.png'.format(*i),
+                    bbox_extra_artists=(leg,), bbox_inches='tight')
+
 
 def plot_parameter_dict(SAVE_PATH, NAME):
-
     if not SAVE_PATH.endswith('/'):
         SAVE_PATH += '/'
 
@@ -260,25 +256,22 @@ def plot_parameter_dict(SAVE_PATH, NAME):
     plt.pcolor(df)
     plt.yticks(np.arange(0.5, len(df.index), 1), df.index)
     plt.xticks(np.arange(0.5, len(df.columns), 1), df.columns)
-    ax.set_xlim([0,len(df.columns)])
-    ax.set_ylim([0,len(df.index)])
+    ax.set_xlim([0, len(df.columns)])
+    ax.set_ylim([0, len(df.index)])
     plt.colorbar()
     plt.tight_layout()
     plt.savefig(SAVE_PATH + 'dict_plot.png')
 
 
-
-
 def plot_trajectories(loc, name, params, indices):
-
     if not loc.endswith('/'):
         loc += '/'
 
     print('plotting trajectories')
 
-    tmp = np.load(loc+name)
+    tmp = np.load(loc + name)
     tmp = tmp.replace([np.inf, -np.inf], np.nan)
-    dataframe = tmp.where(tmp < 10**300, np.nan)
+    dataframe = tmp.where(tmp < 10 ** 300, np.nan)
 
     # get the values of the first two index levels
     ivals = dataframe.index.levels[0]
@@ -291,7 +284,7 @@ def plot_trajectories(loc, name, params, indices):
     for j, jval in enumerate(jvals):
 
         # create figure with enough space for ivals*columns plots
-        fig = plt.figure(figsize=(4*len(ivals), 2*len(columns)))
+        fig = plt.figure(figsize=(4 * len(ivals), 2 * len(columns)))
         axes = []
 
         for i, ival in enumerate(ivals):
@@ -309,15 +302,16 @@ def plot_trajectories(loc, name, params, indices):
                 subset_j_errors = subset_errors.loc[:, column]
 
                 # add a subplot to the list of axes
-                axes.append(plt.subplot2grid((len(columns), len(ivals)), (c, i)))
+                axes.append(
+                    plt.subplot2grid((len(columns), len(ivals)), (c, i)))
                 # plot mean e_trajectory and insequrity interval
                 # also mark the area in which the mean data was negative
                 subset_j.plot(ax=axes[-1])
                 plt.fill_between(subset_j.index,
                                  subset_j - subset_j_errors,
                                  subset_j + subset_j_errors,
-                        color='blue',
-                        alpha=0.1)
+                                 color='blue',
+                                 alpha=0.1)
                 (subset_j - subset_j_errors).plot(ax=axes[-1], color='blue',
                                                   alpha=0.3)
                 (subset_j + subset_j_errors).plot(ax=axes[-1], color='blue',
@@ -329,20 +323,20 @@ def plot_trajectories(loc, name, params, indices):
 
                 # adjust locator counts and add y axis label
                 plt.locator_params(axis='x', tight=True, nbins=5)
-                if i==0: plt.ylabel(column)
-                if c!=len(columns)-1: 
+                if i == 0: plt.ylabel(column)
+                if c != len(columns) - 1:
                     axes[-1].xaxis.set_visible(False)
 
         # adjust the grid layout to avoid overlapping plots and save the figure
         print('saving figure {:5.2f}'.format(jval))
         fig.tight_layout()
-        fig.savefig(loc+'testfigure_{:5.2f}.pdf'.format(jval))
+        fig.savefig(loc + 'testfigure_{:5.2f}.pdf'.format(jval))
         fig.clf()
         plt.close()
 
 
-def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, t_max=None, file_extension='.png', test=False):
-
+def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos=None, t_max=None,
+                  file_extension='.png', test=False):
     """
     Loads the dataframe NAME of postprocessed data
     from the location given by SAVE_PATH
@@ -373,7 +367,7 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, t_max=None, file_ex
 
     parameter_levels = [list(p.values) for p in trj_data.index.levels[2:-2]]
     parameter_level_names = [name for name in trj_data.index.names[2:-2]]
-    levels = tuple(i+2 for i in range(len(parameter_levels)))
+    levels = tuple(i + 2 for i in range(len(parameter_levels)))
 
     parameter_combinations = list(it.product(*parameter_levels))
 
@@ -384,11 +378,13 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos = None, t_max=None, file_ex
         save_name = list(zip(parameter_level_names, p))
 
         plot_observables(trj_d_slice, cns_d_slice,
-                         SAVE_PATH, save_name, pos, t_max, file_extension, test=test)
+                         SAVE_PATH, save_name, pos, t_max, file_extension,
+                         test=test)
 
 
 def plot_observables(t_data_in, c_data_in, loc,
-        save_name, pos=None, t_max=None, file_extension='.png', test=False):
+                     save_name, pos=None, t_max=None, file_extension='.png',
+                     test=False):
     """
     function to create a grid of plots of the values of
     the observable for the values of the parameters given in
@@ -442,8 +438,8 @@ def plot_observables(t_data_in, c_data_in, loc,
                   10: 'dirty costs',
                   11: 'labor cost'}
     log_list = [2, 4, 5, 7, 9, 10]
-    cops = ['c'+str(x) for x in pos]
-    dops = ['d'+str(x) for x in pos]
+    cops = ['c' + str(x) for x in pos]
+    dops = ['d' + str(x) for x in pos]
     colors = [x for x in "brwcmygk"]
     colors.append('#2E8B57')
     colors = colors[:len(pos)]
@@ -456,7 +452,7 @@ def plot_observables(t_data_in, c_data_in, loc,
     print('plotting observable grids')
 
     # clean e_trajectory data
-    t_data = t_data_in.where(t_data_in < 10**300, np.nan)
+    t_data = t_data_in.where(t_data_in < 10 ** 300, np.nan)
 
     # split convergence data
     c_values = c_data_in['<mean_convergence_state>']
@@ -496,12 +492,12 @@ def plot_observables(t_data_in, c_data_in, loc,
         x_legendgrid = 0 if title_list[p] == 'decisions' else 0
         x_colorbarspace = 2
         fig = plt.figure(figsize=
-                         (4*(len(jvals)
-                             + x_opinionspace
-                             + x_legendspace
-                             + x_colorbarspace),
-                          4*(len(ivals)
-                             + y_opinionspace)))
+                         (4 * (len(jvals)
+                               + x_opinionspace
+                               + x_legendspace
+                               + x_colorbarspace),
+                          4 * (len(ivals)
+                               + y_opinionspace)))
 
         axes = []
 
@@ -515,16 +511,16 @@ def plot_observables(t_data_in, c_data_in, loc,
             # data and use second index as columns
             for j, jval in enumerate(jvals):
                 subset = t_data.xs(
-                        key=(ival, jval),
-                        axis=0,
-                        level=(0, 1))['<mean_trajectory>']
-                subset_j = subset\
+                    key=(ival, jval),
+                    axis=0,
+                    level=(0, 1))['<mean_trajectory>']
+                subset_j = subset \
                     .unstack('observables')[pl].dropna(axis=0, how='any')
                 subset_errors = t_data.xs(
-                        key=(ival, jval),
-                        axis=0,
-                        level=(0, 1))['<sem_trajectory>']
-                subset_j_errors = subset_errors\
+                    key=(ival, jval),
+                    axis=0,
+                    level=(0, 1))['<sem_trajectory>']
+                subset_j_errors = subset_errors \
                     .unstack('observables')[pl].dropna(axis=0, how='any')
 
                 # add a subplot to the list of axes
@@ -539,7 +535,7 @@ def plot_observables(t_data_in, c_data_in, loc,
 
                 # plot stacked decision for mean decision state:
                 if title_list[p] == 'decisions':
-                    subset.unstack('observables')[cops + dops]\
+                    subset.unstack('observables')[cops + dops] \
                         .plot.area(color=colorlist, ax=axes[-1], alpha=0.3,
                                    legend=(j == 0 and i == 0))
                     pt = subset_j.plot(ax=axes[-1], legend=False,
@@ -588,8 +584,7 @@ def plot_observables(t_data_in, c_data_in, loc,
                 plt.axvspan(c_time - c_time_sem, c_time + c_time_sem,
                             alpha=0.2, color='grey')
 
-
-#                # change y axis scale to 'log' for plots with nonzero data
+                #                # change y axis scale to 'log' for plots with nonzero data
                 if p in log_list:
                     axes[-1].set_yscale('log', nonposy='mask')
 
@@ -641,25 +636,25 @@ def plot_observables(t_data_in, c_data_in, loc,
                 # set subplot background according to consensus oppinion state
                 if title_list[p] not in ['decisions', 'cue order frequencies']:
                     axes[-1].patch.set_facecolor(
-                            cmap(norm(c_values.loc[(ival, jval)])))
+                        cmap(norm(c_values.loc[(ival, jval)])))
                     axes[-1].patch.set_alpha(bgcolor_alpha)
 
                 # set legend outside of plotting area for decisions
                 if j == 0 and i == 0:
                     leg = pt.get_legend()
                     if title_list[p] in ['decisions', 'cue order frequencies']:
-                        leg.set_bbox_to_anchor((1.2*len(jvals)
-                                               - 0*x_opinionspace
-                                               + .8, 3))
+                        leg.set_bbox_to_anchor((1.2 * len(jvals)
+                                                - 0 * x_opinionspace
+                                                + .8, 3))
                         for t in leg.get_texts():
                             t.set_fontsize(labelsize_2)
 
         # plot colorbar
         if title_list[p] not in ['decisions', 'cue order frequencies']:
             cbar_ax = plt.subplot2grid(
-                    (len(ivals), len(jvals)+1),
-                    (0, len(jvals)),
-                    rowspan=len(ivals))
+                (len(ivals), len(jvals) + 1),
+                (0, len(jvals)),
+                rowspan=len(ivals))
             sm = cm.ScalarMappable(cmap=cmap, norm=norm)
             sm._A = []
             cbar = fig.colorbar(cax=cbar_ax, mappable=sm, alpha=bgcolor_alpha)
@@ -667,11 +662,12 @@ def plot_observables(t_data_in, c_data_in, loc,
 
         # adjust the grid layout to avoid overlapping plots and save the figure
         tit = title_list[p].replace(' ', '_')
-        snm = repr(save_name[0]).strip('()').replace(', ', '=').replace('.', 'o')
+        snm = repr(save_name[0]).strip('()').replace(', ', '=').replace('.',
+                                                                        'o')
         sloc = loc \
-            + tit \
-            + snm \
-            + file_extension
+               + tit \
+               + snm \
+               + file_extension
 
         if not test:
             fig.tight_layout()
@@ -683,7 +679,6 @@ def plot_observables(t_data_in, c_data_in, loc,
 
 
 def plot_phase_transition(loc, name, ):
-
     if not loc.endswith('/'):
         loc += '/'
 
@@ -694,7 +689,7 @@ def plot_phase_transition(loc, name, ):
     tmp.unstack('N').plot()
     plt.show()
 
+
 if __name__ == '__main__':
     loc = sys.argv[1]
     plot_trajectories(loc, 'phi')
-
