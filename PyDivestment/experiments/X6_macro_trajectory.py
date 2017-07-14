@@ -20,7 +20,7 @@ import pandas as pd
 
 from pydivest.divestvisuals.data_visualization import plot_trajectories
 from pydivest.macro_model import integrate_equations as macro_model
-from pydivest.micro_model import divestment_core as micro_model
+from pydivest.micro_model import divestmentcore as micro_model
 from pymofa.experiment_handling import experiment_handling, \
     even_time_series_spacing
 
@@ -86,7 +86,7 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     if approximate:
         m = macro_model.Integrate_Equations(*init_conditions, **input_params)
     else:
-        m = micro_model.Divestment_Core(*init_conditions, **input_params)
+        m = micro_model.DivestmentCore(*init_conditions, **input_params)
         m.init_switchlist()
 
     # storing initial conditions and parameters

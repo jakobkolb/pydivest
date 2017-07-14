@@ -67,7 +67,7 @@ import scipy.stats as st
 
 from pydivest.divestvisuals.data_visualization \
     import plot_obs_grid, plot_tau_phi, tau_phi_final
-from pydivest.micro_model import divestment_core as model
+from pydivest.micro_model import divestmentcore as model
 from pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
 
@@ -241,7 +241,7 @@ def RUN_FUNC(nopinions, phi, alpha,
 
     # initializing the model
 
-    m = model.Divestment_Core(**input_params)
+    m = model.DivestmentCore(**input_params)
 
     # turn off avm since fragmentation of network is handles manually
     m.mode = 1
