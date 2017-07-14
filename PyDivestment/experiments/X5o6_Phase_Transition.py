@@ -56,7 +56,7 @@ import glob
 
 from pymofa.experiment_handling import \
     experiment_handling, even_time_series_spacing
-from pydivest.micro_model import divestment_core as model
+from pydivest.micro_model import divestmentcore as model
 from pydivest.divestvisuals.data_visualization import plot_phase_transition
 
 save_path_init = ""
@@ -189,7 +189,7 @@ def RUN_FUNC(phi, N, alpha,
 
     # initializing the model
 
-    m = model.Divestment_Core(**input_params)
+    m = model.DivestmentCore(**input_params)
 
     # storing initial conditions and parameters
 

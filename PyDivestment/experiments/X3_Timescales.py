@@ -45,7 +45,7 @@ import scipy.stats as st
 
 from pydivest.divestvisuals.data_visualization \
     import plot_obs_grid, plot_tau_phi, tau_phi_final
-from pydivest.micro_model import divestment_core as model
+from pydivest.micro_model import divestmentcore as model
 from pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
 
@@ -135,7 +135,7 @@ def RUN_FUNC(t_a, phi, eps, t_G, alpha, test, filename):
 
     #initializing the model
 
-    m = model.divestment_core(*init_conditions, **input_params)
+    m = model.DivestmentCore(*init_conditions, **input_params)
 
     #storing initial conditions and parameters
 

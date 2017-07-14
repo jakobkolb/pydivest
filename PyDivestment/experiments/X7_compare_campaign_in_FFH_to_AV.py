@@ -21,7 +21,7 @@ import pandas as pd
 from pydivest.divestvisuals.data_visualization \
     import plot_trajectories, plot_amsterdam
 from pydivest.micro_model \
-    import divestment_core as micro_model
+    import divestmentcore as micro_model
 from pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
 
@@ -115,7 +115,7 @@ def run_func(b_d, phi, ffh, test, transition, filename):
         t_2 = 0
 
         # initializing the model
-        m = micro_model.Divestment_Core(*init_conditions, **input_params)
+        m = micro_model.DivestmentCore(*init_conditions, **input_params)
 
     else:
         # build list of initial conditions

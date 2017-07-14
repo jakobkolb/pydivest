@@ -1,26 +1,23 @@
-
 import datetime
-import numpy as np
-import pandas as pd
-import networkx as nx
 from itertools import chain
+from random import shuffle
+
+import networkx as nx
 from scipy.integrate import odeint
 from scipy.sparse.csgraph import connected_components
 from scipy.stats import linregress
-from random import shuffle
 
 
-class Divestment_Core:
-
+class DivestmentCore:
     def __init__(self, adjacency=None, opinions=None,
                  investment_clean=None, investment_dirty=None,
                  possible_opinions=None,
                  investment_decisions=None,
                  tau=0.8, phi=.7, eps=0.05,
-                 P=100., r_b=0, b_c=1., b_d=1.5, s=0.23, d_c=0.06,
+                 labor=100., r_b=0, b_c=1., b_d=1.5, s=0.23, d_c=0.06,
                  b_r0=1., e=10, G_0=3000,
-                 R_depletion=True, test=False,
-                 C=1, beta=0.06, xi=1. / 8., learning=False,
+                 resource_depletion=True, test=False,
+                 knowledge_stock=1, beta=0.06, xi=1. / 8., learning=False,
                  campaign=False):
 
         # Modes:
@@ -49,7 +46,7 @@ class Divestment_Core:
         # toggle whether to run full time or only until consensus
         self.run_full_time = True
         # toggle resource depletion
-        self.R_depletion = R_depletion
+        self.R_depletion = resource_depletion
         # toggle learning by doing
         self.learning = learning
         # toggle campaigning
@@ -156,7 +153,7 @@ class Divestment_Core:
             self.investment_decisions = np.random.randint(0, 2, self.n)
 
         # members of ALL household = population   
-        self.P = P
+        self.P = labor
 
         # household investment in dirty capital
         if investment_dirty is None:
@@ -217,11 +214,10 @@ class Divestment_Core:
         # fossil->energy->output conversion efficiency (Leontief)
         self.e = e
 
-
         # Sector variables
 
-        self.P_c = P / 2.
-        self.P_d = P / 2.
+        self.P_c = labor / 2.
+        self.P_d = labor / 2.
 
         self.K_c = 0.
         self.K_d = 0.
@@ -230,7 +226,7 @@ class Divestment_Core:
         self.R = 1.
 
         # knowledge stock in clean sector
-        self.C = C if learning else 1
+        self.C = knowledge_stock if learning else 1
 
         self.Y_c = 0.
         self.Y_d = 0.
@@ -259,7 +255,8 @@ class Divestment_Core:
         if self.switchlist_output:
             self.init_switchlist()
 
-    def cue_0(self, i):
+    @staticmethod
+    def cue_0(i):
         """
         evaluation of cue 0 for household i:
         Always decide for the dirty investment
@@ -282,7 +279,8 @@ class Divestment_Core:
 
         return dec
 
-    def cue_1(self, i):
+    @staticmethod
+    def cue_1(i):
         """
         evaluation of cue 1 for household i:
         Always decide for the green investment
@@ -324,9 +322,9 @@ class Divestment_Core:
              1 decide for clean investment
         """
         dif = 1.
-        if self.r_c>self.r_d*dif:
+        if self.r_c > self.r_d * dif:
             dec = 1
-        elif self.r_d>self.r_c*dif:
+        elif self.r_d > self.r_c * dif:
             dec = 0
         else:
             dec = -1
@@ -351,13 +349,12 @@ class Divestment_Core:
              0 decide for dirty investment
              1 decide for clean investment
         """
-        if self.r_c_dot > self.r_d_dot*1.1 and self.r_c > self.d_c:
+        if self.r_c_dot > self.r_d_dot * 1.1 and self.r_c > self.d_c:
             dec = 1
-        elif self.r_d_dot > self.r_c_dot*1.1 and self.r_d > self.d_c:
+        elif self.r_d_dot > self.r_c_dot * 1.1 and self.r_d > self.d_c:
             dec = 0
         else:
             dec = -1
-
 
         return dec
 
@@ -381,7 +378,7 @@ class Divestment_Core:
         """
         threshold = 0.1
 
-        neighbors = self.neighbors[:,i].nonzero()[0]
+        neighbors = self.neighbors[:, i].nonzero()[0]
         n_ops = sum(self.investment_decisions[neighbors]) \
                 / float(len(neighbors)) if len(neighbors) != 0 else .5
         if n_ops - threshold > 0.5:
@@ -442,35 +439,35 @@ class Divestment_Core:
 
         # save final state to dictionary
         self.final_state = {
-                'adjacency': self.neighbors,
-                'opinions': self.opinions,
-                'investment_decisions': self.investment_decisions,
-                'investment_clean': self.investment_clean,
-                'investment_dirty': self.investment_dirty,
-                'possible_opinions': self.possible_opinions,
-                'tau': self.tau, 'phi': self.phi, 'eps': self.eps,
-                'P': self.P, 'r_b': self.r_b, 'b_c': self.b_c,
-                'b_d': self.b_d, 's': self.s, 'd_c': self.d_c,
-                'b_r0': self.b_r0, 'e': self.e, 'G_0': self.G,
-                'C': self.C, 'beta': self.beta, 'xi': self.xi,
-                'learning': self.learning,
-                'campaign': self.campaign,
-                'test': self.debug, 'R_depletion': False}
+            'adjacency': self.neighbors,
+            'opinions': self.opinions,
+            'investment_decisions': self.investment_decisions,
+            'investment_clean': self.investment_clean,
+            'investment_dirty': self.investment_dirty,
+            'possible_opinions': self.possible_opinions,
+            'tau': self.tau, 'phi': self.phi, 'eps': self.eps,
+            'P': self.P, 'r_b': self.r_b, 'b_c': self.b_c,
+            'b_d': self.b_d, 's': self.s, 'd_c': self.d_c,
+            'b_r0': self.b_r0, 'e': self.e, 'G_0': self.G,
+            'C': self.C, 'beta': self.beta, 'xi': self.xi,
+            'learning': self.learning,
+            'campaign': self.campaign,
+            'test': self.debug, 'R_depletion': False}
 
         if self.converged:
-            return 1        # good - consensus reached 
+            return 1  # good - consensus reached
         elif not self.converged and self.R_depletion:
             self.convergence_state = float('nan')
             self.convergence_time = self.t
-            return 0        # no consensus found during run time
+            return 0  # no consensus found during run time
         elif candidate == -2:
-            return -1       # bad run - opinion formation broken
+            return -1  # bad run - opinion formation broken
         elif np.isnan(self.G):
-            return -2       # bad run - economy broken
+            return -2  # bad run - economy broken
         else:
-            return -3       # very bad run. Investigations needed
+            return -3  # very bad run. Investigations needed
 
-    def b_Rf(self, G):
+    def b_rf(self, resource):
         """
         Calculates the dependence of resource harvest cost on
         remaining resource stock starts at b_r0 and
@@ -479,21 +476,21 @@ class Divestment_Core:
 
         Parameter
         ---------
-        G : float
+        resource : float
             The quantity of resource remaining in Stock
 
         Return
         ------
-        b_R     : float
+        b_r     : float
             The resource extraction efficiency according to the
             current resource stock
         """
 
-        if G > 0:
-            b_R = self.b_r0 * (self.G_0 / G) ** 2
+        if resource > 0:
+            b_r = self.b_r0 * (self.G_0 / resource) ** 2
         else:
-            b_R = float('inf')
-        return b_R
+            b_r = float('inf')
+        return b_r
 
     def economy_dot_leontief(self, x0, t):
 
@@ -558,7 +555,7 @@ class Divestment_Core:
 
         K_c = sum(investment_clean)
         K_d = sum(investment_dirty)
-        b_R = self.b_Rf(G)
+        b_R = self.b_rf(G)
 
         assert K_c >= 0, 'negative clean capital'
         assert K_d >= 0, 'negative dirty capital'
@@ -566,7 +563,7 @@ class Divestment_Core:
         assert C >= 0, 'negative knowledge'
 
         X_c = (self.b_c * C ** self.xi * K_c ** self.kappa_c) ** (
-        1. / (1. - self.pi))
+            1. / (1. - self.pi))
         X_d = (self.b_d * K_d ** self.kappa_d) ** (1. / (1. - self.pi))
         X_R = (1. - b_R / self.e) ** (1. / (1. - self.pi)) \
             if 1 > b_R / self.e else float('NaN')
@@ -576,12 +573,12 @@ class Divestment_Core:
         R = 1. / self.e * self.b_d * K_d ** self.kappa_d * P_d ** self.pi
 
         self.w = self.pi * P ** (self.pi - 1) * (X_c + X_d * X_R) ** (
-        1. - self.pi)
+            1. - self.pi)
         self.r_c = self.kappa_c / \
                    K_c * X_c * P ** self.pi * (X_c + X_d * X_R) ** (- self.pi)
         self.r_d = self.kappa_d / \
                    K_d * X_d * X_R * P ** self.pi * (X_c + X_d * X_R) ** (
-        - self.pi)
+            - self.pi)
 
         # check if dirty sector is profitable (P_d > 0).
         # if not, shut it down.
@@ -590,9 +587,9 @@ class Divestment_Core:
             P_c = P
             R = 0
             self.w = self.b_c * C ** self.xi * K_c ** self.kappa_c * self.pi * P ** (
-            self.pi - 1.)
+                self.pi - 1.)
             self.r_c = self.b_c * C ** self.xi * self.kappa_c * \
-                       K_c**(self.kappa_c - 1.) * P**self.pi
+                       K_c ** (self.kappa_c - 1.) * P ** self.pi
             self.r_d = 0
 
         self.R = R
@@ -612,7 +609,7 @@ class Divestment_Core:
             K_d: {}, K_c: {} \n investment decisions:\
             \n {} \n income: \n {}' \
                 .format(X_R, X_d, X_c, K_d, K_c,
-                    self.investment_decisions, self.income)
+                        self.investment_decisions, self.income)
 
         G_dot = -R if self.R_depletion else 0.0
         P_dot = self.r_b * P
@@ -623,7 +620,7 @@ class Divestment_Core:
             * self.s * self.income - self.investment_clean * self.d_c
         investment_dirty_dot = \
             np.logical_not(self.investment_decisions) \
-            * self.s * self.income - self.investment_dirty*self.d_d
+            * self.s * self.income - self.investment_dirty * self.d_d
 
         x1 = np.fromiter(
             chain.from_iterable([list(investment_clean_dot),
@@ -699,7 +696,7 @@ class Divestment_Core:
         # calculate market shares:
         self.Y_c = self.b_c * self.C ** self.xi \
                    * self.K_c ** self.kappa_c * self.P_c ** self.pi
-        self.Y_d = self.b_d * self.K_d**self.kappa_d * self.P_d**self.pi
+        self.Y_d = self.b_d * self.K_d ** self.kappa_d * self.P_d ** self.pi
 
         # output economic data
         if self.e_trajectory_output:
@@ -737,7 +734,7 @@ class Divestment_Core:
             # noise in imitation (exploration of strategies)
             # people trying new stuff at random
             rdn = np.random.uniform()
-            if rdn < self.eps*(1-self.phi) and self.imitation:
+            if rdn < self.eps * (1 - self.phi) and self.imitation:
                 old_opinion = self.opinions[candidate]
                 new_opinion = np.random.randint(
                     len(self.possible_opinions))
@@ -748,7 +745,7 @@ class Divestment_Core:
                 break
             # noise in rewiring (sometimes they make new friends
             # at random..)
-            elif rdn > 1.-self.eps * self.phi and len(neighbors) > 0:
+            elif rdn > 1. - self.eps * self.phi and len(neighbors) > 0:
                 unconnected = np.zeros(self.n, dtype=int)
                 for i in range(self.n):
                     if i not in neighbors:
@@ -771,7 +768,6 @@ class Divestment_Core:
                 # check if preferences of candidate and random
                 # neighbor differ
                 if self.opinions[candidate] == self.opinions[neighbor]:
-
                     # if candidate and neighbor have same preferences, they
                     # not suitable for update. (RETRY)
                     neighbor = self.n
@@ -806,13 +802,13 @@ class Divestment_Core:
             for i in range(self.n):
                 # campaigners rewire to everybody
                 if (self.campaign is True and
-                        opinion[candidate] == len(self.possible_opinions)):
+                            opinion[candidate] == len(self.possible_opinions)):
                     same_unconnected[i] = 1
 
                 # everybody else rewires to people with same opinion
                 else:
                     if (opinion[i] == opinion[candidate] and
-                            i not in neighbors and i != candidate):
+                                i not in neighbors and i != candidate):
                         same_unconnected[i] = 1
             same_unconnected = same_unconnected.nonzero()[0]
             if len(same_unconnected) > 0:
@@ -827,9 +823,9 @@ class Divestment_Core:
             df = self.fitness(neighbor) - self.fitness(candidate)
             # and immitate, if not a campaigner
             if ((self.campaign is False
-                    or opinion[candidate] != len(self.possible_opinions)-1)
-                    and (np.random.uniform() < .5*(np.tanh(df) + 1))
-                    and self.imitation):
+                 or opinion[candidate] != len(self.possible_opinions) - 1)
+                and (np.random.uniform() < .5 * (np.tanh(df) + 1))
+                and self.imitation):
                 if self.switchlist_output:
                     self.save_switch(candidate, self.opinions[candidate])
                 self.opinions[candidate] = self.opinions[neighbor]
@@ -871,7 +867,7 @@ class Divestment_Core:
         cc = connected_components(self.neighbors, directed=False)[1]
         self.consensus = all(len(np.unique(opinions[c])) == 1
                              for c in ((cc == i).nonzero()[0]
-                             for i in np.unique(cc)))
+                                       for i in np.unique(cc)))
         if self.eps == 0:
             if self.consensus and self.convergence_state == -1:
                 self.convergence_state = np.mean(opinions)
@@ -901,9 +897,9 @@ class Divestment_Core:
             0: reached
         """
 
-        state = float(sum(opinions))/float(len(opinions))
+        state = float(sum(opinions)) / float(len(opinions))
 
-        attractor = 2./3.
+        attractor = 2. / 3.
         dist = attractor - state
         # if self.debug == True:
         #     print dist, self.t, self.convergence_state
@@ -1052,7 +1048,6 @@ class Divestment_Core:
 
             return float(np.dot(x, np.dot(adj, y)))
 
-
         adj = self.neighbors
         c = self.investment_decisions
         d = - self.investment_decisions + 1
@@ -1134,14 +1129,13 @@ if __name__ == '__main__':
     import numpy as np
     import matplotlib.pyplot as mp
 
-    output_location = 'test_output/'\
+    output_location = 'test_output/' \
         + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
     # Initial conditions:
     FFH = False
 
     if FFH:
-
         nopinions = [10, 10, 10, 10, 10, 10, 10, 10]
         possible_opinions = [[2, 3],  # short term investor
                              [3, 2],  # long term investor
@@ -1172,8 +1166,8 @@ if __name__ == '__main__':
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
                             'campaign': False, 'learning': True}
 
-    cops = ['c'+str(x) for x in possible_opinions]
-    dops = ['d'+str(x) for x in possible_opinions]
+    cops = ['c' + str(x) for x in possible_opinions]
+    dops = ['d' + str(x) for x in possible_opinions]
     colors = [np.random.rand(3, 1) for x in possible_opinions]
     colors = colors + colors
 
@@ -1203,11 +1197,10 @@ if __name__ == '__main__':
     init_conditions = (adjacency_matrix, opinions,
                        clean_investment, dirty_investment)
 
-
     # Initialize Model
 
-    model = Divestment_Core(*init_conditions,
-                            **input_parameters)
+    model = DivestmentCore(*init_conditions,
+                           **input_parameters)
 
     print('heuristic decision making', model.heuristic_decision_making)
 
@@ -1225,18 +1218,18 @@ if __name__ == '__main__':
 
     # Print some output
 
-    print (connected_components(model.neighbors, directed=False))
-    print ('investment decisions:')
-    print (model.investment_decisions)
-    print ('consensus reached?', model.converged)
-    print (model.convergence_state)
-    print ('finish time', model.t)
-    print ('steps computed', model.steps)
+    print(connected_components(model.neighbors, directed=False))
+    print('investment decisions:')
+    print(model.investment_decisions)
+    print('consensus reached?', model.converged)
+    print(model.convergence_state)
+    print('finish time', model.t)
+    print('steps computed', model.steps)
 
     colors = [c for c in 'gk']
 
     df = model.get_e_trajectory()
-    print (df.columns)
+    print(df.columns)
 
     fig = mp.figure()
     ax1 = fig.add_subplot(221)
