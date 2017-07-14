@@ -26,7 +26,7 @@ from pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
 
 
-def RUN_FUNC(b_d, phi, ffh, test, transition, filename):
+def run_func(b_d, phi, ffh, test, transition, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -54,14 +54,13 @@ def RUN_FUNC(b_d, phi, ffh, test, transition, filename):
     ccount = .05
 
     # Make different types of decision makers. Cues are
+    # 0: 'always dirty',
+    # 1: 'always clean',
+    # 2: 'capital rent',
+    # 3: 'capital rent trend',
+    # 4: 'peer pressure',
+    # 5: 'campaigner'
 
-    cue_names = {
-        0: 'always dirty',
-        1: 'always clean',
-        2: 'capital rent',
-        3: 'capital rent trend',
-        4: 'peer pressure',
-        5: 'campaignee'}
     if ffh:
         possible_opinions = [[2, 3],  # short term investor
                              [3, 2],  # long term investor
@@ -89,15 +88,15 @@ def RUN_FUNC(b_d, phi, ffh, test, transition, filename):
 
     if not transition:
         # network:
-        N = 100
+        n = 100
         k = 10
         if test:
-            N = 30
+            n = 30
             k = 3
 
-        p = float(k) / N
+        p = float(k) / n
         while True:
-            net = nx.erdos_renyi_graph(N, p)
+            net = nx.erdos_renyi_graph(n, p)
             if len(list(net)) > 1:
                 break
         adjacency_matrix = nx.adj_matrix(net).toarray()
@@ -105,9 +104,9 @@ def RUN_FUNC(b_d, phi, ffh, test, transition, filename):
         # opinions and investment
 
         opinions = [np.random.randint(0, len(possible_opinions))
-                    for x in range(N)]
-        clean_investment = np.ones(N) * 50. / float(N)
-        dirty_investment = np.ones(N) * 50. / float(N)
+                    for x in range(n)]
+        clean_investment = np.ones(n) * 50. / float(n)
+        dirty_investment = np.ones(n) * 50. / float(n)
 
         init_conditions = (adjacency_matrix, opinions,
                            clean_investment, dirty_investment)
@@ -259,7 +258,7 @@ def run_experiment(argv):
     if len(argv) > 1:
         test = bool(int(argv[1]))
     else:
-        test = False
+        test = True
     # switch sub_experiment mode
     if len(argv) > 2:
         mode = int(argv[2])
@@ -281,11 +280,10 @@ def run_experiment(argv):
     else:
         campaign = False
 
-
     """
     set input/output paths
     """
-    respath = os.path.dirname(os.path.realpath(__file__)) + "/divestdata"
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/output_data"
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":
@@ -294,8 +292,8 @@ def run_experiment(argv):
         tmppath = "./"
 
     sub_experiment = ['imitation', 'ffh'][int(ffh)] \
-                 + ['', '_nocampaign'][int(campaign)] \
-                 + ['_equi', '_trans'][int(transition)]
+        + ['', '_nocampaign'][int(campaign)] \
+        + ['_equi', '_trans'][int(transition)]
     folder = 'X7'
 
     # make sure, testing output goes to its own folder:
@@ -303,10 +301,10 @@ def run_experiment(argv):
     test_folder = ['', 'test_output/'][int(test)]
 
     # check if cluster or local and set paths accordingly
-    SAVE_PATH_RAW = \
+    save_path_raw = \
         "{}/{}{}/{}/" \
         .format(tmppath, test_folder, folder, sub_experiment)
-    SAVE_PATH_RES = \
+    save_path_res = \
         "{}/{}{}/{}/" \
         .format(respath, test_folder, folder, sub_experiment)
 
@@ -341,47 +339,43 @@ def run_experiment(argv):
 
     index = {0: "b_c", 1: "phi"}
 
-
     """
     create names and dicts of callables for post processing
     """
 
-    NAME = 'b_c_scan_' + sub_experiment + '_trajectory'
+    name = 'b_c_scan_' + sub_experiment
 
-    NAME1 = NAME + '_trajectory'
-    EVA1 = {"mean_trajectory":
-                lambda fnames: pd.concat([np.load(f)["micro_trajectory"]
-                                          for f in fnames]).groupby(
-                    level=0).mean(),
+    name1 = name + '_trajectory'
+    eva1 = {"mean_trajectory":
+            lambda fnames: pd.concat([np.load(f)["micro_trajectory"]
+                                      for f in fnames]).groupby(level=0).mean(),
             "sem_trajectory":
-                lambda fnames: pd.concat([np.load(f)["micro_trajectory"]
-                                          for f in fnames]).groupby(
-                    level=0).std()
+            lambda fnames: pd.concat([np.load(f)["micro_trajectory"]
+                                      for f in fnames]).groupby(level=0).std()
             }
-    NAME2 = NAME + '_convergence'
-    EVA2 = {'times_mean':
-                lambda fnames: np.nanmean([np.load(f)["convergence_time"]
-                                           for f in fnames]),
-            'states_mean':
-                lambda fnames: np.nanmean([np.load(f)["convergence_state"]
-                                           for f in fnames]),
-            'times_std':
-                lambda fnames: np.std([np.load(f)["convergence_time"]
+    name2 = name + '_convergence'
+    eva2 = {'times_mean':
+            lambda fnames: np.nanmean([np.load(f)["convergence_time"]
                                        for f in fnames]),
+            'states_mean':
+            lambda fnames: np.nanmean([np.load(f)["convergence_state"]
+                                       for f in fnames]),
+            'times_std':
+            lambda fnames: np.std([np.load(f)["convergence_time"]
+                                   for f in fnames]),
             'states_std':
-                lambda fnames: np.std([np.load(f)["convergence_state"]
-                                       for f in fnames])
+            lambda fnames: np.std([np.load(f)["convergence_state"]
+                                   for f in fnames])
             }
-    NAME3 = NAME + '_convergence_times'
-    CF3 = {'times':
-               lambda fnames: pd.DataFrame(data=[np.load(f)["convergence_time"]
-                                                 for f in fnames]).sortlevel(
-                   level=0),
+    name3 = name + '_convergence_times'
+    cf3 = {'times':
+           lambda fnames: pd.DataFrame(data=[np.load(f)["convergence_time"]
+                                             for f
+                                             in fnames]).sortlevel(level=0),
            'states':
-               lambda fnames: pd.DataFrame(
-                   data=[np.load(f)["convergence_state"]
-                         for f in fnames])
-                   .sortlevel(level=0)
+           lambda fnames: pd.DataFrame(data=[np.load(f)["convergence_state"]
+                                             for f in fnames])
+               .sortlevel(level=0)
            }
 
     """
@@ -393,14 +387,14 @@ def run_experiment(argv):
         print('cluster mode')
         sys.stdout.flush()
 
-        SAMPLE_SIZE = 100 if not test else 2
+        sample_size = 100 if not test else 2
 
-        handle = experiment_handling(SAMPLE_SIZE, param_combs, index,
-                                     SAVE_PATH_RAW, SAVE_PATH_RES)
-        handle.compute(RUN_FUNC)
-        handle.resave(EVA1, NAME1)
-        handle.resave(EVA2, NAME2)
-        handle.collect(CF3, NAME3)
+        handle = experiment_handling(sample_size, param_combs, index,
+                                     save_path_raw, save_path_res)
+        handle.compute(run_func)
+        handle.resave(eva1, name1)
+        handle.resave(eva2, name2)
+        # handle.collect(cf3, name3)
 
         return 1
 
@@ -409,8 +403,8 @@ def run_experiment(argv):
         print('plot mode')
         sys.stdout.flush()
 
-        plot_amsterdam(SAVE_PATH_RES, NAME1, cues=cue_list)
-        plot_trajectories(SAVE_PATH_RES, NAME1, None, None)
+        plot_amsterdam(save_path_res, name1, cues=cue_list)
+        plot_trajectories(save_path_res, name1, None, None)
 
         return 1
 

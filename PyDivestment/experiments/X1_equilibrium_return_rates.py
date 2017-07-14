@@ -9,21 +9,26 @@ This should only work in the equilibrium condition where the environment stays c
 
 """
 
+try:
+    import cPickle as cp
+except ImportError:
+    import pickle as cp
 import getpass
+import glob
 import itertools as it
-import os
-import pickle as cp
 import sys
 import time
+import types
+import os
 
 import networkx as nx
 import numpy as np
 import pandas as pd
+import scipy.stats as st
 
 from pydivest.divestvisuals.data_visualization \
-    import plot_trajectories, plot_amsterdam
-from pydivest.micro_model \
-    import divestment_core as micro_model
+    import plot_amsterdam, plot_trajectories
+from pydivest.micro_model import divestment_core as model
 from pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
 
@@ -106,7 +111,7 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     t_1 = 400
 
     # initializing the model
-    m = micro_model.Divestment_Core(*init_conditions, **input_params)
+    m = model.Divestment_Core(*init_conditions, **input_params)
 
     # storing initial conditions and parameters
     res = {
