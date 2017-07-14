@@ -57,7 +57,10 @@ Discussion of variable parameters (degrees of freedom):
    nature of the transition.
 """
 
-import cPickle
+try:
+    import pickle as cp
+except ImportError:
+    import pickle as cp
 import getpass
 import glob
 import itertools
@@ -70,11 +73,11 @@ import numpy as np
 import pandas as pd
 import scipy.stats as st
 
-from PyDivestment.pydivest.divestvisuals.data_visualization import (plot_obs_grid, plot_tau_phi,
-                                                                    tau_phi_final)
-from PyDivestment.pydivest.micro_model import divestment_core as model
-from ..pymofa.experiment_handling import (experiment_handling,
-                                          even_time_series_spacing)
+from pydivest.divestvisuals.data_visualization \
+    import plot_obs_grid, plot_tau_phi, tau_phi_final
+from pydivest.micro_model import divestment_core as model
+from pymofa.experiment_handling \
+    import experiment_handling, even_time_series_spacing
 
 
 def RUN_FUNC(t_a, phi, alpha,
@@ -121,7 +124,7 @@ def RUN_FUNC(t_a, phi, alpha,
     filename: string
         filename for the results of the run
     """
-    assert isinstance(test, types.IntType),\
+    assert isinstance(test, int),\
         'test must be int, is {!r}'.format(test)
     assert alpha < 1,\
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
@@ -242,14 +245,14 @@ def RUN_FUNC(t_a, phi, alpha,
     if not transition:
         final_state = m.final_state
         with open(filename + '_final', 'wb') as dumpfile:
-            cPickle.dump(final_state, dumpfile)
+            cp.dump(final_state, dumpfile)
 
     # store exit status
     res["convergence"] = exit_status
     if test:
-        print 'test output of variables'
-        print (m.tau, m.phi, exit_status,
-               m.convergence_state, m.convergence_time)
+        print('test output of variables')
+        print((m.tau, m.phi, exit_status,
+               m.convergence_state, m.convergence_time))
     # store data in case of successful run
 
     if exit_status in [0, 1]:
@@ -274,7 +277,7 @@ def RUN_FUNC(t_a, phi, alpha,
 
     # save data
     with open(filename, 'wb') as dumpfile:
-        cPickle.dump(res, dumpfile)
+        cp.dump(res, dumpfile)
 
     return exit_status
 
@@ -307,10 +310,10 @@ else:
     FOLDER_TRANS = 'X5o4_Dirty_Clean_Transition'
 
 if not any(transition):
-    print 'EQUI'
+    print('EQUI')
     folder = FOLDER_EQUI
 else:
-    print 'TRANS'
+    print('TRANS')
     folder = FOLDER_TRANS
 
 """
@@ -420,7 +423,7 @@ create list of parameter combinations for
 different experiment modes.
 Make sure, opinion_presets are not expanded
 """
-print mode
+print(mode)
 if mode == 1:  # Production
     PARAM_COMBS = list(itertools.product(
         b_cs, phis, alphas, t_d,
@@ -441,10 +444,10 @@ elif mode == 3:  # messy
         [opinion_presets], eps,
         transition, test))
 elif mode == 4:
-    print 'just experimental plotting'
+    print('just experimental plotting')
 else:
-    print mode, ' is not a valid experiment mode.\
-    valid modes are 1: production, 2: test, 3: messy'
+    print(mode, ' is not a valid experiment mode.\
+    valid modes are 1: production, 2: test, 3: messy')
     sys.exit()
 
 # names and function dictionaries for post processing:
@@ -469,8 +472,8 @@ EVA1 = {"<mean_trajectory>":
 
 def foo(fnames):
     for f in fnames:
-        print np.load(f)['convergence_state']
-        print f
+        print(np.load(f)['convergence_state'])
+        print(f)
 
 NAME2 = NAME+'_convergence'
 EVA2 = {"<mean_convergence_state>":

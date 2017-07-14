@@ -26,11 +26,14 @@ Variable parameters are:
 
 
 
+try:
+    import cPickle as cp
+except ImportError:
+    import pickle as cp
 import getpass
 import glob
 import itertools as it
 import os
-import pickle as cp
 import sys
 import time
 
@@ -38,11 +41,11 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import scipy.stats as st
-
-from PyDivestment.pydivest.divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
-from PyDivestment.pydivest.micro_model import divestment_core as model
-from ..pymofa.experiment_handling import (experiment_handling,
-                                          even_time_series_spacing)
+from pydivest.divestvisuals.data_visualization \
+    import plot_obs_grid, plot_tau_phi
+from pydivest.micro_model import divestment_core as model
+from pymofa.experiment_handling \
+    import experiment_handling, even_time_series_spacing
 
 save_path_init = ""
 

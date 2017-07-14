@@ -18,10 +18,10 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from PyDivestment.pydivest.divestvisuals.data_visualization import plot_trajectories
-from PyDivestment.pydivest.macro_model import integrate_equations as macro_model
-from PyDivestment.pydivest.micro_model import divestment_core as micro_model
-from ..pymofa.experiment_handling import experiment_handling, \
+from pydivest.divestvisuals.data_visualization import plot_trajectories
+from pydivest.macro_model import integrate_equations as macro_model
+from pydivest.micro_model import divestment_core as micro_model
+from pymofa.experiment_handling import experiment_handling, \
     even_time_series_spacing
 
 

@@ -48,7 +48,10 @@ the ratio alpha = b_R/e<0 determines the share of the initial
 resource that can be economically harvested.
 """
 
-import cPickle as cp
+try:
+    import pickle as cp
+except ImportError:
+    import pickle as cp
 import getpass
 import glob
 import itertools as it
@@ -62,10 +65,11 @@ import numpy as np
 import pandas as pd
 import scipy.stats as st
 
-from PyDivestment.pydivest.divestvisuals.data_visualization import plot_obs_grid
-from PyDivestment.pydivest.micro_model import divestment_core as model
-from ..pymofa.experiment_handling import (experiment_handling,
-                                          even_time_series_spacing)
+from pydivest.divestvisuals.data_visualization \
+    import plot_obs_grid, plot_tau_phi, tau_phi_final
+from pydivest.micro_model import divestment_core as model
+from pymofa.experiment_handling \
+    import experiment_handling, even_time_series_spacing
 
 
 def RUN_FUNC(nopinions, phi, alpha,
@@ -112,7 +116,7 @@ def RUN_FUNC(nopinions, phi, alpha,
     filename: string
         filename for the results of the run
     """
-    assert isinstance(test, types.IntType),\
+    assert isinstance(test, int),\
         'test must be int, is {!r}'.format(test)
     assert alpha < 1,\
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
@@ -203,7 +207,7 @@ def RUN_FUNC(nopinions, phi, alpha,
             op_locs.append(op_o)
 
         # count links in and in between groups:
-        pairs = it.combinations(range(len(opinions)), 2)
+        pairs = it.combinations(list(range(len(opinions))), 2)
         ingroup = 0
         intergroup = 0
         for i, j in pairs:
@@ -280,9 +284,9 @@ def RUN_FUNC(nopinions, phi, alpha,
     # store exit status
     res["convergence"] = exit_status
     if test:
-        print 'test output of variables'
-        print (m.tau, m.phi, exit_status,
-               m.convergence_state, m.convergence_time)
+        print('test output of variables')
+        print((m.tau, m.phi, exit_status,
+               m.convergence_state, m.convergence_time))
     # store data in case of successful run
 
     if exit_status in [0, 1]:
@@ -329,10 +333,10 @@ conditions for transition in run function.
 FOLDER_EQUI = 'X5o3_Types_Equilibrium'
 FOLDER_TRANS = 'X5o3_Types_Transition'
 if not any(transition):
-    print 'EQUI'
+    print('EQUI')
     folder = FOLDER_EQUI
 elif any(transition):
-    print 'TRANS'
+    print('TRANS')
     folder = FOLDER_TRANS
 
 """
@@ -455,16 +459,16 @@ elif mode == 3:  # messy
         opinions[:3], phis, alpha,
             t_d, [opinion_presets], eps, transition, test))
 else:
-    print mode, ' is not a valid experiment mode.\
-    valid modes are 1: production, 2: test, 3: messy'
+    print(mode, ' is not a valid experiment mode.\
+    valid modes are 1: production, 2: test, 3: messy')
     sys.exit()
 
 # names and function dictionaries for post processing:
 
 
 def foo(fnames):
-    print pd.concat([np.load(f)['economic_trajectory']
-                     for f in fnames]).groupby(level=0).min()
+    print(pd.concat([np.load(f)['economic_trajectory']
+                     for f in fnames]).groupby(level=0).min())
 
 NAME1 = NAME+'_trajectory'
 EVA1 = {"<mean_trajectory>":

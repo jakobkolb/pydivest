@@ -26,21 +26,29 @@ the ratio alpha = b_R/e<0 determines the share of the initial
 resource that can be economically harvested.
 """
 
-from pymofa.experiment_handling import (experiment_handle,
-                                        even_time_series_spacing)
-from micro_model import divestment_core as model
-from divestvisuals.data_visualization import plot_obs_grid
-from random import shuffle
-import numpy as np
-import scipy.stats as st
-import networkx as nx
-import pandas as pd
-import cPickle as cp
+try:
+    import pickle as cp
+except ImportError:
+    import pickle as cp
+import getpass
+import glob
 import itertools as it
 import sys
-import getpass
 import time
 import types
+
+import networkx as nx
+import numpy as np
+import pandas as pd
+import scipy.stats as st
+
+from random import shuffle
+
+from pydivest.divestvisuals.data_visualization \
+    import plot_obs_grid, plot_tau_phi, tau_phi_final
+from pydivest.micro_model import divestment_core as model
+from pymofa.experiment_handling \
+    import experiment_handling, even_time_series_spacing
 
 
 def RUN_FUNC(t_G, nopinions, alpha,
@@ -83,7 +91,7 @@ def RUN_FUNC(t_G, nopinions, alpha,
     filename: string
         filename for the results of the run
     """
-    assert isinstance(test, types.IntType),\
+    assert isinstance(test, int),\
         'test must be int, is {!r}'.format(test)
     assert alpha < 1,\
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
@@ -167,7 +175,7 @@ def RUN_FUNC(t_G, nopinions, alpha,
 
     # run the model
     if test:
-        print input_params
+        print(input_params)
 
     t_max = 300 if test == 0 else 50
     start = time.clock()
@@ -176,9 +184,9 @@ def RUN_FUNC(t_G, nopinions, alpha,
     # store exit status
     res["convergence"] = exit_status
     if test:
-        print 'test output of variables'
-        print (m.tau, m.phi, exit_status,
-               m.convergence_state, m.convergence_time)
+        print('test output of variables')
+        print((m.tau, m.phi, exit_status,
+               m.convergence_state, m.convergence_time))
     # store data in case of successful run
 
     if exit_status in [0, 1]:
@@ -324,8 +332,8 @@ elif mode == 3:
     PARAM_COMBS = list(it.product(
             t_Gs, opinions, alpha, [opinion_presets], eps, avm, test))
 else:
-    print mode, ' is not a valid experiment mode.\
-    valid modes are 1: production, 2: test, 3: messy'
+    print(mode, ' is not a valid experiment mode.\
+    valid modes are 1: production, 2: test, 3: messy')
     sys.exit()
 
 # names and function dictionaries for post processing:
@@ -367,7 +375,7 @@ EVA2 = {"<mean_convergence_state>":
 # full run
 if mode == 1:
     SAMPLE_SIZE = 100
-    handle = experiment_handle(
+    handle = experiment_handling(
             SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
@@ -377,7 +385,7 @@ if mode == 1:
 # test run
 if mode == 2:
     SAMPLE_SIZE = 2
-    handle = experiment_handle(
+    handle = experiment_handling(
             SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
@@ -387,7 +395,7 @@ if mode == 2:
 # debug and mess around mode:
 if mode == 3:
     SAMPLE_SIZE = 2
-    handle = experiment_handle(
+    handle = experiment_handling(
             SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
