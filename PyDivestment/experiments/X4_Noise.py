@@ -1,19 +1,24 @@
-import cPickle as cp
+try:
+    import pickle as cp
+except ImportError:
+    import pickle as cp
 import getpass
+import glob
 import itertools as it
-import numpy as np
-import scipy.stats as st
 import sys
 import time
 import types
 
 import networkx as nx
+import numpy as np
 import pandas as pd
+import scipy.stats as st
 
-from micro_model import divestment_core as model
-from divestvisuals.data_visualization import plot_obs_grid, plot_tau_phi
-from pymofa.experiment_handling import experiment_handling, \
-    even_time_series_spacing
+from pydivest.divestvisuals.data_visualization \
+    import plot_obs_grid, plot_tau_phi, tau_phi_final
+from pydivest.micro_model import divestment_core as model
+from pymofa.experiment_handling \
+    import experiment_handling, even_time_series_spacing
 
 
 def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
@@ -60,7 +65,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
     filename: string
         filename for the results of the run
     """
-    assert isinstance(test, types.IntType), \
+    assert isinstance(test, int), \
         'test must be int, is {!r}'.format(test)
 
     # input parameters
@@ -117,8 +122,8 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
     # store exit status
     res["convergence"] = exit_status
     if test:
-        print m.tau, m.phi, exit_status, \
-            m.convergence_state, m.convergence_time
+        print(m.tau, m.phi, exit_status, \
+            m.convergence_state, m.convergence_time)
 
     # store data in case of successful run
 
@@ -148,7 +153,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
     try:
         tmp = np.load(filename)
     except IOError:
-        print "writing results failed for " + filename
+        print("writing results failed for " + filename)
     
     return exit_status
 
@@ -226,7 +231,7 @@ elif sub_experiment == 'test':
 
 
 else:
-    print sub_experiment, ' is not in the list of possible experiments'
+    print(sub_experiment, ' is not in the list of possible experiments')
     sys.exit()
 
 # names and function dictionaries for post processing:

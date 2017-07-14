@@ -51,8 +51,10 @@ Discussion of variable parameters (degrees of freedom):
    converted into campaigners at the beginning of the
    transition phase.
 """
-
-import cPickle as cp
+try:
+    import cPickle as cp
+except ImportError:
+    import pickle as cp
 import getpass
 import glob
 import itertools as it
@@ -65,11 +67,11 @@ import numpy as np
 import pandas as pd
 import scipy.stats as st
 
-from PyDivestment.pydivest.divestvisuals.data_visualization import (plot_obs_grid, plot_tau_phi,
-                                                                    tau_phi_final)
-from PyDivestment.pydivest.micro_model import divestment_core as model
-from ..pymofa.experiment_handling import (experiment_handling,
-                                          even_time_series_spacing)
+from pydivest.divestvisuals.data_visualization \
+    import plot_obs_grid, plot_tau_phi, tau_phi_final
+from pydivest.micro_model import divestment_core as model
+from pymofa.experiment_handling \
+    import experiment_handling, even_time_series_spacing
 
 
 def RUN_FUNC(ccount, phi, alpha,
@@ -135,7 +137,7 @@ def RUN_FUNC(ccount, phi, alpha,
         # set G_0 according to resource depletion time:
         # t_G = G_0*e*d_c/(P*s*b_d**2)
         G_0 = t_G*P*s*b_d**2/(e*d_c)
-        print G_0, G_0*alpha
+        print(G_0, G_0 * alpha)
 
         # set b_r0 according to alpha and e:
         # alpha = (b_r0/e)**(1/2)
@@ -197,7 +199,7 @@ def RUN_FUNC(ccount, phi, alpha,
         input_params['R_depletion'] = True
         input_params['learning'] = True
         input_params['campaign'] = True
-        print input_params['b_c']
+        print(input_params['b_c'])
 
         # add campaigners to list of possible investment_decisions
         possible_opinions = input_params['possible_opinions']
@@ -208,7 +210,7 @@ def RUN_FUNC(ccount, phi, alpha,
         # make fraction of ccount households campaigners
         opinions = input_params['opinions']
         nccount = int(ccount*len(opinions))
-        print nccount, len(opinions)
+        print(nccount, len(opinions))
         j = 0
         while j < nccount:
             n = np.random.randint(0, len(opinions))
@@ -216,7 +218,7 @@ def RUN_FUNC(ccount, phi, alpha,
                 opinions[n] = campaigner
                 j += 1
         input_params['opinions'] = opinions
-        print opinions
+        print(opinions)
 
         # set t_max for run
         t_max = 2000
@@ -263,8 +265,8 @@ def RUN_FUNC(ccount, phi, alpha,
     # store exit status
     res["convergence"] = exit_status
     if test:
-        print 'test output of variables'
-        print (m.tau, m.phi, exit_status,
+        print('test output of variables')
+        print(m.tau, m.phi, exit_status,
                m.convergence_state, m.convergence_time)
     # store data in case of successful run
 
@@ -323,10 +325,10 @@ else:
     FOLDER_TRANS = 'X5o5_Dirty_Clean_Transition'
 
 if not any(transition):
-    print 'EQUI'
+    print('EQUI')
     folder = FOLDER_EQUI
 elif any(transition):
-    print 'TRANS'
+    print('TRANS')
     folder = FOLDER_TRANS
 
 """
@@ -447,10 +449,10 @@ elif mode == 3:  # messy
         [opinion_presets], eps,
         transition, test))
 elif mode == 4:
-    print 'just experimental plotting'
+    print('just experimental plotting')
 else:
-    print mode, ' is not a valid experiment mode.\
-    valid modes are 1: production, 2: test, 3: messy'
+    print(mode, ' is not a valid experiment mode.\
+    valid modes are 1: production, 2: test, 3: messy')
     sys.exit()
 
 # add campaigners to possible investment_decisions for plotting
@@ -477,8 +479,9 @@ EVA1 = {"<mean_trajectory>":
 
 def foo(fnames):
     for f in fnames:
-        print np.load(f)['convergence_state']
-        print f
+        print(np.load(f)['convergence_state'])
+        print(f)
+
 
 NAME2 = NAME+'_convergence'
 EVA2 = {"<mean_convergence_state>":
