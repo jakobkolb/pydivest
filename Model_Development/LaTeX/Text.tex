@@ -910,7 +910,7 @@ Definition of state space vector $\mathbf{S}$, jumps in state space $\Delta \mat
 
 The derivation of these shall be depicted by an example. A clean node imitating a dirty node. The rate of this is given by the rate of events times the probability to not be a noise event times the probability to select a clean node times the probability to select a dirty neighbor times the probability to imitate that dirty neighbor as follows:
 \begin{equation}
-	W_{c \rightarrow d} = \frac{N_c}{\tau} (1-\varepsilon) (1 - \varphi) \frac{N_c}{N}\frac{[cd]}{[cd] + 2 [cc]}\frac{1}{2}\left( \tanh(W_d - W_c) + 1 \right)
+	W_{c \rightarrow d} = \frac{N}{\tau} (1-\varepsilon) (1 - \varphi) \frac{N_c}{N}\frac{[cd]}{[cd] + 2 [cc]}\frac{1}{2}\left( \tanh(W_d - W_c) + 1 \right)
 	\label{cdswitchingprob}
 \end{equation}
 The change if state space variables is a little more tricky. Since the event is a clean node imitating a dirty node, we already know about one of the neighbors of the node. Then the remaining neighbors are determined by drawing $k_c - 1$ times from the distribution of neighbors that is assumed to be given by the probability for a neighbor to be dirty $p_d$ or clean $p_c$:

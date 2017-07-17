@@ -64,8 +64,8 @@ To sum up, we solved the algebraic constraints to the ordinary differential equa
 	r_c = \frac{\beta_c}{K_c}X_c L^{\alpha}\left( X_c + X_d X_R \right)^{-\alpha}, \\
 	r_d = \frac{\beta_d}{K_d}X_d X_R L^{\alpha}\left( X_c + X_d X_R \right)^{-\alpha}, \\
 	R = \frac{b_d}{e}K_d^{\beta_d}L^{\alpha}\left( \frac{X_d X_R}{X_c + X_d X_R} \right)^{\alpha}, \\
-	\dot{K}_i^{(c)} = s \delta(x_i - c) (r_c K_i^{(c)} + r_d K_i^{(d)} + w L_i) - \delta K_i^{(c)}, \label{eq:clean_capital_accumulation} \\
-	\dot{K}_i^{(d)} = s \delta(x_i - d) (r_c K_i^{(c)} + r_d K_i^{(d)} + w L_i) - \delta K_i^{(d)}, \label{eq:dirty_capital_accumulation} \\
+	\dot{K}_c^{(i)} = s \delta(o_i - c) (r_c K_c^{(i)} + r_d K_d^{(i)} + w L^{(i)}) - \delta K_c^{(i)}, \label{eq:clean_capital_accumulation} \\
+	\dot{K}_d^{(i)} = s \delta(o_i - d) (r_c K_c^{(i)} + r_d K_d^{(i)} + w L^{(i)}) - \delta K_d^{(i)}, \label{eq:dirty_capital_accumulation} \\
 	\dot{G} = - R, 
 \end{empheq}
 \end{subequations}
@@ -74,26 +74,80 @@ To sum up, we solved the algebraic constraints to the ordinary differential equa
 
 To describe the capital structure in the model, we use averages that in the limit of $N \rightarrow \infty$ converge the first moments of its distribution as well as the numbers of households investing in clean and dirty capital $N_c$ and $N_d$:
 \begin{align}
-	\bar{K}_k^{(l)} = \frac{1}{N_k}\sum_{o_i=k}^{N}K_i^{(l)}, \qquad \lim_{N \rightarrow \infty} \bar{K}_{k}^{(l)} = \braket{K_i^{(l)}}{o_i = k} = \mu_k^{(l)}
+	\bar{K}_l^{(k)} = \frac{1}{N^{(k)}}\sum_{o_i=k}^{N}K_l^{(i)}, \qquad \lim_{N \rightarrow \infty} \bar{K}_{l}^{(k)} = \braket{K_l^{(i)}}{o_i = k} = \mu_l^{(k)}
 	\label{eq:moments_definition}
 \end{align}
 The time derivative of the means defined in \eqref{eq:moments_definition} is given by capital accumulation \eqref{eq:clean_capital_accumulation} and \eqref{eq:dirty_capital_accumulation} as well as terms resulting from agents switching their savings decisions: 
 \begin{equation}
 \left.  \begin{aligned}
-		\dot{\bar{K}}_c^{(c)} &= (sr_c - \alpha)\bar{K}_c^{(c)} + s r_d \bar{K}_c^{(d)} + w \bar{L} \nonumber \\
-		\dot{\bar{K}}_c^{(d)} &= - \alpha\bar{K}_c^{(d)} \nonumber \\
+		\dot{\bar{K}}_c^{(c)} &= (sr_c - \alpha)\bar{K}_c^{(c)} + s r_d \bar{K}_d^{(c)} + w \bar{L} \nonumber \\
 		\dot{\bar{K}}_d^{(c)} &= - \alpha\bar{K}_d^{(c)} \nonumber \\
-		\dot{\bar{K}}_d^{(d)} &= sr_c \bar{K}_d^{(c)} + (s r_d - \alpha)\bar{K}_d^{(d)} + w \bar{L} \nonumber
+		\dot{\bar{K}}_c^{(d)} &= - \alpha\bar{K}_c^{(d)} \nonumber \\
+		\dot{\bar{K}}_d^{(d)} &= sr_c \bar{K}_c^{(d)} + (s r_d - \alpha)\bar{K}_d^{(d)} + w \bar{L} \nonumber
 	\end{aligned} \right\} + \rm{switching\ terms}
 \end{equation}
-Assuming that the average agent changing its savings decision owns the average amount of capital these switching terms are equal to the switching rate $W_{k \rightarrow l}$ times the average capital in the state of origin $K_k^{(m)}$.
+Assuming that the average agent changing its savings decision owns the average amount of capital these switching terms are equal to the switching rate $W_{k \rightarrow l}$ times the average capital in the state of origin $K_m^{(k)}$.
 \begin{align}
-	\dot{\bar{K}}_c^{(c)} &= (sr_c - \alpha)\bar{K}_c^{(c)} + s r_d \bar{K}_c^{(d)} + w \bar{L} + W_{d \rightarrow c} \bar{K}_d^{(c)} - W_{c \rightarrow d} \bar{K}_c^{(c)} \nonumber \\
-	\dot{\bar{K}}_c^{(d)} &= - \alpha\bar{K}_c^{(d)} + W_{d \rightarrow c} \bar{K}_d^{(d)} - W_{c \rightarrow d} \bar{K}_c^{(d)} \nonumber \\
-	\dot{\bar{K}}_d^{(c)} &= - \alpha\bar{K}_d^{(c)} + W_{c \rightarrow d} \bar{K}_c^{(c)} - W_{d \rightarrow c} \bar{K}_d^{(c)} \nonumber \\
-	\dot{\bar{K}}_d^{(d)} &= sr_c \bar{K}_d^{(c)} + (s r_d - \alpha)\bar{K}_d^{(d)} + w \bar{L} + W_{c \rightarrow d} \bar{K}_c^{(d)} - W_{d \rightarrow c} \bar{K}_d^{(d)}
+	\dot{\bar{K}}_c^{(c)} &= (sr_c - \alpha)\bar{K}_c^{(c)} + s r_d \bar{K}_d^{(c)} + w \bar{L} + W_{d \rightarrow c} \bar{K}_c^{(d)} - W_{c \rightarrow d} \bar{K}_c^{(c)} \nonumber \\
+	\dot{\bar{K}}_d^{(c)} &= - \alpha\bar{K}_d^{(c)} + W_{d \rightarrow c} \bar{K}_d^{(d)} - W_{c \rightarrow d} \bar{K}_d^{(c)} \nonumber \\
+	\dot{\bar{K}}_c^{(d)} &= - \alpha\bar{K}_c^{(d)} + W_{c \rightarrow d} \bar{K}_c^{(c)} - W_{d \rightarrow c} \bar{K}_c^{(d)} \nonumber \\
+	\dot{\bar{K}}_d^{(d)} &= sr_c \bar{K}_c^{(d)} + (s r_d - \alpha)\bar{K}_d^{(d)} + w \bar{L} + W_{c \rightarrow d} \bar{K}_d^{(c)} - W_{d \rightarrow c} \bar{K}_d^{(d)}
+	\label{eq:mean_capital_stocks}
 \end{align}
 
 \subsection{Pair Approximation}
+
+To derive a macroscopic approximation of the opinion formation process, we make use of a so called Pair Based Proxy (PBP) that can be derived via pair approximation. This is equivalent to describing the microscopic process in terms of aggregated quantities by making certain assumptions about the properties of their microscopic structure. Therefore, the aggregated quantities of interest are the number of households investing in clean capital $N_c$, the number of households investing in dirty capital $N_d$ as well as the number of links between agents of the same group $[cc]$ and $[dd]$ as well as the number of links in between the two groups $[cd]$. Since the total number of households and links is fixed, these five variables reduce to three degrees of freedom:
+
+\begin{equation}
+	X = N^{(c)} - N^{(d)}, \quad Y = [cc] - [dd], \quad Z = [cd]
+	\label{eq:opinion_formation_macro_variables}
+\end{equation}
+
+These three degrees of freedom span the state space of the investment decisions of the households $\mathbf{S} = (X, Y, Z)^T$. The investment decision making process can be described in terms of jump lengths $\Delta \mathbf{S}_j$ and jump rates $W(\mathbf{S},\mathbf{S} + \Delta \mathbf{S}_j)$ in this state space.
+The derivation of these is illustrate by the example of a clean node imitating a dirty node: The rate of this event is given by
+\begin{equation}
+	W_{c \rightarrow d} = \frac{N}{\tau} (1-\varepsilon) (1 - \varphi) \frac{N^{(c)}}{N}\frac{[cd]}{[cd] + 2 [cc]}\frac{1}{2}\left( \tanh(\bar{C}^{(d)} - \bar{C}^{(d)}) + 1 \right).
+	\label{cdswitchingprob}
+\end{equation}
+In some more detail this results from
+\begin{itemize}
+	\item $N/\tau$ the rate of social update events i.e. the rate of events per household times the number of household,
+	\item $(1-\varepsilon)$ the probability of the event not being a noise event,
+	\item $(1-\varphi)$ the probability of imitation events (versus network adaptation events),
+	\item $N^{(c)}/N$ the probability of the active node to invest in clean capital,
+	\item $[cd]/(2[cc] + [cd])$ the probability of interaction with a node investing in dirty capital,
+	\item $\frac{1}{2}\left( \tanh(\bar{C}^{(d)} - \bar{C}^{(c)}) + 1 \right)$ the probability of the active neighbor imitating its neighbor depending on the average difference of income between households investing in clean and dirty capital.
+\end{itemize}
+The change if state space variables is a little more tricky. Since the event is a clean node imitating a dirty node, we already know about one of the neighbors of the node. Then the remaining neighbors are determined by drawing $k_c - 1$ times from the distribution of neighbors that is assumed to be given by the probability for a neighbor to be dirty $p_d$ or clean $p_c$:
+\begin{equation}
+	p_c = \frac{2 [cc]}{2[cc] + [cd]}; \qquad p_d = \frac{cc}{2[cc] + [cd]}
+	\label{neighbordist}
+\end{equation}
+Which results in $n_c$ additional clean neighbors and $n_d$ additional dirty neighbors.
+\begin{equation}
+	n_c = (1-1/k_c)\frac{2[cc]}{N_c}; \quad n_d = (1-1/k_c)\frac{[cd]}{N_c}
+	\label{additional_neighbors}
+\end{equation}
+This results in the following changes in the state space variables:
+\begin{align}
+	\Delta N_c &= -1 \nonumber \\
+	\Delta N_d &= 1 \nonumber \\
+	\Delta [cc] &= \left( 1 - \frac{1}{k_c} \right)\frac{2[cc]}{N_c} \nonumber \\
+	\Delta [dd] &= \left( 1 - \frac{1}{k_c} \right)\frac{[cd]}{N_c} \nonumber \\
+	\Delta [cd] &= -1 + \left( 1 - \frac{1}{k_c} \right)\frac{2[cc] - [cd]}{N_c} \nonumber
+\end{align}
+So, summing up, the change in the state vector is given by:
+\begin{equation}
+	\Delta S_{c \rightarrow d} = \colvec{3}{-2}{-k_c}{-1 +  \left( 1 - \frac{1}{k_c} \right)\frac{2[cc] - [cd]}{N_c} }
+	\label{cdstatespacechange}
+\end{equation}
+
+In terms of these, the dynamics of the PBP can be written as a master equation:
+
+\begin{align}
+	\frac{{\rm d} P(\mathbf{S}, t)}{{\rm d} t} = \sum_{j} &P(\mathbf{S} - \Delta \mathbf{S}_j, t) W(\mathbf{S} - \Delta \mathbf{S}_j,\mathbf{S}) \nonumber \\
+	&- P(\mathbf{S}, t) W(\mathbf{S},\mathbf{S} + \Delta \mathbf{S}_j) \nonumber
+\end{align}
 
 
