@@ -1,7 +1,7 @@
 \section{Approximate Analytical Solution}
 
 Structurally, the model described in Section \ref{sec:Model_Description} consists of a set of coupled ordinary differential equations with algebraic constraints for the economic production process and a stochastic adaptive network process for the social learning component.
-We aim to find an analytic description of the dynamics of the model in terms ordinary differential equations of aggregated variables. This can be done in three steps. First, solve the algebraic constraints to the economic production process given by market clearing in the labor market and efficient production in the dirty sector, second use a moment closure to approximate the capital holdings of the heterogeneous households by the moments of their distribution and third use a pair approximation to describe the social learning process in terms of aggregated variables. Finally take the limit of infinitely many households (thermodynamic limit) to obtain a deterministic description of the system.
+We aim to find an analytic description of the dynamics of the model in terms ordinary differential equations of aggregated variables. This can be done in three steps. First, solve the algebraic constraints to the economic production process given by market clearing in the labor market and efficient production in the dirty sector, second use a moment closure to approximate the capital holdings of the heterogeneous households by the moments of their distribution and third use a pair approximation to describe the social learning process in terms of aggregated variables. Finally take the limit of infinitely many households (large system- or thermodynamic limit) to obtain a deterministic description of the system.
 
 \subsection{Algebraic Constraints}
 \JJK{Most of this subsection should probably go to sublementary material, depending on the journal requirements}
@@ -154,12 +154,13 @@ In terms of these, the dynamics of the PBP can be written as a master equation:
 \end{align}
 \JJK{This illustrative derivation may as well go into the SI to be replaced by a short verbal explanation of the process in the paper body}
 
-\subsection{Thermodynamic limit}
+\subsection{Large System Limit}
 
-The description of the model in terms of equations \eqref{eq:equilibrium_wage_solution} to \eqref{eq:resource_depreciation} and \eqref{eq:PBP} pose a significant reduction of complexity, yet they are still not a description in therms of ordinary differential equations, as typically used in macroeconomic models. To derive ordinary differential equations, we follow van Kampen and do a expansion in terms of system size, which in our case is given by the number of households $N$.
+The description of the model in terms of equations \eqref{eq:equilibrium_wage_solution} to \eqref{eq:resource_depreciation} and \eqref{eq:PBP} pose a significant reduction of complexity, yet they are still not a description in therms of ordinary differential equations, as typically used in macroeconomic models. To derive ordinary differential equations, we do an expansion in terms of system size, which in our case is given by the number of households $N$.
 Doing this, one has to make a choice: either A) keep the aggregate quantitites for labor, capital and resource stock fixed and consequently take the limit of infinitely many, infinitely small households, or B) keep the per household quantities of labor, capital and resource stock fixed and thereby go to an infinitely large economy in terms of aggregated quantitites. \\
-Below, we derive ordinary differential equations using option A). Therefore, we Introduce rescaled variables:
+Below, we derive ordinary differential equations using option B). Therefore, we Introduce rescaled variables:
 \begin{equation}
 	x = \frac{X}{N}, \quad y = \frac{Y}{M}, \quad z = \frac{Z}{M}, \quad c = \frac{C}{N}, \quad g = \frac{G}{N}, \quad k = \frac{2M}{N}
 \end{equation}
+and assume constant returns to scale to assert the independence of the economic production from the number of households.
 
