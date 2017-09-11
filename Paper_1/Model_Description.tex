@@ -1,11 +1,13 @@
 \section{Model Description}
 \label{sec:Model_Description}
-The model consists of to processes. One for the economic production process and one for social learning about investment decisions amongst heterogeneous households.
+\JJK{Maybe add a disclaimer about the model not being meant too serious but rather as an illustration of how social dynamics can be integrated yet with a hint to a contemporary problem/question}\par
+
+The model consists of two processes. One for the economic production process and one for social learning about investment decisions amongst heterogeneous households.
 
 \subsection{Economic production}
 \label{sec:model_description}
 
-Economic production takes place in two sectors. For convenience, they will be called the \textit{clean} and the \textit{dirty} sector. The dirty sector uses labor $L$, dirty capital $K_d$ and a fossil resource $R$ as input factors, the clean sector uses labor $L$, clean capital $K_c$ and a renewable technology stock $C$ as input factors. It is assumed that the physical capital of one sector cannot be used in the other sector due to different technologies. We also assume that capital labor and knowledge are mutual substitutes but that the additional resource cannot be substituted. To satisfy these requirements, we use the following production functions:
+Economic production takes place in two sectors. For illustrational clarity we call them the \textit{clean} and the \textit{dirty} sector. The dirty sector uses labor $L$, dirty capital $K_d$ and a fossil resource $R$ as input factors, the clean sector uses labor $L$, clean capital $K_c$ and a renewable technology stock $C$ as input factors. We assume that the physical capital of one sector cannot be used in the other sector due to different technologies. We also assume that capital labor and knowledge are mutual substitutes but that the additional resource cannot be substituted. To satisfy these requirements, we use the following production functions:
 \begin{equation}
 	Y_c = b_c L_c^{\alpha_c}K_c^{\beta_c}C^{\gamma_c}, 
 	\label{eq:clean_production}
@@ -18,7 +20,7 @@ in the clean sector, where $b_c$ is the Solow residual in the clean sector and $
 in the dirty sector, where $b_d$ is the Solow residual in the dirty sector, $\alpha_d$ and $\beta_d$ are the input factors of the respective input factors and $e$ is the conversion efficiency of the fossil resource.
 Additionally, it is assumed that
 \begin{itemize}
-	\item the usage of the fossil resource $R$ depletes geological resource stock $G$:
+	\item the usage of the fossil resource $R$ depletes a geological resource stock $G$:
 		\begin{equation}
 			\dot{G} = -R, \quad G(t=0) = G_0
 			\label{eq:resource_depletion}
@@ -58,13 +60,13 @@ Additionally, it is assumed that
 
 \subsection{Investment Decision Making}
 
-The model assumes $N$ heterogeneous households denoted with the index $i$ as owners of labor $L^{(i)}$ and capital $K_c^{(i)}$ and $K_d^{(i)}$ in (potentially) both economic sectors.
-From this, households generate income
+There are $N$ heterogeneous households denoted with the index $i$ as owners of labor $L^{(i)}$ and capital $K_c^{(i)}$ and $K_d^{(i)}$ in (potentially) both economic sectors.
+Households generate income from labor and capital income:
 \begin{equation}
 	I^{(i)} = w L^{(i)} + r_c K_c^{(i)} + r_d K_d^{(i)}
 	\label{household_income}
 \end{equation}
-which they use for consumption $C^{(i)} = (1-s) I^{(i)}$ and savings $S^{(i)} = s I^{(i)}$. Households decision about where to invest their savings $o_i \in [c,d]$ about in which sector to invest their savings is the result of a social learning process closely adapted from the adaptive voter model:
+which they use for consumption $C^{(i)} = (1-s) I^{(i)}$ and savings $S^{(i)} = s I^{(i)}$. Households decision about where to invest their savings $o_i \in [c,d]$ is the result of a social learning process closely adapted from the adaptive voter model. This process describes the learning of successful strategies together with preferential attachment driven by homophily towards individuals exhibiting the same behavior.
 
 Households form the nodes of a graph of acquaintance relations. Households get active at a constant rate. When a household $i$ becomes active, it interacts with one of its acquaintances $j$ chosen at random. If they hold the same opinion, nothing happens. If they hold different opinions, one of two things can happen:
 \begin{itemize}
@@ -76,7 +78,8 @@ The imitation probability is given as a monotonously increasing function of the 
 	p_{ji} = \frac{1}{2}(1 + \tanh \left( C^{(j)} - C^{(i)}  \right)
 	\label{imitation_probability}
 \end{equation}
-A fraction $\varepsilon$ of events are random, e.g. rewiring to a random other household or adopting a random new savings rate equally distributed between 0 and 1.
+A fraction $\varepsilon$ of events are random, e.g. rewiring to a random other household or randomly investing in one of the two sectors.
+\JJK{Elaborate on why one should implement random events here?}
 
 Given the savings decisions of the individual households, the time development of their capital holdings is given by
 

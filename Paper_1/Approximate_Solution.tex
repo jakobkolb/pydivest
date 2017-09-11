@@ -1,11 +1,12 @@
 \section{Approximate Analytical Solution}
 
 Structurally, the model described in Section \ref{sec:Model_Description} consists of a set of coupled ordinary differential equations with algebraic constraints for the economic production process and a stochastic adaptive network process for the social learning component.
-We aim to find an analytic description of the dynamics of the model in terms ordinary differential equations of aggregated variables. This can be done in three steps. First, solve the algebraic constraints to the economic production process given by market clearing in the labor market and efficient production in the dirty sector, second use a moment closure to approximate the capital holdings of the heterogeneous households by the moments of their distribution and third use a pair approximation to describe the social learning process in terms of aggregated variables.
+We aim to find an analytic description of the dynamics of the model in terms ordinary differential equations of aggregated variables. This can be done in three steps. First, solve the algebraic constraints to the economic production process given by market clearing in the labor market and efficient production in the dirty sector, second use a moment closure to approximate the capital holdings of the heterogeneous households by the moments of their distribution and third use a pair approximation to describe the social learning process in terms of aggregated variables. Finally take the limit of infinitely many households (thermodynamic limit) to obtain a deterministic description of the system.
 
 \subsection{Algebraic Constraints}
+\JJK{Most of this subsection should probably go to sublementary material, depending on the journal requirements}
 
-To calculate labor shares $L_c$ and $L_d$ as well as wages in the two sectors, we use equations \eqref{eq:resource_cost} \eqref{eq:equilibrium_wage} and resulting in
+To calculate labor shares $L_c$ and $L_d$ as well as wages in the two sectors, we use equations \eqref{eq:resource_cost} and \eqref{eq:equilibrium_wage} and assume equal labor elasticities in both sectors $\alpha_d = \alpha_c = \alpha$ resulting in
 \begin{align}
 	w &= \frac{\partial Y_d}{\partial L_d} - \frac{\partial c_R}{\partial L_c} \nonumber \\
 	&= \frac{\partial Y_d}{\partial L_d} - \frac{\partial c_R}{\partial R} \frac{\partial R}{\partial L_d} \nonumber = \frac{\partial Y_d}{\partial L_d} - \frac{\partial c_R}{\partial R} \frac{\partial}{\partial L_d} \frac{Y_d}{e} \nonumber \\
@@ -19,29 +20,29 @@ for the dirty sector and
 \end{equation}
 for the clean sector. Combining these results via equation \eqref{eq:population} results in
 \begin{equation}
-	L = \left( \frac{w}{\alpha} \right)^{\frac{1}{\alpha-1}}\left( \left( b_c K_c^{\beta_c} \right)^{\frac{1}{1-\alpha}} + \left( b_d K_d^{\beta_d} \left( 1 - \frac{b_R}{e} \right)^{\frac{1}{1-\alpha}} \right) \right)
+	L = \left( \frac{w}{\alpha} \right)^{\frac{1}{\alpha-1}}\left( \left( b_c K_c^{\beta_c} \right)^{\frac{1}{1-\alpha}} + \left( b_d K_d^{\beta_d} \left( 1 - \frac{b_R}{e} \right)^{\frac{1}{1-\alpha}} \right) \right).
 \end{equation}
-substituting 
+Substituting 
 \begin{equation}
 	X_c = (b_c K_c^{\beta_c})^{\frac{1}{1-\alpha}}, \qquad X_d = (b_d K_d^{\beta_d})^{\frac{1}{1-\alpha}}, \qquad X_R = \left( 1 - \frac{b_R}{e} \right)^{\frac{1}{1-\alpha}}
 	\label{eq:substitutions}
 \end{equation}
-holds the following result for $w$:
+and solving for $w$ holds:
 \begin{equation}
 	w = \alpha L^{\alpha-1}\left( X_c + X_d X_R \right)^{1-\alpha}.
 	\label{eq:wage_result}
 \end{equation}
-Plugging this into equations \eqref{eq:dirty_wages} and \eqref{eq:clean_wages} results in 
+Plugging into equations \eqref{eq:dirty_wages} and \eqref{eq:clean_wages} results in 
 \begin{align}
 	L_c &= L \frac{X_c}{X_c + X_d X_R} \label{eq:clean_labor} \\
 	L_d &= L \frac{X_d X_R}{X_c + X_d X_R} \label{eq:dirty_labor}
 \end{align}
-and plugging this into \eqref{eq:resources} results in
+for the labor shares and plugging this into \eqref{eq:resources} results in
 \begin{equation}
-	R = \frac{b_d}{e}K_d^{\beta_d}L^{\alpha}\left( \frac{X_d X_R}{X_c + X_d X_R} \right)^{\alpha}.
+	R = \frac{b_d}{e}K_d^{\beta_d}L^{\alpha}\left( \frac{X_d X_R}{X_c + X_d X_R} \right)^{\alpha}
 	\label{eq:R_result}
 \end{equation}
-Using the results for $L_c$ and $L_d$ together with equations \eqref{eq:clean_capital_rent} and \eqref{eq:dirty_capital_rent}<++>, the capital rental rates result in
+for the use of the fossil resource. Using the results for $L_c$ and $L_d$ together with equations \eqref{eq:clean_capital_rent} and \eqref{eq:dirty_capital_rent}, the capital rental rates result in
 \begin{align}
 	r_c &= \frac{\beta_c}{K_c}X_c L^{\alpha}\left( X_c + X_d X_R \right)^{-\alpha}, \label{eq:r_c_result}\\
 	r_d &= \frac{\beta_d}{K_d}X_d X_R L^{\alpha}\left( X_c + X_d X_R \right)^{-\alpha}. \label{eq:r_d_result}
@@ -60,19 +61,20 @@ To sum up, we solved the algebraic constraints to the ordinary differential equa
 \begin{subequations}
 \begin{empheq}[box=\widefbox]{gather}
 	X_c = (b_c K_c^{\beta_c})^{\frac{1}{1-\alpha}}, \qquad X_d = (b_d K_d^{\beta_d})^{\frac{1}{1-\alpha}}, \qquad X_R = \left( 1 - \frac{b_R}{e}\frac{G_0^2}{G^2} \right)^{\frac{1}{1-\alpha}}, \\
-	w = \alpha L^{\alpha-1}\left( X_c + X_d X_R \right)^{1-\alpha}, \\
+	w = \alpha L^{\alpha-1}\left( X_c + X_d X_R \right)^{1-\alpha}, \label{eq:equilibrium_wage_solution}\\
 	r_c = \frac{\beta_c}{K_c}X_c L^{\alpha}\left( X_c + X_d X_R \right)^{-\alpha}, \\
 	r_d = \frac{\beta_d}{K_d}X_d X_R L^{\alpha}\left( X_c + X_d X_R \right)^{-\alpha}, \\
 	R = \frac{b_d}{e}K_d^{\beta_d}L^{\alpha}\left( \frac{X_d X_R}{X_c + X_d X_R} \right)^{\alpha}, \\
 	\dot{K}_c^{(i)} = s \delta(o_i - c) (r_c K_c^{(i)} + r_d K_d^{(i)} + w L^{(i)}) - \delta K_c^{(i)}, \label{eq:clean_capital_accumulation} \\
 	\dot{K}_d^{(i)} = s \delta(o_i - d) (r_c K_c^{(i)} + r_d K_d^{(i)} + w L^{(i)}) - \delta K_d^{(i)}, \label{eq:dirty_capital_accumulation} \\
 	\dot{G} = - R, 
+	\label{eq:resource_depreciation}
 \end{empheq}
 \end{subequations}
 
 \subsection{Moment Closure}
 
-To describe the capital structure in the model, we use averages that in the limit of $N \rightarrow \infty$ converge the first moments of its distribution as well as the numbers of households investing in clean and dirty capital $N_c$ and $N_d$:
+To describe the capital structure in the model, we use the numbers of households investing in clean and dirty capital $N^{(c)}$ and $N^{(d)}$ and look at the averages of their respective capital holdings that in the limit of $N \rightarrow \infty$ converge to the first moments of their respective distribution:
 \begin{align}
 	\bar{K}_l^{(k)} = \frac{1}{N^{(k)}}\sum_{o_i=k}^{N}K_l^{(i)}, \qquad \lim_{N \rightarrow \infty} \bar{K}_{l}^{(k)} = \braket{K_l^{(i)}}{o_i = k} = \mu_l^{(k)}
 	\label{eq:moments_definition}
@@ -86,7 +88,7 @@ The time derivative of the means defined in \eqref{eq:moments_definition} is giv
 		\dot{\bar{K}}_d^{(d)} &= sr_c \bar{K}_c^{(d)} + (s r_d - \alpha)\bar{K}_d^{(d)} + w \bar{L} \nonumber
 	\end{aligned} \right\} + \rm{switching\ terms}
 \end{equation}
-Assuming that the average agent changing its savings decision owns the average amount of capital these switching terms are equal to the switching rate $W_{k \rightarrow l}$ times the average capital in the state of origin $K_m^{(k)}$.
+Assuming that the average household that changes its savings decision owns the average amount of capital these switching terms are equal to the switching rate $W_{k \rightarrow l}$ times the average capital in the state of origin $K_m^{(k)}$.
 \begin{align}
 	\dot{\bar{K}}_c^{(c)} &= (sr_c - \alpha)\bar{K}_c^{(c)} + s r_d \bar{K}_d^{(c)} + w \bar{L} + W_{d \rightarrow c} \bar{K}_c^{(d)} - W_{c \rightarrow d} \bar{K}_c^{(c)} \nonumber \\
 	\dot{\bar{K}}_d^{(c)} &= - \alpha\bar{K}_d^{(c)} + W_{d \rightarrow c} \bar{K}_d^{(d)} - W_{c \rightarrow d} \bar{K}_d^{(c)} \nonumber \\
@@ -94,18 +96,18 @@ Assuming that the average agent changing its savings decision owns the average a
 	\dot{\bar{K}}_d^{(d)} &= sr_c \bar{K}_c^{(d)} + (s r_d - \alpha)\bar{K}_d^{(d)} + w \bar{L} + W_{c \rightarrow d} \bar{K}_d^{(c)} - W_{d \rightarrow c} \bar{K}_d^{(d)}
 	\label{eq:mean_capital_stocks}
 \end{align}
-
+We derive expressions for these switching rates below.
 \subsection{Pair Approximation}
 
-To derive a macroscopic approximation of the opinion formation process, we make use of a so called Pair Based Proxy (PBP) that can be derived via pair approximation. This is equivalent to describing the microscopic process in terms of aggregated quantities by making certain assumptions about the properties of their microscopic structure. Therefore, the aggregated quantities of interest are the number of households investing in clean capital $N_c$, the number of households investing in dirty capital $N_d$ as well as the number of links between agents of the same group $[cc]$ and $[dd]$ as well as the number of links in between the two groups $[cd]$. Since the total number of households and links is fixed, these five variables reduce to three degrees of freedom:
+To derive a macroscopic approximation of the opinion formation process, we make use of a Pair Based Proxy (PBP) that is derived via pair approximation from the adaptive network process. This is equivalent to describing the microscopic process in terms of aggregated quantities by making certain assumptions about the properties of their microscopic structure. The aggregated quantities of interest are the number of households investing in clean capital $N^{(c)}$, the number of households investing in dirty capital $N^{(d)}$ as well as the number of links between agents of the same group $[cc]$ and $[dd]$ as well as between the two groups $[cd]$. Since the total number of households $N$ and links $M$ is fixed, these five variables reduce to three degrees of freedom:
 
 \begin{equation}
 	X = N^{(c)} - N^{(d)}, \quad Y = [cc] - [dd], \quad Z = [cd]
 	\label{eq:opinion_formation_macro_variables}
 \end{equation}
 
-These three degrees of freedom span the state space of the investment decisions of the households $\mathbf{S} = (X, Y, Z)^T$. The investment decision making process can be described in terms of jump lengths $\Delta \mathbf{S}_j$ and jump rates $W(\mathbf{S},\mathbf{S} + \Delta \mathbf{S}_j)$ in this state space.
-The derivation of these is illustrate by the example of a clean node imitating a dirty node: The rate of this event is given by
+These three degrees of freedom span the reduced state space of the social process $\mathbf{S} = (X, Y, Z)^T$. The investment decision making process can be described in terms of jump lengths $\Delta \mathbf{S}_j$ and jump rates $W(\mathbf{S},\mathbf{S} + \Delta \mathbf{S}_j)$ in this state space for the set $\Omega$ of all possible events.
+The derivation of these is illustrate by the example of a clean household imitating a dirty household: The rate of this event is given by
 \begin{equation}
 	W_{c \rightarrow d} = \frac{N}{\tau} (1-\varepsilon) (1 - \varphi) \frac{N^{(c)}}{N}\frac{[cd]}{[cd] + 2 [cc]}\frac{1}{2}\left( \tanh(\bar{C}^{(d)} - \bar{C}^{(d)}) + 1 \right).
 	\label{cdswitchingprob}
@@ -115,11 +117,11 @@ In some more detail this results from
 	\item $N/\tau$ the rate of social update events i.e. the rate of events per household times the number of household,
 	\item $(1-\varepsilon)$ the probability of the event not being a noise event,
 	\item $(1-\varphi)$ the probability of imitation events (versus network adaptation events),
-	\item $N^{(c)}/N$ the probability of the active node to invest in clean capital,
-	\item $[cd]/(2[cc] + [cd])$ the probability of interaction with a node investing in dirty capital,
-	\item $\frac{1}{2}\left( \tanh(\bar{C}^{(d)} - \bar{C}^{(c)}) + 1 \right)$ the probability of the active neighbor imitating its neighbor depending on the average difference of income between households investing in clean and dirty capital.
+	\item $N^{(c)}/N$ the probability of the active household to invest in clean capital,
+	\item $[cd]/(2[cc] + [cd])$ the probability of interaction with a household investing in dirty capital,
+	\item $\frac{1}{2}\left( \tanh(\bar{C}^{(d)} - \bar{C}^{(c)}) + 1 \right)$ the probability of the active neighbor imitating its neighbor depending on the average difference in consumption between households investing in clean and dirty capital $C^{(c)}$ and $C^{(d)}$.
 \end{itemize}
-The change if state space variables is a little more tricky. Since the event is a clean node imitating a dirty node, we already know about one of the neighbors of the node. Then the remaining neighbors are determined by drawing $k_c - 1$ times from the distribution of neighbors that is assumed to be given by the probability for a neighbor to be dirty $p_d$ or clean $p_c$:
+The change in state space variables is a little more tricky. Since the event is a clean household imitating a dirty household, we already know about one of the neighbors of the household. Then the remaining neighbors are determined by drawing $k_c - 1$ times from the distribution of neighbors that is assumed to be given by the probability for a neighbor to be dirty $p_d$ or clean $p_c$ where $k_c$ is the mean degree, e.g. the mean number of neighbors of a household in the network:
 \begin{equation}
 	p_c = \frac{2 [cc]}{2[cc] + [cd]}; \qquad p_d = \frac{cc}{2[cc] + [cd]}
 	\label{neighbordist}
@@ -146,8 +148,19 @@ So, summing up, the change in the state vector is given by:
 In terms of these, the dynamics of the PBP can be written as a master equation:
 
 \begin{align}
-	\frac{{\rm d} P(\mathbf{S}, t)}{{\rm d} t} = \sum_{j} &P(\mathbf{S} - \Delta \mathbf{S}_j, t) W(\mathbf{S} - \Delta \mathbf{S}_j,\mathbf{S}) \nonumber \\
-	&- P(\mathbf{S}, t) W(\mathbf{S},\mathbf{S} + \Delta \mathbf{S}_j) \nonumber
+	\frac{{\rm d} P(\mathbf{S}, t)}{{\rm d} t} = \sum_{j \in \Omega} &P(\mathbf{S} - \Delta \mathbf{S}_j, t) W(\mathbf{S} - \Delta \mathbf{S}_j,\mathbf{S}) \nonumber \\
+	&- P(\mathbf{S}, t) W(\mathbf{S},\mathbf{S} + \Delta \mathbf{S}_j) \label{eq:PBP}
 \end{align}
+\JJK{This illustrative derivation may as well go into the SI to be replaced by a short verbal explanation of the process in the paper body}
+
+\subsection{Thermodynamic limit}
+
+The description of the model in terms of equations \eqref{eq:equilibrium_wage_solution} to \eqref{eq:resource_depreciation} and \eqref{eq:PBP} pose a significant reduction of complexity, yet they are still not a description in therms of ordinary differential equations, as typically used in macroeconomic models. To derive ordinary differential equations, we follow van Kampen and do a expansion in terms of system size, which in our case is given by the number of households $N$.
+Doing this, one has to make a choice: either A) keep the aggregate quantitites for labor, capital and resource stock fixed and consequently take the limit of infinitely many, infinitely small households, or B) keep the per household quantities of labor, capital and resource stock fixed and thereby go to an infinitely large economy in terms of aggregated quantitites. \\
+Below, we derive ordinary differential equations using option A). Therefore, we Introduce rescaled variables:
+\begin{equation}
+	x = \frac{X}{N}, \quad y = \frac{Y}{M}, \quad z = \frac{Z}{M}, \quad c = \frac{C}{N}, \quad g = \frac{G}{N}, \quad k = \frac{2M}{N}
+\end{equation}
+
 
 
