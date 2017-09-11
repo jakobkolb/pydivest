@@ -65,6 +65,7 @@ To sum up, we solved the algebraic constraints to the ordinary differential equa
 	r_c = \frac{\beta_c}{K_c}X_c L^{\alpha}\left( X_c + X_d X_R \right)^{-\alpha}, \\
 	r_d = \frac{\beta_d}{K_d}X_d X_R L^{\alpha}\left( X_c + X_d X_R \right)^{-\alpha}, \\
 	R = \frac{b_d}{e}K_d^{\beta_d}L^{\alpha}\left( \frac{X_d X_R}{X_c + X_d X_R} \right)^{\alpha}, \\
+	\dot{G} = - R \label{eq:sum_up_resource_depletion}, \\ 
 	\dot{K}_c^{(i)} = s \delta(o_i - c) (r_c K_c^{(i)} + r_d K_d^{(i)} + w L^{(i)}) - \delta K_c^{(i)}, \label{eq:clean_capital_accumulation} \\
 	\dot{K}_d^{(i)} = s \delta(o_i - d) (r_c K_c^{(i)} + r_d K_d^{(i)} + w L^{(i)}) - \delta K_d^{(i)}, \label{eq:dirty_capital_accumulation} \\
 	\dot{G} = - R, 
@@ -82,18 +83,18 @@ To describe the capital structure in the model, we use the numbers of households
 The time derivative of the means defined in \eqref{eq:moments_definition} is given by capital accumulation \eqref{eq:clean_capital_accumulation} and \eqref{eq:dirty_capital_accumulation} as well as terms resulting from agents switching their savings decisions: 
 \begin{equation}
 \left.  \begin{aligned}
-		\dot{\bar{K}}_c^{(c)} &= (sr_c - \alpha)\bar{K}_c^{(c)} + s r_d \bar{K}_d^{(c)} + w \bar{L} \nonumber \\
+		\dot{\bar{K}}_c^{(c)} &= (sr_c - \alpha)\bar{K}_c^{(c)} + s r_d \bar{K}_d^{(c)} + s w \bar{L} \nonumber \\
 		\dot{\bar{K}}_d^{(c)} &= - \alpha\bar{K}_d^{(c)} \nonumber \\
 		\dot{\bar{K}}_c^{(d)} &= - \alpha\bar{K}_c^{(d)} \nonumber \\
-		\dot{\bar{K}}_d^{(d)} &= sr_c \bar{K}_c^{(d)} + (s r_d - \alpha)\bar{K}_d^{(d)} + w \bar{L} \nonumber
+		\dot{\bar{K}}_d^{(d)} &= sr_c \bar{K}_c^{(d)} + (s r_d - \alpha)\bar{K}_d^{(d)} + s w \bar{L} \nonumber
 	\end{aligned} \right\} + \rm{switching\ terms}
 \end{equation}
 Assuming that the average household that changes its savings decision owns the average amount of capital these switching terms are equal to the switching rate $W_{k \rightarrow l}$ times the average capital in the state of origin $K_m^{(k)}$.
 \begin{align}
-	\dot{\bar{K}}_c^{(c)} &= (sr_c - \alpha)\bar{K}_c^{(c)} + s r_d \bar{K}_d^{(c)} + w \bar{L} + W_{d \rightarrow c} \bar{K}_c^{(d)} - W_{c \rightarrow d} \bar{K}_c^{(c)} \nonumber \\
+	\dot{\bar{K}}_c^{(c)} &= (sr_c - \alpha)\bar{K}_c^{(c)} + s r_d \bar{K}_d^{(c)} + s w \bar{L} + W_{d \rightarrow c} \bar{K}_c^{(d)} - W_{c \rightarrow d} \bar{K}_c^{(c)} \nonumber \\
 	\dot{\bar{K}}_d^{(c)} &= - \alpha\bar{K}_d^{(c)} + W_{d \rightarrow c} \bar{K}_d^{(d)} - W_{c \rightarrow d} \bar{K}_d^{(c)} \nonumber \\
 	\dot{\bar{K}}_c^{(d)} &= - \alpha\bar{K}_c^{(d)} + W_{c \rightarrow d} \bar{K}_c^{(c)} - W_{d \rightarrow c} \bar{K}_c^{(d)} \nonumber \\
-	\dot{\bar{K}}_d^{(d)} &= sr_c \bar{K}_c^{(d)} + (s r_d - \alpha)\bar{K}_d^{(d)} + w \bar{L} + W_{c \rightarrow d} \bar{K}_d^{(c)} - W_{d \rightarrow c} \bar{K}_d^{(d)}
+	\dot{\bar{K}}_d^{(d)} &= sr_c \bar{K}_c^{(d)} + (s r_d - \alpha)\bar{K}_d^{(d)} + s w \bar{L} + W_{c \rightarrow d} \bar{K}_d^{(c)} - W_{d \rightarrow c} \bar{K}_d^{(d)}
 	\label{eq:mean_capital_stocks}
 \end{align}
 We derive expressions for these switching rates below.
@@ -123,21 +124,21 @@ In some more detail this results from
 \end{itemize}
 The change in state space variables is a little more tricky. Since the event is a clean household imitating a dirty household, we already know about one of the neighbors of the household. Then the remaining neighbors are determined by drawing $k_c - 1$ times from the distribution of neighbors that is assumed to be given by the probability for a neighbor to be dirty $p_d$ or clean $p_c$ where $k_c$ is the mean degree, e.g. the mean number of neighbors of a household in the network:
 \begin{equation}
-	p_c = \frac{2 [cc]}{2[cc] + [cd]}; \qquad p_d = \frac{cc}{2[cc] + [cd]}
+	p^{(c)} = \frac{2 [cc]}{2[cc] + [cd]}; \qquad p^{(d)} = \frac{[cd]}{2[cc] + [cd]}
 	\label{neighbordist}
 \end{equation}
-Which results in $n_c$ additional clean neighbors and $n_d$ additional dirty neighbors.
+Which results in $n^{(c)}$ additional clean neighbors and $n^{(d)}$ additional dirty neighbors.
 \begin{equation}
-	n_c = (1-1/k_c)\frac{2[cc]}{N_c}; \quad n_d = (1-1/k_c)\frac{[cd]}{N_c}
+	n^{(c)} = (1-1/k^{(c)})\frac{2[cc]}{N^{(c)}}; \quad n^{(d)} = (1-1/k^{(c)})\frac{[cd]}{N^{(c)}}
 	\label{additional_neighbors}
 \end{equation}
 This results in the following changes in the state space variables:
 \begin{align}
-	\Delta N_c &= -1 \nonumber \\
-	\Delta N_d &= 1 \nonumber \\
-	\Delta [cc] &= \left( 1 - \frac{1}{k_c} \right)\frac{2[cc]}{N_c} \nonumber \\
-	\Delta [dd] &= \left( 1 - \frac{1}{k_c} \right)\frac{[cd]}{N_c} \nonumber \\
-	\Delta [cd] &= -1 + \left( 1 - \frac{1}{k_c} \right)\frac{2[cc] - [cd]}{N_c} \nonumber
+	\Delta N^{(c)} &= -1 \nonumber \\
+	\Delta N^{(d)} &= 1 \nonumber \\
+	\Delta [cc] &= \left( 1 - \frac{1}{k^{(c)}} \right)\frac{2[cc]}{N^{(c)}} \nonumber \\
+	\Delta [dd] &= \left( 1 - \frac{1}{k^{(c)}} \right)\frac{[cd]}{N^{(c)}} \nonumber \\
+	\Delta [cd] &= -1 + \left( 1 - \frac{1}{k^{(c)}} \right)\frac{2[cc] - [cd]}{N^{(c)}} \nonumber
 \end{align}
 So, summing up, the change in the state vector is given by:
 \begin{equation}
@@ -161,6 +162,4 @@ Below, we derive ordinary differential equations using option A). Therefore, we 
 \begin{equation}
 	x = \frac{X}{N}, \quad y = \frac{Y}{M}, \quad z = \frac{Z}{M}, \quad c = \frac{C}{N}, \quad g = \frac{G}{N}, \quad k = \frac{2M}{N}
 \end{equation}
-
-
 
