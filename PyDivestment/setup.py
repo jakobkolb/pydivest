@@ -23,6 +23,10 @@ setup(name="pydivest",
             "pymofa>=0.1.0",
             "pylama>=7.0.0",
             "pytest-cov>=2.5.1",
+            "pandas",
+            "scipy",
+            "networkx",
+            "pickle"
       ],
       # see http://stackoverflow.com/questions/15869473/what-is-the-advantage-
       # of-setting-zip-safe-to-true-when-packaging-a-python-projec
