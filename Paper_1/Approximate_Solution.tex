@@ -8,7 +8,7 @@ We aim to find an analytic description of the dynamics of the model in terms ord
 
 To calculate labor shares $L_c$ and $L_d$ as well as wages in the two sectors, we use equations \eqref{eq:resource_cost} and \eqref{eq:equilibrium_wage} and assume equal labor elasticities in both sectors $\alpha_d = \alpha_c = \alpha$ resulting in
 \begin{align}
-	w &= \frac{\partial Y_d}{\partial L_d} - \frac{\partial c_R}{\partial L_c} \nonumber \\
+	w &= \frac{\partial Y_d}{\partial L_d} - \frac{\partial c_R}{\partial L_d} \nonumber \\
 	&= \frac{\partial Y_d}{\partial L_d} - \frac{\partial c_R}{\partial R} \frac{\partial R}{\partial L_d} \nonumber = \frac{\partial Y_d}{\partial L_d} - \frac{\partial c_R}{\partial R} \frac{\partial}{\partial L_d} \frac{Y_d}{e} \nonumber \\
 	&= \frac{\partial Y_d}{\partial L_d} - b_R \frac{\partial}{\partial L_d} \frac{Y_d}{e} = b_d K_d^{\beta_d} \alpha L_d^{\alpha-1}\left( 1-\frac{b_R}{e} \right)
 	\label{eq:dirty_wages}
@@ -24,7 +24,7 @@ for the clean sector. Combining these results via equation \eqref{eq:population}
 \end{equation}
 Substituting 
 \begin{equation}
-	X_c = (b_c K_c^{\beta_c})^{\frac{1}{1-\alpha}}, \qquad X_d = (b_d K_d^{\beta_d})^{\frac{1}{1-\alpha}}, \qquad X_R = \left( 1 - \frac{b_R}{e} \right)^{\frac{1}{1-\alpha}}
+	X_c = (b_c K_c^{\beta_c}C^{\gamma})^{\frac{1}{1-\alpha}}, \qquad X_d = (b_d K_d^{\beta_d})^{\frac{1}{1-\alpha}}, \qquad X_R = \left( 1 - \frac{b_R}{e} \right)^{\frac{1}{1-\alpha}}
 	\label{eq:substitutions}
 \end{equation}
 and solving for $w$ holds:
@@ -60,7 +60,7 @@ results in the following restraints for the capital and labor elasticities $\alp
 To sum up, we solved the algebraic constraints to the ordinary differential equations describing the economic production process resulting in the following equations:
 \begin{subequations}
 \begin{empheq}[box=\widefbox]{gather}
-	X_c = (b_c K_c^{\beta_c})^{\frac{1}{1-\alpha}}, \qquad X_d = (b_d K_d^{\beta_d})^{\frac{1}{1-\alpha}}, \qquad X_R = \left( 1 - \frac{b_R}{e}\frac{G_0^2}{G^2} \right)^{\frac{1}{1-\alpha}}, \\
+	X_c = (b_c K_c^{\beta_c}C^{\gamma})^{\frac{1}{1-\alpha}}, \quad X_d = (b_d K_d^{\beta_d})^{\frac{1}{1-\alpha}}, \quad X_R = \left( 1 - \frac{b_R}{e}\frac{G_0^2}{G^2} \right)^{\frac{1}{1-\alpha}}, \\
 	w = \alpha L^{\alpha-1}\left( X_c + X_d X_R \right)^{1-\alpha}, \label{eq:equilibrium_wage_solution}\\
 	r_c = \frac{\beta_c}{K_c}X_c L^{\alpha}\left( X_c + X_d X_R \right)^{-\alpha}, \\
 	r_d = \frac{\beta_d}{K_d}X_d X_R L^{\alpha}\left( X_c + X_d X_R \right)^{-\alpha}, \\
@@ -110,7 +110,7 @@ To derive a macroscopic approximation of the opinion formation process, we make 
 These three degrees of freedom span the reduced state space of the social process $\mathbf{S} = (X, Y, Z)^T$. The investment decision making process can be described in terms of jump lengths $\Delta \mathbf{S}_j$ and jump rates $W(\mathbf{S},\mathbf{S} + \Delta \mathbf{S}_j)$ in this state space for the set $\Omega$ of all possible events.
 The derivation of these is illustrate by the example of a clean household imitating a dirty household: The rate of this event is given by
 \begin{equation}
-	W_{c \rightarrow d} = \frac{N}{\tau} (1-\varepsilon) (1 - \varphi) \frac{N^{(c)}}{N}\frac{[cd]}{[cd] + 2 [cc]}\frac{1}{2}\left( \tanh(\bar{C}^{(d)} - \bar{C}^{(d)}) + 1 \right).
+	W_{c \rightarrow d} = \frac{N}{\tau} (1-\varepsilon) (1 - \varphi) \frac{N^{(c)}}{N}\frac{[cd]}{[cd] + 2 [cc]}\frac{1}{2}\left( \tanh(\bar{F}^{(d)} - \bar{F}^{(d)}) + 1 \right).
 	\label{cdswitchingprob}
 \end{equation}
 In some more detail this results from
@@ -120,9 +120,9 @@ In some more detail this results from
 	\item $(1-\varphi)$ the probability of imitation events (versus network adaptation events),
 	\item $N^{(c)}/N$ the probability of the active household to invest in clean capital,
 	\item $[cd]/(2[cc] + [cd])$ the probability of interaction with a household investing in dirty capital,
-	\item $\frac{1}{2}\left( \tanh(\bar{C}^{(d)} - \bar{C}^{(c)}) + 1 \right)$ the probability of the active neighbor imitating its neighbor depending on the average difference in consumption between households investing in clean and dirty capital $C^{(c)}$ and $C^{(d)}$.
+	\item $\frac{1}{2}\left( \tanh(\bar{F}^{(d)} - \bar{F}^{(c)}) + 1 \right)$ the probability of the active neighbor imitating its neighbor depending on the average difference in consumption between households investing in clean and dirty capital.
 \end{itemize}
-The change in state space variables is a little more tricky. Since the event is a clean household imitating a dirty household, we already know about one of the neighbors of the household. Then the remaining neighbors are determined by drawing $k_c - 1$ times from the distribution of neighbors that is assumed to be given by the probability for a neighbor to be dirty $p_d$ or clean $p_c$ where $k_c$ is the mean degree, e.g. the mean number of neighbors of a household in the network:
+The change in state space variables is a little more tricky. Since the event is a clean household imitating a dirty household, we already know about one of the neighbors of the household. Then the remaining neighbors are determined by drawing $k^{c} - 1$ times from the distribution of neighbors that is assumed to be given by the probability for a neighbor to be dirty $p^{(d)}$ or clean $p^{(c)}$ where $k^{(c)}$ is the mean degree, e.g. the mean number of neighbors of a household in the network:
 \begin{equation}
 	p^{(c)} = \frac{2 [cc]}{2[cc] + [cd]}; \qquad p^{(d)} = \frac{[cd]}{2[cc] + [cd]}
 	\label{neighbordist}
@@ -142,25 +142,49 @@ This results in the following changes in the state space variables:
 \end{align}
 So, summing up, the change in the state vector is given by:
 \begin{equation}
-	\Delta S_{c \rightarrow d} = \colvec{3}{-2}{-k_c}{-1 +  \left( 1 - \frac{1}{k_c} \right)\frac{2[cc] - [cd]}{N_c} }
+	\Delta S_{c \rightarrow d} = \colvec{3}{-2}{-k^{(c)}}{-1 +  \left( 1 - \frac{1}{k^{(c)}} \right)\frac{2[cc] - [cd]}{N^{(c)}} }
 	\label{cdstatespacechange}
 \end{equation}
 
-In terms of these, the dynamics of the PBP can be written as a master equation:
+In terms of these, the dynamics of the PBP can be written as a master equation for the probability distribution $P$ over the state space $\mathbf{S}$:
 
 \begin{align}
-	\frac{{\rm d} P(\mathbf{S}, t)}{{\rm d} t} = \sum_{j \in \Omega} &P(\mathbf{S} - \Delta \mathbf{S}_j, t) W(\mathbf{S} - \Delta \mathbf{S}_j,\mathbf{S}) \nonumber \\
+	\frac{{\partial} P(\mathbf{S}, t)}{\partial t} = \sum_{j \in \Omega} &P(\mathbf{S} - \Delta \mathbf{S}_j, t) W(\mathbf{S} - \Delta \mathbf{S}_j,\mathbf{S}) \nonumber \\
 	&- P(\mathbf{S}, t) W(\mathbf{S},\mathbf{S} + \Delta \mathbf{S}_j) \label{eq:PBP}
 \end{align}
 \JJK{This illustrative derivation may as well go into the SI to be replaced by a short verbal explanation of the process in the paper body}
 
 \subsection{Large System Limit}
-
+\label{large_system_limit}
 The description of the model in terms of equations \eqref{eq:equilibrium_wage_solution} to \eqref{eq:resource_depreciation} and \eqref{eq:PBP} pose a significant reduction of complexity, yet they are still not a description in therms of ordinary differential equations, as typically used in macroeconomic models. To derive ordinary differential equations, we do an expansion in terms of system size, which in our case is given by the number of households $N$.
 Doing this, one has to make a choice: either A) keep the aggregate quantitites for labor, capital and resource stock fixed and consequently take the limit of infinitely many, infinitely small households, or B) keep the per household quantities of labor, capital and resource stock fixed and thereby go to an infinitely large economy in terms of aggregated quantitites. \\
-Below, we derive ordinary differential equations using option B). Therefore, we Introduce rescaled variables:
+Below, we derive ordinary differential equations using option B). Therefore, following van Kampen, we Introduce rescaled variables
 \begin{equation}
-	x = \frac{X}{N}, \quad y = \frac{Y}{M}, \quad z = \frac{Z}{M}, \quad c = \frac{C}{N}, \quad g = \frac{G}{N}, \quad k = \frac{2M}{N}
+	x = \frac{X}{N}, \quad y = \frac{Y}{M}, \quad z = \frac{Z}{M}, \quad c = \frac{C}{N}, \quad g = \frac{G}{N}, \quad k = \frac{2M}{N}.
+	\label{eq:rescalled_pbp_variables}
 \end{equation}
-and assume constant returns to scale to assert the independence of the economic production from the number of households.
+and expand the master equation in terms of a small parameter $N^{-1}$. In leading order, the time development of the rescaled state vector $\mathbf{s} = (x, y, z)$ is given by 
+\begin{equation}
+	\frac{\rm{d}}{\rm{d}t}\mathbf{s} = \alpha_{1,0}(\mathbf{s})
+	\label{macroscopic_equation}
+\end{equation}
+where $\alpha_{1,0}$ is the first jump moment of $W$ in terms of rescalled variables $\mathbf{s}$ given by
+\begin{equation}
+	\alpha_{1,0}(\mathbf{s}) = \int \Delta \mathbf{s} W(s, \Delta \mathbf{s}) {\rm d} \Delta \mathbf{s}
+	\label{eq:jump_moment}
+\end{equation}
+which in the case of discrete jumps in phase space simplifies to:
+\begin{equation}
+	\frac{\rm{d}}{\rm{d}t}\mathbf{s} = \sum_{j \in \Omega}  \Delta \mathbf{s_j} W_j 
+	\label{eq:transitions}
+\end{equation}
+Where $\Omega$ is the set of all possible (discrete) events in the opinion formation process.
+For the switching terms in \eqref{eq:mean_capital_stocks} simply collect all terms describing immitation processes in the pair based proxy and sum up.
+Rescalled variables in the economic system are:
+\begin{equation}
+	l = \frac{L}{N}, \quad g = \frac{G}{N}, \quad c = \frac{C}{N}.
+	\label{eq:rescalled_economic_variables}
+\end{equation}
+Note that the economic equations \eqref{eq:equilibrium_wage_solution} to \eqref{eq:resource_depreciation} in terms of rescalled variables \eqref{eq:rescalled_pbp_variables} and \eqref{eq:rescalled_economic_variables} are only independent of $N$, if we assume constant returns to scale. This is therefore indispensable.
+
 

@@ -9,7 +9,7 @@ The model consists of two processes. One for the economic production process and
 
 Economic production takes place in two sectors. For illustrational clarity we call them the \textit{clean} and the \textit{dirty} sector. The dirty sector uses labor $L$, dirty capital $K_d$ and a fossil resource $R$ as input factors, the clean sector uses labor $L$, clean capital $K_c$ and a renewable technology stock $C$ as input factors. We assume that the physical capital of one sector cannot be used in the other sector due to different technologies. We also assume that capital labor and knowledge are mutual substitutes but that the additional resource cannot be substituted. To satisfy these requirements, we use the following production functions:
 \begin{equation}
-	Y_c = b_c L_c^{\alpha_c}K_c^{\beta_c}C^{\gamma_c}, 
+	Y_c = b_c L_c^{\alpha_c}K_c^{\beta_c}C^{\gamma}, 
 	\label{eq:clean_production}
 \end{equation}
 in the clean sector, where $b_c$ is the Solow residual in the clean sector and $\alpha_c$, $\beta_c$ and $\gamma_c$ are the elasticities of the respective input factors and
@@ -66,7 +66,7 @@ Households generate income from labor and capital income:
 	I^{(i)} = w L^{(i)} + r_c K_c^{(i)} + r_d K_d^{(i)}
 	\label{household_income}
 \end{equation}
-which they use for consumption $C^{(i)} = (1-s) I^{(i)}$ and savings $S^{(i)} = s I^{(i)}$. Households decision about where to invest their savings $o_i \in [c,d]$ is the result of a social learning process closely adapted from the adaptive voter model. This process describes the learning of successful strategies together with preferential attachment driven by homophily towards individuals exhibiting the same behavior.
+which they use for consumption $F^{(i)} = (1-s) I^{(i)}$ and savings $S^{(i)} = s I^{(i)}$. Households decision about where to invest their savings $o_i \in [c,d]$ is the result of a social learning process closely adapted from the adaptive voter model. This process describes the learning of successful strategies together with preferential attachment driven by homophily towards individuals exhibiting the same behavior.
 
 Households form the nodes of a graph of acquaintance relations. Households get active at a constant rate. When a household $i$ becomes active, it interacts with one of its acquaintances $j$ chosen at random. If they hold the same opinion, nothing happens. If they hold different opinions, one of two things can happen:
 \begin{itemize}
@@ -75,7 +75,7 @@ Households form the nodes of a graph of acquaintance relations. Households get a
 \end{itemize}
 The imitation probability is given as a monotonously increasing function of the difference in consumption between the two households:
 \begin{equation}
-	p_{ji} = \frac{1}{2}(1 + \tanh \left( C^{(j)} - C^{(i)}  \right)
+	p_{ji} = \frac{1}{2}(1 + \tanh \left( F^{(j)} - F^{(i)}  \right)
 	\label{imitation_probability}
 \end{equation}
 A fraction $\varepsilon$ of events are random, e.g. rewiring to a random other household or randomly investing in one of the two sectors.
