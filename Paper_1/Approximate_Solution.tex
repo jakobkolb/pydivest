@@ -80,7 +80,7 @@ To describe the capital structure in the model, we use the numbers of households
 	\bar{K}_l^{(k)} = \frac{1}{N^{(k)}}\sum_{o_i=k}^{N}K_l^{(i)}, \qquad \lim_{N \rightarrow \infty} \bar{K}_{l}^{(k)} = \braket{K_l^{(i)}}{o_i = k} = \mu_l^{(k)}
 	\label{eq:moments_definition}
 \end{align}
-The time derivative of the means defined in \eqref{eq:moments_definition} is given by capital accumulation \eqref{eq:clean_capital_accumulation} and \eqref{eq:dirty_capital_accumulation} as well as terms resulting from agents switching their savings decisions: 
+The time derivative of the means defined in \eqref{eq:moments_definition} is given by capital accumulation \eqref{eq:clean_capital_accumulation} and \eqref{eq:dirty_capital_accumulation} as well as terms resulting from agents switching their savings decisions. 
 \begin{equation}
 \left.  \begin{aligned}
 		\dot{\bar{K}}_c^{(c)} &= (sr_c - \alpha)\bar{K}_c^{(c)} + s r_d \bar{K}_d^{(c)} + s w \bar{L} \nonumber \\
@@ -89,14 +89,18 @@ The time derivative of the means defined in \eqref{eq:moments_definition} is giv
 		\dot{\bar{K}}_d^{(d)} &= sr_c \bar{K}_c^{(d)} + (s r_d - \alpha)\bar{K}_d^{(d)} + s w \bar{L} \nonumber
 	\end{aligned} \right\} + \rm{switching\ terms}
 \end{equation}
-Assuming that the average household that changes its savings decision owns the average amount of capital these switching terms are equal to the switching rate $W_{k \rightarrow l}$ times the average capital in the state of origin $K_m^{(k)}$.
+The form of the switching terms can be calculated by taking the derivative of the moments as defined in \eqref{eq:moments_definition}:
 \begin{align}
-	\dot{\bar{K}}_c^{(c)} &= (sr_c - \alpha)\bar{K}_c^{(c)} + s r_d \bar{K}_d^{(c)} + s w \bar{L} + W_{d \rightarrow c} \bar{K}_c^{(d)} - W_{c \rightarrow d} \bar{K}_c^{(c)} \nonumber \\
-	\dot{\bar{K}}_d^{(c)} &= - \alpha\bar{K}_d^{(c)} + W_{d \rightarrow c} \bar{K}_d^{(d)} - W_{c \rightarrow d} \bar{K}_d^{(c)} \nonumber \\
-	\dot{\bar{K}}_c^{(d)} &= - \alpha\bar{K}_c^{(d)} + W_{c \rightarrow d} \bar{K}_c^{(c)} - W_{d \rightarrow c} \bar{K}_c^{(d)} \nonumber \\
-	\dot{\bar{K}}_d^{(d)} &= sr_c \bar{K}_c^{(d)} + (s r_d - \alpha)\bar{K}_d^{(d)} + s w \bar{L} + W_{c \rightarrow d} \bar{K}_d^{(c)} - W_{d \rightarrow c} \bar{K}_d^{(d)}
-	\label{eq:mean_capital_stocks}
+	\frac{d}{dt}\bar{K}_j^{(i)} =& \frac{d}{dt}\frac{1}{N^{(i)}}\sum_{\sigma_i = k}^{N} \bar{K}_j^{(i)} \\
+	=& - \sum_{\sigma_i = k}^{N} \bar{K}_j^{(i)} \left(\frac{1}{N^{(i)}}\right)^{2}\frac{d}{dt} N^{(i)} \nonumber \\
+	&+ \frac{1}{N^{(i)}} \left( \sum_{\sigma_i = k}^{N} \left. \frac{d}{dt} \right|_{N^{(i)}}\bar{K}_j^{(i)} + \frac{d N_{l \rightarrow i}}{dt} \bar{K}_{j}^{l} - \frac{d N_{i \rightarrow l}}{dt} \bar{K}_{j}^{(i)} \right) \\
+	=& - \bar{K}_{j}^{(i)}\frac{1}{N^{(i)}}\left( \frac{d N_{l \rightarrow i}}{dt} - \frac{d N_{i \rightarrow l}}{dt} \right) \nonumber \\
+	&+ \left. \frac{d}{dt} \right|_{N^{(i)}}\bar{K}_j^{(i)} +  \frac{1}{N^{(i)}} \left(\frac{d N_{l \rightarrow i}}{dt} \bar{K}_{j}^{l} - \frac{d N_{i \rightarrow l}}{dt} \bar{K}_{j}^{(i)} \right) \\
+	=& \left. \frac{d}{dt} \right|_{N^{(i)}}\bar{K}_{j}^{(i)} + \frac{1}{N^{(i)}} \frac{dN_{l \rightarrow i}}{dt} \left(\bar{K}^{(l)}_{j} - \bar{K}^{(i)}_{j}\right) 
+	\label{eq:mean_time_derivative}
 \end{align}
+which intuitively interprets as change in the mean capitatal through the influx of households from a different investment decision holding a different mean capital. They only depend on the different mean capital endowments held by households with different investment decision and the switching rates between investment decisions.
+
 We derive expressions for these switching rates below.
 \subsection{Pair Approximation}
 
@@ -158,7 +162,8 @@ In terms of these, the dynamics of the PBP can be written as a master equation f
 \label{large_system_limit}
 The description of the model in terms of equations \eqref{eq:equilibrium_wage_solution} to \eqref{eq:resource_depreciation} and \eqref{eq:PBP} pose a significant reduction of complexity, yet they are still not a description in therms of ordinary differential equations, as typically used in macroeconomic models. To derive ordinary differential equations, we do an expansion in terms of system size, which in our case is given by the number of households $N$.
 Doing this, one has to make a choice: either A) keep the aggregate quantitites for labor, capital and resource stock fixed and consequently take the limit of infinitely many, infinitely small households, or B) keep the per household quantities of labor, capital and resource stock fixed and thereby go to an infinitely large economy in terms of aggregated quantitites. \\
-Below, we derive ordinary differential equations using option B). Therefore, following van Kampen, we Introduce rescaled variables
+\subsubsection*{Fixed per Household quantities}
+First, we derive ordinary differential equations using option B). Therefore, following van Kampen, we Introduce rescaled variables
 \begin{equation}
 	x = \frac{X}{N}, \quad y = \frac{Y}{M}, \quad z = \frac{Z}{M}, \quad c = \frac{C}{N}, \quad g = \frac{G}{N}, \quad k = \frac{2M}{N}.
 	\label{eq:rescalled_pbp_variables}
@@ -179,7 +184,7 @@ which in the case of discrete jumps in phase space simplifies to:
 	\label{eq:transitions}
 \end{equation}
 Where $\Omega$ is the set of all possible (discrete) events in the opinion formation process.
-For the switching terms in \eqref{eq:mean_capital_stocks} simply collect all terms describing immitation processes in the pair based proxy and sum up.
+For the switching terms in \eqref{eq:mean_time_derivative} simply collect all terms describing immitation processes in the pair based proxy and sum up.
 Rescalled variables in the economic system are:
 \begin{equation}
 	l = \frac{L}{N}, \quad g = \frac{G}{N}, \quad c = \frac{C}{N}.
@@ -187,4 +192,17 @@ Rescalled variables in the economic system are:
 \end{equation}
 Note that the economic equations \eqref{eq:equilibrium_wage_solution} to \eqref{eq:resource_depreciation} in terms of rescalled variables \eqref{eq:rescalled_pbp_variables} and \eqref{eq:rescalled_economic_variables} are only independent of $N$, if we assume constant returns to scale. This is therefore indispensable.
 
-
+\subsubsection*{Fixed Aggregated Quantitites}
+If we want to abstract from the restriction of constant returns to scale, we have to keep the aggregated economic quantities fixed in the large system limit. This means that instead of the means of capital endowmends of clean and dirty households, we have to use the sum over their endowmends as variables:
+\begin{equation}
+	\tilde{K_l^{(k)}} = \sum_{o_i=k}^{N}K_l^{(i)}
+	\label{eq:not_normalized_moments_definition}
+\end{equation}
+and look at their time development:
+\begin{equation}
+	\dot{\tilde{K}}_{l}^{(k)} = \left. \frac{d}{dt} \right|_{N^{(k)}}\tilde{K}^{(i)}_{l} + \frac{d N_{j \rightarrow k}}{dt}\frac{\tilde{K}_l^{(j)}}{N^{(j)}} - \frac{d N_{k \rightarrow j}}{dt}\frac{\tilde{K}_l^{(k)}}{N^{(k)}}.
+	\label{eq:aggregated_capital_time_derivative}
+\end{equation}
+In the limit of $N \rightarrow \infty$ the per household quantities vanish. Therefore, the interaction defined in eq. \eqref{eq:imitation_probability} that depends on absolute differences in household properties would vanish too. Consequently, we have to redefine the interaction to only depend on relative differences in household quantities instead.
+\par
+\JJK{Note: Agent interaction depending on absolute differences in per household quantities and non-constant returns to scale are mutually exclusive in the large system limit.}
