@@ -239,6 +239,8 @@ def run_experiment(argv):
     """
     create names and dicts of callables for post processing
     """
+    def foo(fnames):
+        return 0
 
     NAME = 'b_c_scan_' + sub_experiment + '_trajectory'
 
@@ -249,7 +251,9 @@ def run_experiment(argv):
                     level=0).mean(),
             "sem_trajectory":
             lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
-                                      for f in fnames]).groupby(level=0).std()
+                                      for f in fnames]).groupby(level=0).std(),
+            "foo_results":
+            foo(fnames)
             }
     NAME2 = NAME + '_switchlist'
     CF2 = {"switching_capital":
