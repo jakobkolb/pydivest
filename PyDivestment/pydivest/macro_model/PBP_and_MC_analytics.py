@@ -81,8 +81,8 @@ vars2 = (N, K, X, Y, Z)
 subs1 = s.solve(eqs, vars1, dict=True)[0]
 
 # define expected wealth as expected income
-subs1[s.tanh(Wd - Wc)] = rc * (mudc - mucc) + rd * (mudd - mucd)
-subs1[s.tanh(Wc - Wd)] = rc * (mucc - mudc) + rd * (mucd - mudd)
+subs1[s.tanh(Wd - Wc)] = rc * (mucd - mucc) + rd * (mudd - mudc)
+subs1[s.tanh(Wc - Wd)] = rc * (mucc - mucd) + rd * (mudc - mudd)
 
 # Effect of events on state vector S = (X, Y, Z)
 
@@ -152,14 +152,14 @@ subs2 = {w: pi * P ** (pi - 1.) * (Xc + Xd * XR) ** (1. - pi),
          R: bd / e * Kd ** kappad * P ** pi * (Xd * XR / (Xc + Xd * XR)) ** pi,
          Pc: P * Xc / (Xc + Xd * XR),
          Pd: P * Xd * XR / (Xc + Xd * XR),
-         s.tanh(Wd - Wc): rc * (mudc - mucc) + rd * (mudd - mucd),
-         s.tanh(Wc - Wd): rc * (mucc - mudc) + rd * (mucd - mudd)}
+         s.tanh(Wd - Wc): rc * (mucd - mucc) + rd * (mudd - mudc),
+         s.tanh(Wc - Wd): rc * (mucc - mucd) + rd * (mucdc - mudd)}
 
 # Define substitutions to eliminate N:
 x, y, z, k = s.symbols('x y z k')
 c, g, p, g0 = s.symbols('c, g, p, g_0')
-subs4 = {Kc: (N / 2. * (1. + x) * mucc + N / 2. * (1. - x) * mudc),
-         Kd: (N / 2. * (1. + x) * mucd + N / 2. * (1. - x) * mudd),
+subs4 = {Kc: (N / 2. * (1. + x) * mucc + N / 2. * (1. - x) * mucd),
+         Kd: (N / 2. * (1. + x) * mudc + N / 2. * (1. - x) * mudd),
          C: N * c,
          P: N * p,
          G: N * g,
@@ -178,11 +178,11 @@ print('define economic equations,')
 # Write down dynamic equations for the economic subsystem in terms of means
 # of clean and dirty capital stocks for clean and dirty households
 
-rhsECO = s.Matrix([(rs * rc - delta) * mucc + rs * rd * mucd + rs * w * P / N,
-                   -delta * mucd,
+rhsECO = s.Matrix([(rs * rc - delta) * mucc + rs * rd * mudc + rs * w * P / N,
                    -delta * mudc,
-                   rs * rc * mudc + (rs * rd - delta) * mudd + rs * w * P / N,
-                   1. / N * (bc * Pc ** pi * (Nc * mucc + Nd * mudc) ** kappac
+                   -delta * mucd,
+                   rs * rc * mucd + (rs * rd - delta) * mudd + rs * w * P / N,
+                   1. / N * (bc * Pc ** pi * (Nc * mucc + Nd * mudcd) ** kappac
                              * C ** xi - delta * C),
                    1. / N * (-R)])
 
@@ -196,10 +196,10 @@ dtNdc = 1. / tau * Nd * (
     Nd / N * cd / (2. * dd + cd) * (1. - phi) * (1. - epsilon) * 1. / 2. * (
         s.tanh(Wc - Wd) + 1) + epsilon * 1. / 2. * Nd / N)
 
-rhsECO_switch = s.Matrix([(mudc - mucc) * dtNdc / Nc,
-                          (mudd - mucd) * dtNdc / Nc,
-                          (mucc - mudc) * dtNcd / Nd,
-                          (mucd - mudd) * dtNcd / Nd,
+rhsECO_switch = s.Matrix([(mucd - mucc) * dtNdc / Nc,
+                          (mudd - mudc) * dtNdc / Nc,
+                          (mucc - mucd) * dtNcd / Nd,
+                          (mudc - mudd) * dtNcd / Nd,
                           0,
                           0])
 rhsECO_switch = s.simplify(rhsECO_switch.subs(subs1))
@@ -230,10 +230,5 @@ rhs = s.Matrix([rhsPBP, rhsECO]).subs(subs1)
 with open('res_raw.pkl', 'wb') as outf:
     pkl.dump(rhs, outf)
 
-pcl = s.Matrix([rc, rd, Kc, Kd, Pc, Pd, R]).subs(subs1).subs(subs2).subs(
-    subs3).subs(subs4).subs(subs5)
-
-with open('pcl.pkl', 'wb') as outf:
-    pkl.dump(pcl, outf)
 
 print('done.')
