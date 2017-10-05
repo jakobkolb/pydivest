@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 
 from pydivest.divestvisuals.data_visualization import plot_trajectories
-from pydivest.macro_model import integrate_equations as macro_model
+from pydivest.macro_model import integrate_equations_mean as macro_model
 from pydivest.micro_model import divestmentcore as micro_model
 from pymofa.experiment_handling import experiment_handling, \
     even_time_series_spacing
