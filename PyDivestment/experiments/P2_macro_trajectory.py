@@ -19,10 +19,10 @@ import numpy as np
 import pandas as pd
 
 from pydivest.divestvisuals.data_visualization import plot_trajectories
-from pydivest.macro_model import integrate_equations_mean as macro_model
+from pydivest.macro_model import integrate_equations_mean as mean_macro_model
+from pydivest.macro_model import integrate_equations_aggregate as aggregate_macro_model
 from pydivest.micro_model import divestmentcore as micro_model
-from pymofa.experiment_handling import experiment_handling, \
-    even_time_series_spacing
+from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
 
 
 def RUN_FUNC(b_d, phi, approximate, test, filename):
@@ -56,7 +56,7 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
                     'b_r0': 0.1 ** 2 * 100.,
                     'possible_opinions': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
-                    'P': 100., 'C': 100., 'G_0': 800.,
+                    'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
                     'interaction': 2}
 
@@ -83,12 +83,14 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
                        clean_investment, dirty_investment)
 
     # initializing the model
-    print('approximate', approximate)
-    if approximate:
-        m = macro_model.Integrate_Equations(*init_conditions, **input_params)
-    else:
+    if approximate == 1:
         m = micro_model.DivestmentCore(*init_conditions, **input_params)
-        m.init_switchlist()
+    elif approximate == 2:
+        m = mean_macro_model.Integrate_Equations(*init_conditions, **input_params)
+    elif approximate == 3:
+        m = aggregate_macro_model.Integrate_Equations(*init_conditions, **input_params)
+    else:
+        raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
 
     # storing initial conditions and parameters
 
@@ -96,10 +98,10 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
         "initials": pd.DataFrame({"Investment decisions": investment_decisions,
                                   "Investment clean": m.investment_clean,
                                   "Investment dirty": m.investment_dirty}),
-        "parameters": pd.Series({"tau": m.tau,
-                                 "phi": m.phi,
+        "parameters": pd.Series({"i_tau": m.tau,
+                                 "i_phi": m.phi,
                                  "N": m.n,
-                                 "P": m.P,
+                                 "L": m.L,
                                  "savings rate": m.s,
                                  "clean capital depreciation rate": m.d_c,
                                  "dirty capital depreciation rate": m.d_d,
@@ -112,7 +114,8 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
                                  "xi": m.xi,
                                  "resource efficiency": m.e,
                                  "epsilon": m.eps,
-                                 "initial resource stock": m.G_0})}
+                                 "initial resource stock": m.G_0,
+                                 "interaction": 2})}
 
     # run the model
     t_start = time.clock()
@@ -129,9 +132,13 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
 
     # store data in case of successful run
     if exit_status in [0, 1]:
-        # interpolate m_trajectory to get evenly spaced time series.
-        res["macro_trajectory"] = \
-            even_time_series_spacing(m.get_m_trajectory(), 201, 0., t_max)
+        if approximate == 1:
+            res['mean_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+            res['aggregate_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+        elif approximate == 2:
+            res['mean_macro_trajectory'] = m.get_mean_trajectory()
+        elif approximate == 3:
+            res['aggregate_macro_trajectory'] = m.get_aggregate_trajectory()
 
     # save data
     with open(filename, 'wb') as dumpfile:
@@ -143,10 +150,10 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
 
     return exit_status
 
-
 # get sub experiment and mode from command line
 
 # experiment, mode, test
+
 
 def run_experiment(argv):
     """
@@ -192,7 +199,7 @@ def run_experiment(argv):
     if len(argv) > 3:
         approximate = int(argv[3])
     else:
-        approximate = 0
+        approximate = 1
 
     """
     set input/output paths
@@ -206,7 +213,7 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    sub_experiment = ['micro', 'macro'][approximate]
+    sub_experiment = ['micro', 'mean', 'aggregate'][approximate - 1]
     folder = 'P2'
 
     # make sure, testing output goes to its own folder:
@@ -226,12 +233,12 @@ def run_experiment(argv):
 
     phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
     b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
-    b_d, phi, approximate, exact = [1.2], [.8], [True], [False]
+    b_d, phi = [1.2], [.8]
 
     if test:
-        PARAM_COMBS = list(it.product(b_d, phi, [bool(approximate)], [test]))
+        PARAM_COMBS = list(it.product(b_d, phi, [approximate], [test]))
     else:
-        PARAM_COMBS = list(it.product(b_ds, phis, [bool(approximate)], [test]))
+        PARAM_COMBS = list(it.product(b_ds, phis, [approximate], [test]))
 
     INDEX = {0: "b_d", 1: "phi"}
 
@@ -239,22 +246,24 @@ def run_experiment(argv):
     create names and dicts of callables for post processing
     """
 
-    NAME = 'b_c_scan_' + sub_experiment + '_trajectory'
-
-    NAME1 = NAME + '_trajectory'
+    NAME1 = 'mean_trajectory'
     EVA1 = {"mean_trajectory":
-            lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
+            lambda fnames: pd.concat([np.load(f)["mean_macro_trajectory"]
                                       for f in fnames]).groupby(
                     level=0).mean(),
             "sem_trajectory":
-            lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
+            lambda fnames: pd.concat([np.load(f)["mean_macro_trajectory"]
                                       for f in fnames]).groupby(level=0).std(),
             }
-    NAME2 = NAME + '_switchlist'
-    CF2 = {"switching_capital":
-           lambda fnames: pd.concat([np.load(f)["switchlist"]
-                                     for f in fnames]).sortlevel(level=0)
-           }
+    NAME2 = 'aggregate_trajectory'
+    EVA2 = {"mean_trajectory":
+            lambda fnames: pd.concat([np.load(f)["aggregate_macro_trajectory"]
+                                      for f in fnames]).groupby(
+                    level=0).mean(),
+            "sem_trajectory":
+            lambda fnames: pd.concat([np.load(f)["aggregate_macro_trajectory"]
+                                      for f in fnames]).groupby(level=0).std(),
+            }
 
     """
     run computation and/or post processing and/or plotting
@@ -262,21 +271,33 @@ def run_experiment(argv):
 
     # cluster mode: computation and post processing
     if mode == 0:
-        print('cluster mode')
+        print('calculating')
         sys.stdout.flush()
         SAMPLE_SIZE = 100 if not (test or approximate == 1) else 2
         handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
                                      SAVE_PATH_RAW, SAVE_PATH_RES)
         handle.compute(RUN_FUNC)
-        handle.resave(EVA1, NAME1)
 
         return 1
 
-    # local mode: plotting only
+    # Post processing
     if mode == 1:
-        print('plot mode')
         sys.stdout.flush()
-        plot_trajectories(SAVE_PATH_RES, NAME1, None, None)
+        SAMPLE_SIZE = 100 if not (test or approximate == 1) else 2
+
+        handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
+                                     SAVE_PATH_RAW, SAVE_PATH_RES)
+
+        if approximate == 1:
+            print('post processing micro model')
+            handle.resave(EVA1, NAME1)
+            handle.resave(EVA2, NAME2)
+        elif approximate == 2:
+            print('post processing mean macro approximation')
+            handle.resave(EVA1, NAME1)
+        elif approximate == 3:
+            print('post processing aggregate macro approximation')
+            handle.resave(EVA2, NAME2)
 
         return 1
 

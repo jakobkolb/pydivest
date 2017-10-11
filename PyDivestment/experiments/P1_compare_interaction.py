@@ -47,12 +47,12 @@ def RUN_FUNC(b_d, phi, interaction, filename):
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
+    input_params = {'b_c': 1., 'i_phi': phi, 'i_tau': 1.,
                     'eps': 0.05, 'b_d': b_d, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,
                     'possible_opinions': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
-                    'P': 100., 'C': 100., 'G_0': 800.,
+                    'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
                     'interaction': interaction}
 
@@ -90,7 +90,7 @@ def RUN_FUNC(b_d, phi, interaction, filename):
         "parameters": pd.Series({"tau": m.tau,
                                  "phi": m.phi,
                                  "N": m.n,
-                                 "P": m.P,
+                                 "L": m.L,
                                  "savings rate": m.s,
                                  "clean capital depreciation rate": m.d_c,
                                  "dirty capital depreciation rate": m.d_d,
@@ -108,11 +108,11 @@ def RUN_FUNC(b_d, phi, interaction, filename):
     # run the model
     t_start = time.clock()
 
-    t_max = 300 if not test else 300
+    t_max = 300 if not test else 3
     m.R_depletion = False
     m.run(t_max=t_max)
 
-    t_max += 600 if not test else 600
+    t_max += 600 if not test else 6
     m.R_depletion = True
     exit_status = m.run(t_max=t_max)
 
@@ -122,7 +122,7 @@ def RUN_FUNC(b_d, phi, interaction, filename):
     if exit_status in [0, 1]:
         # interpolate m_trajectory to get evenly spaced time series.
         res["macro_trajectory"] = \
-            even_time_series_spacing(m.get_m_trajectory(), 201, 0., t_max)
+            even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
 
     # save data
     with open(filename, 'wb') as dumpfile:
@@ -223,7 +223,7 @@ def run_experiment(argv):
     phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
     b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
     interactions = [1, 2]
-    b_d, phi, interaction = [1.2], [.8], [1, 2]
+    b_d, phi, interaction = [1.2, 1.4], [.5, .8], [1, 2]
 
     if test:
         param_combs = list(it.product(interaction, phi, b_d))
@@ -283,7 +283,7 @@ def run_experiment(argv):
         sample_size = 100 if not test else 3
 
         handle = experiment_handling(sample_size=sample_size,
-                                     parameter_combinations=param_combs[i:j],
+                                     parameter_combinations=param_combs,
                                      index=index,
                                      path_raw=save_path_raw,
                                      path_res=save_path_res,
