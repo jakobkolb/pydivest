@@ -15,13 +15,14 @@ class DivestmentCore:
                  investment_clean=None, investment_dirty=None,
                  possible_opinions=None,
                  investment_decisions=None,
-                 tau=0.8, phi=.7, eps=0.05,
-                 P=100., G_0=3000, C = 1.,
+                 i_tau=0.8, i_phi=.7, eps=0.05,
+                 L=100., G_0=3000, C=1.,
                  b_c=1., b_d=1.5, s=0.23, d_c=0.06,
                  b_r0=1., e=10,
+                 xi=1./8., pi=1./2., kappa_c=1./2., kappa_d=1./2.,
                  resource_depletion=True, test=False,
-                 beta=0.06, xi=1. / 8., learning=False,
-                 campaign=False, interaction=1):
+                 beta=0.06, learning=False,
+                 campaign=False, interaction=1, crs=True):
         """
         
         Parameters
@@ -32,10 +33,10 @@ class DivestmentCore:
         investment_dirty: list
         possible_opinions: list
         investment_decisions: list
-        tau: float
-        phi: float
+        i_tau: float
+        i_phi: float
         eps: float
-        P: float
+        L: float
         G_0: float
         C: float
         b_c: float
@@ -130,9 +131,9 @@ class DivestmentCore:
         # Household parameters
 
         # mean waiting time between social updates
-        self.tau = tau
+        self.tau = i_tau
         # rewiring probability for adaptive voter model
-        self.phi = phi
+        self.phi = i_phi
         # percentage of rewiring and imitation events that are noise
         self.eps = eps
 
@@ -192,7 +193,7 @@ class DivestmentCore:
             self.investment_decisions = investment_decisions
 
         # members of ALL household = population   
-        self.P = P
+        self.L = L
 
         # household investment in dirty capital
         if investment_dirty is None:
@@ -247,16 +248,20 @@ class DivestmentCore:
         # elasticity of knowledge
         self.xi = xi
         # clean capital elasticity
-        self.kappa_c = 1. - self.pi - self.xi
-        # dirty capital elasticity
-        self.kappa_d = 1. - self.pi
+        if crs:
+            self.kappa_c = 1. - self.pi - self.xi
+            # dirty capital elasticity
+            self.kappa_d = 1. - self.pi
+        else:
+            self.kappa_c = kappa_c
+            self.kappa_d = kappa_d
         # fossil->energy->output conversion efficiency (Leontief)
         self.e = e
 
         # Sector variables
 
-        self.P_c = P / 2.
-        self.P_d = P / 2.
+        self.P_c = L / 2.
+        self.P_d = L / 2.
 
         self.K_c = 0.
         self.K_d = 0.
@@ -288,9 +293,9 @@ class DivestmentCore:
         self.G = G_0
 
         if self.e_trajectory_output:
-            self.init_e_trajectory()
+            self.init_economic_trajectory()
         if self.m_trajectory_output:
-            self.init_m_trajectory()
+            self.init_mean_trajectory()
         if self.switchlist_output:
             self.init_switchlist()
 
@@ -485,7 +490,7 @@ class DivestmentCore:
             'investment_dirty': self.investment_dirty,
             'possible_opinions': self.possible_opinions,
             'tau': self.tau, 'phi': self.phi, 'eps': self.eps,
-            'P': self.P, 'b_c': self.b_c,
+            'L': self.L, 'b_c': self.b_c,
             'b_d': self.b_d, 's': self.s, 'd_c': self.d_c,
             'b_r0': self.b_r0, 'e': self.e, 'G_0': self.G,
             'C': self.C, 'beta': self.beta, 'xi': self.xi,
@@ -633,7 +638,7 @@ class DivestmentCore:
         self.R = R
         self.K_c = K_c
         self.K_d = K_d
-        self.P = P
+        self.L = P
         self.P_c = P_c
         self.P_d = P_d
         self.c_R = b_R * R
@@ -650,6 +655,7 @@ class DivestmentCore:
                         self.investment_decisions, self.income)
 
         G_dot = -R if self.R_depletion else 0.0
+        P_dot = 0
         C_dot = self.b_c * C ** self.xi * P_c ** self.pi \
                 * K_c ** self.kappa_c - C * self.beta if self.learning else 0.
         investment_clean_dot = \
@@ -689,7 +695,7 @@ class DivestmentCore:
         x0 = np.fromiter(chain.from_iterable([
             list(self.investment_clean),
             list(self.investment_dirty),
-            [self.P, self.G, self.C]]), dtype='float')
+            [self.L, self.G, self.C]]), dtype='float')
 
         # integrate the system unless it crashes.
         if not np.isnan(self.R):
@@ -703,7 +709,7 @@ class DivestmentCore:
         self.investment_dirty = np.where(x1[self.n:2 * self.n] > 0,
                                          x1[self.n:2 * self.n],
                                          np.zeros(self.n))
-        self.P = x1[-3]
+        self.L = x1[-3]
         self.G = x1[-2]
         self.C = x1[-1]
 
@@ -737,9 +743,10 @@ class DivestmentCore:
 
         # output economic data
         if self.e_trajectory_output:
-            self.update_e_trajectory()
+            self.update_economic_trajectory()
         if self.m_trajectory_output:
-            self.update_m_trajectory()
+            self.update_mean_trajectory()
+            self.update_aggregate_trajectory()
 
     def find_update_candidates(self):
 
@@ -956,7 +963,7 @@ class DivestmentCore:
     def fitness(self, agent):
         return self.income[agent]
 
-    def init_e_trajectory(self):
+    def init_economic_trajectory(self):
         element = list(chain.from_iterable(
             [['time',
               'wage',
@@ -968,7 +975,7 @@ class DivestmentCore:
               'K_d',
               'P_c',
               'P_d',
-              'P',
+              'L',
               'G',
               'R',
               'C',
@@ -991,19 +998,19 @@ class DivestmentCore:
         x0 = np.fromiter(chain.from_iterable([
             list(self.investment_clean),
             list(self.investment_dirty),
-            [self.P, self.G, self.C]]), dtype='float')
+            [self.L, self.G, self.C]]), dtype='float')
 
         [x0, x1] = odeint(self.economy_dot_leontief, x0, dt)
 
         self.investment_clean = x1[0:self.n]
         self.investment_dirty = x1[self.n:2 * self.n]
-        self.P = x1[-3]
+        self.L = x1[-3]
         self.G = x1[-2]
         self.C = x1[-1]
 
-        self.update_e_trajectory()
+        self.update_economic_trajectory()
 
-    def update_e_trajectory(self):
+    def update_economic_trajectory(self):
         alpha = (self.b_r0 / self.e) ** (1. / 2.)
         element = list(chain.from_iterable(
             [[self.t,
@@ -1016,7 +1023,7 @@ class DivestmentCore:
               self.K_d,
               self.P_c,
               self.P_d,
-              self.P,
+              self.L,
               self.G,
               self.R,
               self.C,
@@ -1035,7 +1042,7 @@ class DivestmentCore:
              self.dirty_opinions]))
         self.e_trajectory.append(element)
 
-    def get_e_trajectory(self):
+    def get_economic_trajectory(self):
         # make up DataFrame from micro data
         columns = self.e_trajectory.pop(0)
         df = pd.DataFrame(self.e_trajectory, columns=columns)
@@ -1043,7 +1050,7 @@ class DivestmentCore:
 
         return df
 
-    def init_m_trajectory(self):
+    def init_mean_trajectory(self):
         """
         This function initializes the e_trajectory for the output of the
         macroscopic quantitites as computed via moment closure and
@@ -1051,26 +1058,26 @@ class DivestmentCore:
         :return: None
         """
         element = ['time', 'x', 'y', 'z', 'mucc', 'mudc', 'mucd', 'mudd', 'c',
-                   'g']
+                   'g', 'w', 'r_c', 'r_d', 'Wc', 'Wd']
         self.m_trajectory.append(element)
 
         dt = [self.t, self.t]
         x0 = np.fromiter(chain.from_iterable([
             list(self.investment_clean),
             list(self.investment_dirty),
-            [self.P, self.G, self.C]]), dtype='float')
+            [self.L, self.G, self.C]]), dtype='float')
 
         [x0, x1] = odeint(self.economy_dot_leontief, x0, dt)
 
         self.investment_clean = x1[0:self.n]
         self.investment_dirty = x1[self.n:2 * self.n]
-        self.P = x1[-3]
+        self.L = x1[-3]
         self.G = x1[-2]
         self.C = x1[-1]
 
-        self.update_m_trajectory()
+        self.update_mean_trajectory()
 
-    def update_m_trajectory(self):
+    def update_mean_trajectory(self):
         """
         This function calculates the macroscopic variables that are
         the dynamic variables in the macroscopic approximation and saves
@@ -1120,45 +1127,48 @@ class DivestmentCore:
         else:
             mudc = mudd = 0
 
-        entry = [self.t, x, y, z, mucc, mudc, mucd, mudd, self.C / n, self.G / n]
+        Wc = mucc + self.r_c + mudc * self.r_d
+        Wd = mucd * self.r_c + mudd * self.r_d
+
+        entry = [self.t, x, y, z, mucc, mudc, mucd, mudd, self.C / n, self.G / n, self.w, self.r_c, self.r_d, Wc, Wd]
         self.m_trajectory.append(entry)
 
-    def get_m_trajectory(self):
+    def get_mean_trajectory(self):
         # make up Dataframe from macro data:
-        columns = self.m_trajectory.pop(0)
-        df = pd.DataFrame(self.m_trajectory, columns=columns)
+        columns = self.m_trajectory[0]
+        df = pd.DataFrame(self.m_trajectory[1:], columns=columns)
         df = df.set_index('time')
 
         return df
 
-    def init_ag_trajectory(self):
+    def init_aggregate_trajectory(self):
         """
         This function initializes the e_trajectory for the output of the
         macroscopic quantitites as computed via moment closure and
         pair based proxy.
         :return: None
         """
-        element = ['time', 'x', 'y', 'z', 'Kcc', 'Kdc', 'Kcd', 'Kdd', 'c',
-                   'g']
+        element = ['time', 'x', 'y', 'z', 'Kcc', 'Kdc', 'Kcd', 'Kdd', 'C',
+                   'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d']
         self.ag_trajectory.append(element)
 
         dt = [self.t, self.t]
         x0 = np.fromiter(chain.from_iterable([
             list(self.investment_clean),
             list(self.investment_dirty),
-            [self.P, self.G, self.C]]), dtype='float')
+            [self.L, self.G, self.C]]), dtype='float')
 
         [x0, x1] = odeint(self.economy_dot_leontief, x0, dt)
 
         self.investment_clean = x1[0:self.n]
         self.investment_dirty = x1[self.n:2 * self.n]
-        self.P = x1[-3]
+        self.L = x1[-3]
         self.G = x1[-2]
         self.C = x1[-1]
 
-        self.update_m_trajectory()
+        self.update_aggregate_trajectory()
 
-    def update_ag_trajectory(self):
+    def update_aggregate_trajectory(self):
         """
         This function calculates the macroscopic variables that are
         the dynamic variables in the macroscopic approximation and saves
@@ -1199,22 +1209,27 @@ class DivestmentCore:
         if nc > 0:
             Kcc = sum(self.investment_decisions * self.investment_clean)
             Kdc = sum(self.investment_decisions * self.investment_dirty)
+            Wc = Kcc / nc * self.r_c + Kdc / nc * self.r_d
         else:
             Kcc = Kdc = 0
+            Wc = 0.
 
         if nd > 0:
             Kcd = sum((1 - self.investment_decisions) * self.investment_clean)
             Kdd = sum((1 - self.investment_decisions) * self.investment_dirty)
+            Wd = Kcd / nd * self.r_c + Kdd / nd * self.r_d
         else:
             Kcd = Kdd = 0
+            Wd = 0.
 
-        entry = [self.t, x, y, z, Kcc, Kdc, Kcd, Kdd, self.C / n, self.G / n]
+        entry = [self.t, x, y, z, Kcc, Kdc, Kcd, Kdd, self.C, self.G, self.w, self.r_c, self.r_d, Wc, Wd]
         self.ag_trajectory.append(entry)
 
-    def get_ag_trajectory(self):
+    def get_aggregate_trajectory(self):
         # make up Dataframe from macro data:
-        columns = self.ag_trajectory.pop(0)
-        df = pd.DataFrame(self.ag_trajectory, columns=columns)
+        columns = self.ag_trajectory[0]
+        print(columns)
+        df = pd.DataFrame(self.ag_trajectory[1:], columns=columns)
         df = df.set_index('time')
 
         return df
@@ -1252,8 +1267,7 @@ if __name__ == '__main__':
     Perform test run and plot some output to check
     functionality
     """
-    import pandas as pd
-    import numpy as np
+
     import matplotlib.pyplot as mp
 
     output_location = 'test_output/' \
@@ -1270,7 +1284,7 @@ if __name__ == '__main__':
                              [4, 3],  # trending herder
                              [4, 1],  # green conformer
                              [4, 0],  # dirty conformer
-                             [1],  # gutmensch
+                             [1],  # Gutmensch
                              [0]]  # redneck
         input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
                             'b_c': 1., 'phi': 0.8, 'e': 100,
@@ -1355,7 +1369,7 @@ if __name__ == '__main__':
 
     colors = [c for c in 'gk']
 
-    df = model.get_e_trajectory()
+    df = model.get_economic_trajectory()
     print(df.columns)
 
     fig = mp.figure()
