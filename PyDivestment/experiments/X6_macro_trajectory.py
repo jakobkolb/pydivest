@@ -56,7 +56,7 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
                     'b_r0': 0.1 ** 2 * 100.,
                     'possible_opinions': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
-                    'P': 100., 'C': 100., 'G_0': 800.,
+                    'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True}
 
     # investment_decisions:
@@ -98,7 +98,7 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
         "parameters": pd.Series({"tau": m.tau,
                                  "phi": m.phi,
                                  "N": m.n,
-                                 "P": m.P,
+                                 "L": m.L,
                                  "savings rate": m.s,
                                  "clean capital depreciation rate": m.d_c,
                                  "dirty capital depreciation rate": m.d_d,
@@ -130,7 +130,7 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     if exit_status in [0, 1]:
         # interpolate m_trajectory to get evenly spaced time series.
         res["macro_trajectory"] = \
-            even_time_series_spacing(m.get_m_trajectory(), 201, 0., t_max)
+            even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
         if not approximate:
             res["switchlist"] = m.get_switch_list()
 

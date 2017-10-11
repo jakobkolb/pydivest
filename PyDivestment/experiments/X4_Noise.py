@@ -40,10 +40,10 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
         are random.
     n : int
         the number of household agents
-    P : float \in [0,1]
+    L : float \in [0,1]
         connection probability for Erdos
         Renyi random graph
-    P : int
+    L : int
         the initial population
     b_d : float
         Solov residual for the dirty sector
@@ -71,7 +71,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
     # input parameters
 
     input_params = {'tau': tau, 'phi': phi, 'eps': eps,
-                    'P': P, 'b_d': b_d, 'b_r0': b_R0,
+                    'L': P, 'b_d': b_d, 'b_r0': b_R0,
                     'e': e, 'd_c': d_c, 'test': bool(test)}
 
     # building initial conditions
@@ -98,7 +98,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
         "parameters": pd.Series({"tau": m.tau,
                                  "phi": m.phi,
                                  "n": m.n,
-                                 "P": m.P,
+                                 "L": m.L,
                                  "birth rate": m.r_b,
                                  "savings rate": m.s,
                                  "clean capital depreciation rate": m.d_c,
@@ -172,13 +172,13 @@ if len(sys.argv) > 3:
 else:
     mode = None
 
-experiments = ['b_d', 'b_R', 'e', 'P', 'test']
+experiments = ['b_d', 'b_R', 'e', 'L', 'test']
 sub_experiment = experiments[input_int]
 folder = 'X4Noise' if noise else 'X4NoNoise'
 
 # check if cluster or local
 if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW = "/P/tmp/kolb/Divest_Experiments/divestdata/" \
+    SAVE_PATH_RAW = "/L/tmp/kolb/Divest_Experiments/divestdata/" \
                     + folder + "/raw_data" + '_' + sub_experiment + '/'
     SAVE_PATH_RES = "/home/kolb/Divest_Experiments/divestdata/" \
                     + folder + "/results" + '_' + sub_experiment + '/'
@@ -199,7 +199,7 @@ es = [round(x, 5) for x in list(4. ** np.linspace(0.0, 3.0, 4))]
 ps = [round(x, 5) for x in list(np.linspace(0.0, 0.3, 7))]
 tests = [1]
 
-parameters = {'tau': 0, 'phi': 1, 'eps': 2, 'n': 3, 'P': 4, 'b_d': 5,
+parameters = {'tau': 0, 'phi': 1, 'eps': 2, 'n': 3, 'L': 4, 'b_d': 5,
               'b_R': 6, 'e': 7, 'd_c': 8, 'test': 9}
 tau, phi, eps, N, p, P, b_d, b_R, e, d_c, test = \
     [.8], [.8], [0.0], [100], [0.125], [500], [1.2], [1.], [100], [0.06], [0]
@@ -221,7 +221,7 @@ elif sub_experiment == 'e':
     PARAM_COMBS = list(it.product(taus, phis, eps, N, p, P, b_d,
                                   b_R, es, d_c, test))
 
-elif sub_experiment == 'P':
+elif sub_experiment == 'L':
     PARAM_COMBS = list(it.product(taus, phis, eps, N, ps, P, b_d,
                                   b_R, e, d_c, test))
     

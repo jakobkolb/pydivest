@@ -135,7 +135,7 @@ def RUN_FUNC(ccount, phi, alpha,
         t_G = 50*t_d
 
         # set G_0 according to resource depletion time:
-        # t_G = G_0*e*d_c/(P*s*b_d**2)
+        # t_G = G_0*e*d_c/(L*s*b_d**2)
         G_0 = t_G*P*s*b_d**2/(e*d_c)
         print(G_0, G_0 * alpha)
 
@@ -172,7 +172,7 @@ def RUN_FUNC(ccount, phi, alpha,
                         'investment_dirty': investment_dirty,
                         'possible_opinions': possible_opinions,
                         'tau': tau, 'phi': phi, 'eps': eps,
-                        'P': P, 'b_d': b_d, 'b_r0': b_R0, 'G_0': G_0,
+                        'L': P, 'b_d': b_d, 'b_r0': b_R0, 'G_0': G_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
                         'b_c': b_c, 'learning': True,
                         'R_depletion': transition}
@@ -236,7 +236,7 @@ def RUN_FUNC(ccount, phi, alpha,
                    "phi": m.phi,
                    "n": m.n,
                    "p": p,
-                   "P": m.P,
+                   "L": m.L,
                    "birth rate": m.r_b,
                    "savings rate": m.s,
                    "clean capital depreciation rate": m.d_c,
@@ -336,7 +336,7 @@ set path variables according to local of cluster environment
 """
 if getpass.getuser() == "kolb":
     SAVE_PATH_RAW = \
-        "/P/tmp/kolb/Divest_Experiments/divestdata/" \
+        "/L/tmp/kolb/Divest_Experiments/divestdata/" \
         + folder + "/raw_data"
     SAVE_PATH_RES =\
         "/home/kolb/Divest_Experiments/divestdata/"\
@@ -353,7 +353,7 @@ set path variable for initial conditions for transition runs
 """
 if getpass.getuser() == "kolb":
     SAVE_PATH_INIT = \
-        "/P/tmp/kolb/Divest_Experiments/divestdata/" \
+        "/L/tmp/kolb/Divest_Experiments/divestdata/" \
         + FOLDER_EQUI + "/raw_data"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_INIT = \

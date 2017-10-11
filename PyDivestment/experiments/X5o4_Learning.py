@@ -143,7 +143,7 @@ def RUN_FUNC(t_a, phi, alpha,
         t_g = 50*t_d
 
         # set G_0 according to resource depletion time:
-        # t_g = G_0*e*d_c/(P*s*b_d**2)
+        # t_g = G_0*e*d_c/(L*s*b_d**2)
         g_0 = t_g*p*s*b_d**2/(e*d_c)
 
         # set b_r0 according to alpha and e:
@@ -180,7 +180,7 @@ def RUN_FUNC(t_a, phi, alpha,
                         'investment_dirty': investment_dirty,
                         'possible_opinions': possible_opinions,
                         'tau': tau, 'phi': phi, 'eps': eps,
-                        'P': p, 'b_d': b_d, 'b_r0': b_r0, 'G_0': g_0,
+                        'L': p, 'b_d': b_d, 'b_r0': b_r0, 'G_0': g_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
                         'b_c': b_c, 'learning': True,
                         'r_depletion': transition}
@@ -221,7 +221,7 @@ def RUN_FUNC(t_a, phi, alpha,
     res = {"parameters": pd.Series({"tau": m.tau,
                                     "phi": m.phi,
                                     "n": m.n,
-                                    "P": m.P,
+                                    "L": m.L,
                                     "birth rate": m.r_b,
                                     "savings rate": m.s,
                                     "clean capital depreciation rate": m.d_c,
@@ -321,7 +321,7 @@ set path variables according to local of cluster environment
 """
 if getpass.getuser() == "kolb":
     SAVE_PATH_RAW = \
-        "/P/tmp/kolb/Divest_Experiments/divestdata/" \
+        "/L/tmp/kolb/Divest_Experiments/divestdata/" \
         + folder + "/raw_data"
     SAVE_PATH_RES =\
         "/home/kolb/Divest_Experiments/divestdata/"\
@@ -344,7 +344,7 @@ set path variable for initial conditions for transition runs
 """
 if getpass.getuser() == "kolb":
     SAVE_PATH_INIT = \
-        "/P/tmp/kolb/Divest_Experiments/divestdata/" \
+        "/L/tmp/kolb/Divest_Experiments/divestdata/" \
         + FOLDER_EQUI + "/raw_data"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_INIT = \
