@@ -78,7 +78,7 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
                     'b_r0': 0.1 ** 2 * 100.,  # alpha^2 * e
                     'possible_opinions': possible_opinions,
                     'xi': 1. / 8., 'beta': 0.06,
-                    'P': 100., 'C': 100., 'G_0': 1600.,
+                    'L': 100., 'C': 100., 'G_0': 1600.,
                     'campaign': False, 'learning': True,
                     'test': test, 'R_depletion': False}
 
@@ -121,7 +121,7 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
         "parameters": pd.Series({"tau": m.tau,
                                  "phi": m.phi,
                                  "n": m.n,
-                                 "P": m.P,
+                                 "L": m.L,
                                  "savings rate": m.s,
                                  "clean capital depreciation rate": m.d_c,
                                  "dirty capital depreciation rate": m.d_d,
@@ -149,7 +149,7 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     # store data in case of successful run
     if exit_status in [0, 1] or test:
         res["micro_trajectory"] = \
-            even_time_series_spacing(m.get_e_trajectory(), 401, 0., t_max)
+            even_time_series_spacing(m.get_economic_trajectory(), 401, 0., t_max)
         res["convergence_state"] = m.convergence_state
         res["convergence_time"] = m.convergence_time
 
