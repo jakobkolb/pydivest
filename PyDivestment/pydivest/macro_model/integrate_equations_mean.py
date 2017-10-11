@@ -3,20 +3,25 @@
 from __future__ import print_function
 
 from scipy.integrate import odeint
+import pickle as pkl
 import numpy as np
 import pandas as pd
 import sympy as sp
+from sympy.abc import epsilon, tau, phi
+from pydivest.macro_model.PBP_and_MC_analytics_mean import calc_rhs as rhs_new
+from pydivest.macro_model.PBP_and_MC_analytics_mean_old import calc_rhs as rhs_old
 
 
 class Integrate_Equations:
     def __init__(self, adjacency=None, investment_decisions=None,
                  investment_clean=None, investment_dirty=None,
-                 tau=0.8, phi=.7, eps=0.05,
-                 P=100., b_c=1., b_d=1.5, s=0.23, d_c=0.06,
-                 b_r0=1., e=10, G_0=3000,
+                 i_tau=0.8, i_phi=.7, eps=0.05,
+                 b_c=1., b_d=1.5, s=0.23, d_c=0.06,
+                 b_r0=1., e=10,
+                 pi=0.5, xi=1. / 8.,
+                 L=100., G_0=3000, C=1,
                  R_depletion=True,
-                 C=1, xi=1. / 8.,
-                 interaction=1, **kwargs):
+                 interaction=2, **kwargs):
 
         if len(kwargs.keys()) > 0:
             print('got superfluous keyword arguments')
@@ -27,9 +32,9 @@ class Integrate_Equations:
         # interaction either with 1) tanh(Wi-Wj) or 2) (Wi-Wj)/(Wi+Wj)
         self.interaction = interaction
         # mean waiting time between social updates
-        self.tau = float(tau)
+        self.tau = float(i_tau)
         # rewiring probability for adaptive voter model
-        self.phi = float(phi)
+        self.phi = float(i_phi)
         # percentage of rewiring and imitation events that are noise
         self.eps = float(eps)
         # number of households (to interface with initial
@@ -59,17 +64,18 @@ class Integrate_Equations:
         # elasticity of knowledge
         self.xi = float(xi)
         # labor elasticity (equal in both sectors)
-        self.pi = 1. / 2.
+        self.pi = pi
         # clean capital elasticity
         self.kappa_c = 1. - self.pi - self.xi
         # dirty capital elasticity
         self.kappa_d = 1. - self.pi
+        print('pi = {}, xi = {}, kappa_c = {}, kappa_d = {}'.format(self.pi, self.xi, self.kappa_c, self.kappa_d))
         # fossil->energy->output conversion efficiency (Leontief)
         self.e = float(e)
         # total labor
-        self.P = float(P)
+        self.L = float(L)
         # labor per household
-        self.p = float(P) / self.n
+        self.l = float(L) / self.n
         # total knowledge stock
         self.C = float(C)
         # unprofitable fraction of fossil reserve
@@ -130,59 +136,66 @@ class Integrate_Equations:
         dd = cl(adj, d, d) / 2
 
         n = len(c)
-        k = float(sum(sum(adj))) / 2
+        k_n = float(sum(sum(adj))) / 2
 
         nc = sum(c)
         nd = sum(d)
 
         self.x = float(nc - nd) / n
-        self.y = float(cc - dd) / k
-        self.z = float(cd) / k
+        self.y = float(cc - dd) / k_n
+        self.z = float(cd) / k_n
 
         self.mucc = sum(investment_clean * c) / nc
-        self.mudc = sum(investment_dirty * c) / nc
         self.mucd = sum(investment_clean * d) / nd
+        self.mudc = sum(investment_dirty * c) / nc
         self.mudd = sum(investment_dirty * d) / nd
         self.c = float(self.C) / n
         self.g = self.g_0
 
-        self.k = float(k) / n
+        self.k = float(k_n) / n
 
         # symbols for system variables
         # Define symbols for dynamic variables
         self.s_mucc, self.s_mucd, self.s_mudc, self.s_mudd = \
             sp.symbols('mu_c^c mu_c^d mu_d^c mu_d^d', positive=True, real=True)
         self.s_x, self.s_y, self.s_z = sp.symbols('x y z')
-        self.s_c, self.s_g = sp.symbols('c, g')
+        self.s_c, self.s_g, l = sp.symbols('c, g, l', positive=True, real=True)
 
         # Define symbols for parameters
-        bc, bd, bR, e, delta, rs, xi, epsilon \
-            = sp.symbols('b_c b_d b_R e delta s xi epsilon')
-        phi, tau, pi, kappac, kappad, N, g0, k, p \
-            = sp.symbols(' phi tau pi kappa_c kappa_d N g_0 k p')
+        bc, bd, bR, e, delta, rs, xi\
+            = sp.symbols('b_c b_d b_R e delta s xi', positive=True, real=True)
+        pi, kappac, kappad, N, g0, k, p \
+            = sp.symbols('pi kappa_c kappa_d N g_0 k p', positive=True, real=True)
 
         # Define lists of symbols and values for parameters to substitute
         # in rhs expression
         param_symbols = [bc, bd, bR, e, delta, rs, xi,
-                         epsilon, phi, tau, pi, kappac, kappad, N, g0, k, p]
+                         epsilon, phi, tau, pi, kappac, kappad, N, g0, k, l]
         param_values = [self.b_c, self.b_d, self.b_r0, self.e, self.d_c,
                         self.s, self.xi, self.eps, self.phi, self.tau, self.pi,
                         self.kappa_c, self.kappa_d, self.n,
-                        float(self.g_0), self.k, float(self.p)]
+                        float(self.g_0), self.k, float(self.l)]
 
         # Load right hand side of ode system
         if interaction == 1:
-            rhs = np.load(__file__.rsplit('/', 1)[0] + '/res_raw.pkl')
+            if True:
+                rhs = rhs_old()
+                with open('rhs_mean_raw_old.pkl', 'wb') as outf:
+                    pkl.dump(rhs, outf)
+            else:
+                rhs = np.load('rhs_mean_raw_old.pkl')
         elif interaction == 2:
-            rhs = np.load(__file__.rsplit('/', 1)[0] + '/res_mean_raw.pkl')
+            rhs = rhs_new()
         else:
             rhs = None
             print('interaction has to be either 1 or 2')
             exit(-1)
 
         # substitute parameters into rhs and simplify once.
-        self.rhs = rhs.subs({symbol: value for symbol, value
-                             in zip(param_symbols, param_values)})
+        print('substituting parameter values into rhs')
+        subs_params = {symbol: value for symbol, value
+                       in zip(param_symbols, param_values)}
+        self.rhs = rhs.subs(subs_params)
 
         # list to save macroscopic quantities to compare with
         # moment closure / pair based proxy approach
@@ -193,7 +206,7 @@ class Integrate_Equations:
         # dictionary for final state
         self.final_state = {}
 
-    def get_m_trajectory(self):
+    def get_mean_trajectory(self):
 
         return self.m_trajectory
 
@@ -201,6 +214,7 @@ class Integrate_Equations:
         var_symbols = [self.s_x, self.s_y, self.s_z, self.s_mucc,
                        self.s_mudc, self.s_mucd, self.s_mudd,
                        self.s_c, self.s_g]
+
         # add to g such that 1 - alpha**2 * (g/G_0)**2 remains positive
         if values[-1] < self.alpha * self.g_0:
             values[-1] = self.alpha * self.g_0
@@ -214,6 +228,7 @@ class Integrate_Equations:
 
     def run(self, t_max):
         if t_max > self.t:
+            print('integrating equations from t={} to t={}'.format(self.t, t_max))
             t = np.linspace(self.t, t_max, 50)
             initial_conditions = [self.x, self.y, self.z, self.mucc,
                                   self.mudc, self.mucd, self.mudd,
@@ -223,15 +238,10 @@ class Integrate_Equations:
             self.m_trajectory = pd.concat([self.m_trajectory, df])
 
             # update aggregated variables:
-            self.x = trajectory[-1, 0]
-            self.y = trajectory[-1, 1]
-            self.z = trajectory[-1, 2]
-            self.mucc = trajectory[-1, 3]
-            self.mudc = trajectory[-1, 4]
-            self.mucd = trajectory[-1, 5]
-            self.mudd = trajectory[-1, 6]
-            self.c = trajectory[-1, 7]
-            self.g_0 = trajectory[-1, 8]
+            (self.x, self.y, self.z,
+             self.mucc, self.mudc, self.mucd, self.mudd,
+             self.c, self.g) = trajectory[-1]
+
             self.C = self.c * self.n
             self.G = self.g * self.n
             self.t = t_max
@@ -247,15 +257,12 @@ if __name__ == '__main__':
     functionality
     """
     import datetime
-    import pandas as pd
-    import numpy as np
     import networkx as nx
     from random import shuffle
     import matplotlib.pyplot as plt
 
     output_location = 'test_output/' \
-                      + datetime.datetime.now().strftime(
-        "%d_%m_%H-%M-%Ss") + '_output'
+                      + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
     # investment_decisions:
 
@@ -268,13 +275,13 @@ if __name__ == '__main__':
                         'b_c': 0.4, 'phi': 0.8, 'e': 100,
                         'G_0': 30000, 'b_r0': 0.1 ** 2 * 100,
                         'possible_opinions': possible_opinions,
-                        'c': 100, 'xi': 1. / 8., 'beta': 0.06,
-                        'campaign': False, 'learning': True}
+                        'c': 100, 'xi': 1./8., 'beta': 0.06,
+                        'campaign': False, 'learning': True, 'imitation': 2}
 
     # investment_decisions
     opinions = []
     for i, n in enumerate(nopinions):
-        opinions.append(np.full((n), i, dtype='I'))
+        opinions.append(np.full(n, i, dtype='I'))
     opinions = [item for sublist in opinions for item in sublist]
     shuffle(opinions)
 
@@ -297,7 +304,7 @@ if __name__ == '__main__':
 
     model = Integrate_Equations(*init_conditions, **input_parameters)
 
-    model.run(t_max=2)
+    model.run(t_max=200)
 
     trj = model.m_trajectory
 
