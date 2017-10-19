@@ -228,6 +228,7 @@ class Integrate_Equations:
 
         if not self.R_depletion:
             rval[-1] = 0
+        print(t, rval[-1])
         return rval
 
     def run(self, t_max):
@@ -306,7 +307,7 @@ if __name__ == '__main__':
 
     model = Integrate_Equations(*init_conditions, **input_parameters)
 
-    model.run(t_max=200)
+    model.run(t_max=2)
 
     trj = model.m_trajectory
 
@@ -315,6 +316,7 @@ if __name__ == '__main__':
     fig = plt.figure()
 
     ax1 = fig.add_subplot(221)
+    ax1.set_title('aggregate')
     trj[model.columns[0:3]].plot(ax=ax1)
 
     ax2 = fig.add_subplot(222)

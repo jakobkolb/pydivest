@@ -14,9 +14,7 @@ from sympy.abc import epsilon, phi, tau
 
 def calc_rhs(interaction=1):
     # Define variables and parameters for the adaptive voter model
-    print('define variables,', flush=True)
-
-    # In[ ]:
+    print('YES I AM USED \n define variables,', flush=True)
 
     # number of nodes
     N = s.Symbol('N', integer=True)
@@ -52,8 +50,6 @@ def calc_rhs(interaction=1):
     Wcd, Wdc = s.symbols('W_{cd} W_{dc}')
 
     # Define variables and parameters for the economic subsystem:
-
-    # In[ ]:
 
     # Total labor and labor shares in sectors
     L, Lc, Ld = s.symbols('L L_c L_d', positive=True, real=True)
@@ -113,11 +109,11 @@ def calc_rhs(interaction=1):
         raise ValueError('only interactions depending on relative differences of agent properties are'
                          'possible with a macroscopic approximation in aggregate quantities')
     if interaction == 1:
-        subsP[Pcd] = (1. / (1 + s.exp(8. * Wcd))).subs(subs1).subs(subsW)
-        subsP[Pdc] = (1. / (1 + s.exp(8. * Wdc))).subs(subs1).subs(subsW)
+        subsP[Pcd] = (1. / (1 + s.exp(8. * Wcd)))
+        subsP[Pdc] = (1. / (1 + s.exp(8. * Wdc)))
     elif interaction == 2:
-        subsP[Pcd] = ((1. / 2) * (Wcd + 1)).subs(subs1)
-        subsP[Pdc] = ((1. / 2) * (Wdc + 1)).subs(subs1)
+        subsP[Pcd] = ((1. / 2) * (Wcd + 1))
+        subsP[Pdc] = ((1. / 2) * (Wdc + 1))
 
     for key in subsP.keys():
         subsP[key] = s.simplify(subsP[key])
@@ -130,7 +126,6 @@ def calc_rhs(interaction=1):
     s2 = s.Matrix([0, -1, -1])  # dirty investor rewires
     s3 = s.Matrix([-2, -kc, -1 + (1 - 1. / kc) * ((2 * cc - cd) / Nc)])    # clean investor imitates c -> d
     s4 = s.Matrix([2,   kd, -1 + (1 - 1. / kd) * ((2 * dd - cd) / Nd)])    # dirty investor imitates d -> c
-
 
     # noise events
 
@@ -180,13 +175,13 @@ def calc_rhs(interaction=1):
     r = r.subs(subs1)
     W = W.subs(subs1)
 
-    x, y, z, k = s.symbols('x y z k')
+    x, y, z, m = s.symbols('x y z k')
     subs4 = {Kc: (Kcc + Kcd),
              Kd: (Kdc + Kdd),
              X: N*x,
-             Y: N*k*y,
-             Z: N*k*z,
-             M: N*k}
+             Y: N*m*y,
+             Z: N*m*z,
+             M: N*m}
 
     r = r.subs(subs4)
     W = W.subs(subs4)
@@ -214,13 +209,12 @@ def calc_rhs(interaction=1):
              rd: kappad/Kd*Xd*XR*L**pi*(Xc + Xd*XR)**(-pi),
              R:  bd/e*Kd**kappad*L**pi*(Xd*XR/(Xc + Xd*XR))**pi,
              Lc: L*Xc/(Xc + Xd*XR),
-             Ld: L*Xd*XR/(Xc + Xd*XR),
-             Wd: rc * Kcd + rd * Kdd,
-             Wc: rc * Kcc + rd * Kdc}
+             Ld: L*Xd*XR/(Xc + Xd*XR)}
 
     subsX = {Xc: (bc * Kc ** kappac * C ** xi) ** (1. / (1. - pi)),
              Xd: (bd * Kd ** kappad) ** (1. / (1. - pi)),
              XR: (1 - bR / e * (G0 / G) ** 2) ** (1. / (1. - pi))}
+
     for key in subs2.keys():
         subs2[key] = subs2[key].subs(subs4)
         subs2[key] = s.simplify(subs2[key].subs(subsX))
@@ -231,20 +225,20 @@ def calc_rhs(interaction=1):
     with s.assuming((1 - bR / e * (G0 / G) ** 2) > 0):
         for key in subsDW.keys():
             subsDW[key] = s.simplify(
-                s.powdenest(subsDW[key].subs(subs2).subs(subs4), force=True))
+                s.powdenest(subsDW[key].subs(subs2).subs(subs4),
+                            force=True))
     for key in subsP.keys():
         subsP[key] = (subsP[key].subs(subsDW))
-    subsP
 
     # Write down dynamic equations for the economic subsystem in
     # terms of means of clean and dirty capital stocks for clean and dirty households
     print('define economic equations,', flush=True)
 
-    rhsECO = s.Matrix([(rs*rc-delta)*Kcc + rs*rd*Kdc + rs*w*L/N,
+    rhsECO = s.Matrix([(rs*rc-delta)*Kcc + rs*rd*Kdc + rs*w*L*Nc/N,
                       -delta*Kdc,
                       -delta*Kcd,
-                      rs*rc*Kcd + (rs*rd-delta)*Kdd + rs*w*L/N,
-                      bc*Lc**pi*(Nc*Kcc + Nd*Kcd)**kappac * C**xi - delta*C,
+                      rs*rc*Kcd + (rs*rd-delta)*Kdd + rs*w*L*Nd/N,
+                      bc*Lc**pi*(Kcc + Kcd)**kappac * C**xi - delta*C,
                       -R])
 
     # Write down changes in means of capital stocks through agents'
@@ -260,7 +254,6 @@ def calc_rhs(interaction=1):
                               0,
                               0])
     rhsECO_switch = s.simplify(rhsECO_switch.subs(subs1))
-
     rhsECO = rhsECO + rhsECO_switch
 
     # Next, we have to write the economic system in terms of X, Y, Z and
@@ -281,11 +274,3 @@ def calc_rhs(interaction=1):
     rhs = s.Matrix([rhsPBP, rhsECO]).subs(subs1).subs(subsP)
 
     return rhs
-
-# In[ ]:
-
-if __name__ == '__main__':
-
-    rhs = calc_rhs()
-    with open('res_aggregate_raw.pkl', 'wb') as outf:
-        pkl.dump(rhs, outf)

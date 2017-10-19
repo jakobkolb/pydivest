@@ -4,7 +4,7 @@
 #SBATCH --job-name=P2_agg
 #SBATCH --output=%A_P2_agg.out
 #SBATCH --error=%A_P2_agg.err
-#SBATCH --nodes=2
+#SBATCH --nodes=8
 #SBATCH --tasks-per-node=16
 
 
