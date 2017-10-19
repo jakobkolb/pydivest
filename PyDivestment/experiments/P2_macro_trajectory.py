@@ -51,14 +51,14 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
+    input_params = {'b_c': 1., 'i_phi': phi, 'i_tau': 1.,
                     'eps': 0.05, 'b_d': b_d, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,
                     'possible_opinions': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
-                    'interaction': 2}
+                    'interaction': 1}
 
     # investment_decisions:
     nopinions = [100, 100]
@@ -120,11 +120,11 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     # run the model
     t_start = time.clock()
 
-    t_max = 200 if not test else 1
+    t_max = 200 if not test else 2
     m.R_depletion = False
     m.run(t_max=t_max)
 
-    t_max += 400 if not test else 1
+    t_max += 400 if not test else 4
     m.R_depletion = True
     exit_status = m.run(t_max=t_max)
 
@@ -271,9 +271,9 @@ def run_experiment(argv):
 
     # cluster mode: computation and post processing
     if mode == 0:
-        print('calculating')
+        print('calculating {}: {}'.format(approximate, sub_experiment))
         sys.stdout.flush()
-        SAMPLE_SIZE = 100 if not (test or approximate == 1) else 2
+        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 2
         handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
                                      SAVE_PATH_RAW, SAVE_PATH_RES)
         handle.compute(RUN_FUNC)
@@ -283,7 +283,7 @@ def run_experiment(argv):
     # Post processing
     if mode == 1:
         sys.stdout.flush()
-        SAMPLE_SIZE = 100 if not (test or approximate == 1) else 2
+        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 2
 
         handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
                                      SAVE_PATH_RAW, SAVE_PATH_RES)
