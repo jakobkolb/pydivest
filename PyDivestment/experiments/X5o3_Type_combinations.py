@@ -174,7 +174,7 @@ def RUN_FUNC(nopinions, phi, alpha,
                         'investment_clean': investment_clean,
                         'investment_dirty': investment_dirty,
                         'possible_opinions': possible_opinions,
-                        'tau': tau, 'phi': phi, 'eps': eps,
+                        'i_tau': tau, 'i_phi': phi, 'eps': eps,
                         'L': p, 'b_d': b_d, 'b_r0': b_r0, 'G_0': g_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
                         'r_depletion': transition}

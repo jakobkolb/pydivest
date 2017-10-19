@@ -1,6 +1,6 @@
 """Test for X7 experiment."""
 
-from ..experiments import X1_equilibrium_return_ratesrium as X1
+from ..experiments import X1_equilibrium_return_rates as X1
 
 for i in [0, 1]:
     for j in [0, 1]:
