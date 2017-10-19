@@ -8,8 +8,7 @@ import numpy as np
 import pandas as pd
 import sympy as sp
 from sympy.abc import epsilon, tau, phi
-from pydivest.macro_model.PBP_and_MC_analytics_mean import calc_rhs as rhs_new
-from pydivest.macro_model.PBP_and_MC_analytics_mean_old import calc_rhs as rhs_old
+from pydivest.macro_model.PBP_and_MC_analytics_mean import calc_rhs as calc_rhs
 
 
 class Integrate_Equations:
@@ -177,19 +176,10 @@ class Integrate_Equations:
                         float(self.g_0), self.k, float(self.l)]
 
         # Load right hand side of ode system
-        if interaction == 1:
-            if True:
-                rhs = rhs_old()
-                with open('rhs_mean_raw_old.pkl', 'wb') as outf:
-                    pkl.dump(rhs, outf)
-            else:
-                rhs = np.load('rhs_mean_raw_old.pkl')
-        elif interaction == 2:
-            rhs = rhs_new()
+        if self.interaction in [0, 1, 2]:
+            rhs = calc_rhs(self.interaction)
         else:
-            rhs = None
-            print('interaction has to be either 1 or 2')
-            exit(-1)
+            raise ValueError('interaction must be in [0, 1, 2]  but is {}'.format(self.interaction))
 
         # substitute parameters into rhs and simplify once.
         print('substituting parameter values into rhs')

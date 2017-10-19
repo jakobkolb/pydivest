@@ -10,17 +10,17 @@ To calculate labor shares $L_c$ and $L_d$ as well as wages in the two sectors, w
 \begin{align}
 	w &= \frac{\partial Y_d}{\partial L_d} - \frac{\partial c_R}{\partial L_d} \nonumber \\
 	&= \frac{\partial Y_d}{\partial L_d} - \frac{\partial c_R}{\partial R} \frac{\partial R}{\partial L_d} \nonumber = \frac{\partial Y_d}{\partial L_d} - \frac{\partial c_R}{\partial R} \frac{\partial}{\partial L_d} \frac{Y_d}{e} \nonumber \\
-	&= \frac{\partial Y_d}{\partial L_d} - b_R \frac{\partial}{\partial L_d} \frac{Y_d}{e} = b_d K_d^{\beta_d} \alpha L_d^{\alpha-1}\left( 1-\frac{b_R}{e} \right)
+	&= \frac{\partial Y_d}{\partial L_d} - b_R \frac{\partial}{\partial L_d} \frac{Y_d}{e} = b_d \alpha L_d^{\alpha-1} K_d^{\beta_d}\left( 1-\frac{b_R}{e} \right)
 	\label{eq:dirty_wages}
 \end{align}
 for the dirty sector and
 \begin{equation}
-	w = b_c K_c^{\beta_c} \alpha L_c^{\alpha-1}
+	w = b_c \alpha L_c^{\alpha-1} K_c^{\beta_c} C^{\gamma}
 	\label{eq:clean_wages}
 \end{equation}
 for the clean sector. Combining these results via equation \eqref{eq:population} results in
 \begin{equation}
-	L = \left( \frac{w}{\alpha} \right)^{\frac{1}{\alpha-1}}\left( \left( b_c K_c^{\beta_c} \right)^{\frac{1}{1-\alpha}} + \left( b_d K_d^{\beta_d} \left( 1 - \frac{b_R}{e} \right)^{\frac{1}{1-\alpha}} \right) \right).
+	L = \left( \frac{w}{\alpha} \right)^{\frac{1}{\alpha-1}}\left( \left( b_c K_c^{\beta_c}C^{\gamma} \right)^{\frac{1}{1-\alpha}} + \left( b_d K_d^{\beta_d} \left( 1 - \frac{b_R}{e} \right)^{\frac{1}{1-\alpha}} \right) \right).
 \end{equation}
 Substituting 
 \begin{equation}
@@ -44,8 +44,8 @@ for the labor shares and plugging this into \eqref{eq:resources} results in
 \end{equation}
 for the use of the fossil resource. Using the results for $L_c$ and $L_d$ together with equations \eqref{eq:clean_capital_rent} and \eqref{eq:dirty_capital_rent}, the capital rental rates result in
 \begin{align}
-	r_c &= \frac{\beta_c}{K_c}X_c L^{\alpha}\left( X_c + X_d X_R \right)^{-\alpha}, \label{eq:r_c_result}\\
-	r_d &= \frac{\beta_d}{K_d}X_d X_R L^{\alpha}\left( X_c + X_d X_R \right)^{-\alpha}. \label{eq:r_d_result}
+	r_c &= \frac{\beta_c}{K_c}X_c^{1+\alpha} L^{\alpha}\left( X_c + X_d X_R \right)^{-\alpha}, \label{eq:r_c_result}\\
+	r_d &= \frac{\beta_d}{K_d}\left(X_d X_R\right)^{1+\alpha} L^{\alpha}\left( X_c + X_d X_R \right)^{-\alpha}. \label{eq:r_d_result}
 \end{align}
 It is also worth noting, that the assumption of zero profits, e.g.
 \begin{align}
@@ -68,7 +68,7 @@ To sum up, we solved the algebraic constraints to the ordinary differential equa
 	\dot{G} = - R \label{eq:sum_up_resource_depletion}, \\ 
 	\dot{K}_c^{(i)} = s \delta(o_i - c) (r_c K_c^{(i)} + r_d K_d^{(i)} + w L^{(i)}) - \delta K_c^{(i)}, \label{eq:clean_capital_accumulation} \\
 	\dot{K}_d^{(i)} = s \delta(o_i - d) (r_c K_c^{(i)} + r_d K_d^{(i)} + w L^{(i)}) - \delta K_d^{(i)}, \label{eq:dirty_capital_accumulation} \\
-	\dot{G} = - R, 
+	\dot{C} = Y_c- \chi C, 
 	\label{eq:resource_depreciation}
 \end{empheq}
 \end{subequations}
@@ -206,3 +206,18 @@ and look at their time development:
 In the limit of $N \rightarrow \infty$ the per household quantities vanish. Therefore, the interaction defined in eq. \eqref{eq:imitation_probability} that depends on absolute differences in household properties would vanish too. Consequently, we have to redefine the interaction to only depend on relative differences in household quantities instead.
 \par
 \JJK{Note: Agent interaction depending on absolute differences in per household quantities and non-constant returns to scale are mutually exclusive in the large system limit.}
+\subsection{Representatibe Household}
+For comparison, we asume a representative household, that myopically uptimizes its present consumption by adjusting the share $n$ of total savings that are allocated to the clean and dirty sector respectively.
+Due to decreasing returns to capital, optimal allocation of savings will result in equal capital returns in both sectors. This means that using equations \eqref{eq:r_c_result} and \eqref{eq:r_d_result} we find the following algebraic constraint:
+\begin{equation}
+	\frac{K_c^{\alpha(\beta_c+1)+(\beta_c-1)}}{K_d^{\alpha(\beta_d + 1)+(\beta_d-1)}} = \left( \frac{\beta_d}{\beta_d} \right)^{1-\alpha}\frac{b_d}{b_c C^{\gamma}}\left( 1 - \frac{b_R}{e}\left( \frac{G_0}{G} \right)^{\mu} \right)
+	\label{eq:r_a_constraint}
+\end{equation}
+to the remaining equations for capital and knowledge accumulation and resource depletion:
+\begin{align}
+	\dot{K_c} &= s n (r (K_c K_d) + w L) - \kappa K_c, \\
+	\dot{K_d} &= s (1-n)(r (K_c K_d) + w L) - \kappa K_d, \\
+	\dot{C} &= Y_c - \chi C \\
+	\dot{R} &= -R.
+	\label{eq:ra_capital accumulation}
+\end{align}

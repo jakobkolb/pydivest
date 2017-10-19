@@ -58,8 +58,12 @@ class DivestmentCore:
         #  1: only economy,
         #  2: economy + opinion formation + decision making,
 
-        # if 1: tanh(Wi-Wj) interaction,
+        self.mode = 2
+
+        # if 0: tanh(Wi-Wj) interaction,
+        # if 1: interaction as in Traulsen, 2010 but with relative differences
         # if 2: (Wi-Wj)/(Wi+Wj) interaction.
+
         self.interaction = interaction
 
         if possible_opinions is None:
@@ -71,7 +75,6 @@ class DivestmentCore:
             if p not in [[0], [1]]:
                 self.heuristic_decision_making = True
 
-        self.mode = 2
 
         # General Parameters
 
@@ -862,15 +865,16 @@ class DivestmentCore:
         else:
             # if adapt
             # compare fitness
-            if self.interaction == 1:
-                p_imitate = .5 * (np.tanh(self.fitness(neighbor) - self.fitness(candidate)) + 1)
+            Wi = self.fitness(candidate)
+            Wj = self.fitness(neighbor)
+            if self.interaction == 0:
+                p_imitate = .5 * (np.tanh(Wj - Wi) + 1)
+            elif self.interaction == 1:
+                p_imitate = 1. / (1 + np.exp(- 8. * (Wj - Wi) / (Wj + Wi)))
             elif self.interaction == 2:
-                p_imitate = .5 * ((self.fitness(neighbor) - self.fitness(candidate))
-                                  / (self.fitness(neighbor) + self.fitness(candidate)) + 1)
+                p_imitate = .5 * ((Wj - Wi) / (Wj + Wi) + 1)
             else:
-                print('interaction not defined, must be 1 or 2')
-                p_imitate = 0
-                exit()
+                raise ValueError('interaction not defined, must be in [0, 1, 2] but is {}'.format(self.interaction))
             # and imitate, if not a campaigner
             if ((self.campaign is False or opinion[candidate] != (len(self.possible_opinions) - 1))
                     and (np.random.uniform() < p_imitate)
@@ -1119,15 +1123,15 @@ class DivestmentCore:
             mucc = sum(self.investment_decisions * self.investment_clean) / nc
             mudc = sum(self.investment_decisions * self.investment_dirty) / nc
         else:
-            mucc = mucd = 0
+            mucc = mudc = 0
 
         if nd > 0:
             mucd = sum((1 - self.investment_decisions) * self.investment_clean) / nd
             mudd = sum((1 - self.investment_decisions) * self.investment_dirty) / nd
         else:
-            mudc = mudd = 0
+            mucd = mudd = 0
 
-        Wc = mucc + self.r_c + mudc * self.r_d
+        Wc = mucc * self.r_c + mudc * self.r_d
         Wd = mucd * self.r_c + mudd * self.r_d
 
         entry = [self.t, x, y, z, mucc, mudc, mucd, mudd, self.C / n, self.G / n, self.w, self.r_c, self.r_d, Wc, Wd]

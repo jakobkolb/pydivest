@@ -108,11 +108,11 @@ def RUN_FUNC(b_d, phi, interaction, filename):
     # run the model
     t_start = time.clock()
 
-    t_max = 300 if not test else 3
+    t_max = 300 if not test else 300
     m.R_depletion = False
     m.run(t_max=t_max)
 
-    t_max += 600 if not test else 6
+    t_max += 600 if not test else 600
     m.R_depletion = True
     exit_status = m.run(t_max=t_max)
 
@@ -222,8 +222,8 @@ def run_experiment(argv):
 
     phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
     b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
-    interactions = [1, 2]
-    b_d, phi, interaction = [1.2, 1.4], [.5, .8], [1, 2]
+    interactions = [0, 1, 2]
+    b_d, phi, interaction = [1.2, 1.4], [.5, .8], [0, 1, 2]
 
     if test:
         param_combs = list(it.product(interaction, phi, b_d))

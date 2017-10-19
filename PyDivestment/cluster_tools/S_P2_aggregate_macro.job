@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
 #SBATCH --qos=short
-#SBATCH --job-name=P2_micro
-#SBATCH --output=%A_P2_micro.out
-#SBATCH --error=%A_P2_micro.err
-#SBATCH --nodes=16
+#SBATCH --job-name=P2_agg
+#SBATCH --output=%A_P2_agg.out
+#SBATCH --error=%A_P2_agg.err
+#SBATCH --nodes=2
 #SBATCH --tasks-per-node=16
 
 
@@ -17,4 +17,4 @@ echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
 cd ../experiments
-srun -n $SLURM_NTASKS python P2_macro_trajectory.py 0 0 1
+srun -n $SLURM_NTASKS python P2_macro_trajectory.py 0 0 3

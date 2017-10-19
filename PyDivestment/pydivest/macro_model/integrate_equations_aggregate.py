@@ -71,7 +71,8 @@ class Integrate_Equations:
         else:
             self.kappa_c = float(kappa_c)
             self.kappa_d = float(kappa_d)
-        print('pi = {}, xi = {}, kappa_c = {}, kappa_d = {}'.format(self.pi, self.xi, self.kappa_c, self.kappa_d))
+        print('pi = {}, xi = {}, kappa_c = {}, kappa_d = {}'.format(self.pi, self.xi, self.kappa_c, self.kappa_d)
+              , flush=True)
         # fossil->energy->output conversion efficiency (Leontief)
         self.e = float(e)
         # total labor
@@ -180,25 +181,20 @@ class Integrate_Equations:
                         self.k, self.L]
 
         # Load right hand side of ode system
-        if interaction == 1:
+        if interaction == 0:
             rhs = None
             print('aggregate approximation only works with interaction '
                   'depending on relative differences of agent endowment.')
             exit(-1)
+        elif interaction == 1:
+            rhs = calc_rhs(interaction=self.interaction)
         elif interaction == 2:
-            if True:
-                rhs = calc_rhs()
-                with open('rhs_agg_raw.pkl', 'wb') as outf:
-                    pkl.dump(rhs, outf)
-            else:
-                rhs = np.load('rhs_agg_raw.pkl')
+            rhs = calc_rhs(interaction=self.interaction)
         else:
-            rhs = None
-            print('only interaction == 2 is implemented.')
-            exit(-1)
+            raise ValueError('interaction must be in [1, 2] but is {}'.format(self.interaction))
 
         # substitute parameters into rhs and simplify once.
-        print('substituting parameter values into rhs')
+        print('substituting parameter values into rhs', flush=True)
 
         subs_params = {symbol: value for symbol, value
                        in zip(param_symbols, param_values)}

@@ -11,7 +11,7 @@ import sympy as s
 from sympy.abc import epsilon, phi, tau
 
 
-def calc_rhs():
+def calc_rhs(interaction=1):
 
     # Define variables and parameters for the adaptive voter model
 
@@ -43,6 +43,8 @@ def calc_rhs():
     Wd = s.Symbol('W_d')
     # wealth of clean node
     Wc = s.Symbol('W_c')
+    # imitation probabilities
+    Pcd, Pdc = s.symbols('Pcd Pdc')
 
     # Define variables and parameters for the economic subsystem:
 
@@ -91,6 +93,16 @@ def calc_rhs():
     subs1[Wc] = rc * mucc + rd * mudc
     subs1[Wd] = rc * mucd + rd * mudd
 
+    if interaction == 0:
+        subs1[Pcd] = (Wd - Wc).subs(subs1)
+        subs1[Pdc] = (Wc - Wd).subs(subs1)
+    elif interaction == 1:
+        subs1[Pcd] = (1. / (1 + s.exp(8. * (Wd - Wc) / (Wc + Wd)))).subs(subs1)
+        subs1[Pdc] = (1. / (1 + s.exp(8. * (Wc - Wd) / (Wc + Wd)))).subs(subs1)
+    elif interaction == 2:
+        subs1[Pcd] = ((1./2)*((Wd-Wc)/(Wd+Wc)+1)).subs(subs1)
+        subs1[Pdc] = ((1./2)*((Wc-Wd)/(Wd+Wc)+1)).subs(subs1)
+
     # Jumps in state space i.e. Effect of events on state vector S = (X, Y, Z) - denoted r = X-X' in van Kampen
 
     # regular adaptive voter events
@@ -112,8 +124,8 @@ def calc_rhs():
 
     p1 = 1./tau * (1-epsilon)*(Nc/N)*cd/(Nc * kc)*phi  # clean investor rewires
     p2 = 1./tau * (1-epsilon)*(Nd/N)*cd/(Nd * kd)*phi  # dirty investor rewires
-    p3 = 1./tau * (1-epsilon)*(Nc/N)*cd/(Nc * kc)*(1-phi)*(1./2)*((Wd-Wc)/(Wd+Wc)+1)  # clean investor imitates c -> d
-    p4 = 1./tau * (1-epsilon)*(Nd/N)*cd/(Nd * kd)*(1-phi)*(1./2)*((Wc-Wd)/(Wd+Wc)+1)  # dirty investor imitates d -> c
+    p3 = 1./tau * (1-epsilon)*(Nc/N)*cd/(Nc * kc)*(1-phi)*Pcd  # clean investor imitates c -> d
+    p4 = 1./tau * (1-epsilon)*(Nd/N)*cd/(Nd * kd)*(1-phi)*Pdc  # dirty investor imitates d -> c
     p5 = 1./tau * epsilon * (1./2) * Nc/N  # c -> d
     p6 = 1./tau * epsilon * (1./2) * Nd/N  # d -> c
     p7 = 1./tau * epsilon * Nc/N * (2*cc)/(2*cc+cd) * Nd/N  # c-c -> c-d
@@ -216,8 +228,8 @@ def calc_rhs():
     # Write down changes in means of capital stocks through agents'
     # switching of opinions and add them to the capital accumulation terms
 
-    dtNcd = 1./tau*Nc*(Nc/N*cd/(2*cc+cd)*(1-phi)*(1-epsilon)*(1./2)*((Wd-Wc)/(Wd+Wc)+1) + epsilon*1./2*Nc/N)
-    dtNdc = 1./tau*Nd*(Nd/N*cd/(2*dd+cd)*(1-phi)*(1-epsilon)*(1./2)*((Wc-Wd)/(Wd+Wc)+1) + epsilon*1./2*Nd/N)
+    dtNcd = 1./tau*Nc*(Nc/N*cd/(2*cc+cd)*(1-phi)*(1-epsilon)*Pcd + epsilon*1./2*Nc/N)
+    dtNdc = 1./tau*Nd*(Nd/N*cd/(2*dd+cd)*(1-phi)*(1-epsilon)*Pdc + epsilon*1./2*Nd/N)
 
     rhsECO_switch = s.Matrix([(mucd-mucc)*dtNdc/Nc,
                              (mudd-mudc)*dtNdc/Nc,
