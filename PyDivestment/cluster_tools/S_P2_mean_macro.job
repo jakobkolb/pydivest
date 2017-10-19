@@ -4,7 +4,7 @@
 #SBATCH --job-name=P2_mean
 #SBATCH --output=%A_P2_mean.out
 #SBATCH --error=%A_P2_mean.err
-#SBATCH --nodes=2
+#SBATCH --nodes=8
 #SBATCH --tasks-per-node=16
 
 

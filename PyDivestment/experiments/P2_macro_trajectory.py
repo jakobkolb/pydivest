@@ -273,7 +273,7 @@ def run_experiment(argv):
     if mode == 0:
         print('calculating {}: {}'.format(approximate, sub_experiment))
         sys.stdout.flush()
-        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 2
+        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 20
         handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
                                      SAVE_PATH_RAW, SAVE_PATH_RES)
         handle.compute(RUN_FUNC)
@@ -283,7 +283,7 @@ def run_experiment(argv):
     # Post processing
     if mode == 1:
         sys.stdout.flush()
-        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 2
+        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 20
 
         handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
                                      SAVE_PATH_RAW, SAVE_PATH_RES)

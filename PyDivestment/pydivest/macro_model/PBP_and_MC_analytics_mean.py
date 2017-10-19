@@ -12,8 +12,8 @@ from sympy.abc import epsilon, phi, tau
 
 
 def calc_rhs(interaction=1):
-
     # Define variables and parameters for the adaptive voter model
+    print('define variables,', flush=True)
 
     # number of nodes
     N = s.Symbol('N', integer=True)
@@ -50,8 +50,6 @@ def calc_rhs(interaction=1):
 
     # Define variables and parameters for the economic subsystem:
 
-    # In[ ]:
-
     # Total labor and labor shares in sectors
     L, Lc, Ld = s.symbols('L L_c L_d', positive=True, real=True)
     # Total capital in sectors
@@ -73,6 +71,7 @@ def calc_rhs(interaction=1):
 
     # Defination of relations between variables and calculation of
     # substitution of *primitive variables* by *state variables* of the system
+    print('define derived variables and derive substitutions,')
 
     eqs = [
         # total number of households is fixed,
@@ -115,7 +114,11 @@ def calc_rhs(interaction=1):
         subsP[Pcd] = ((1. / 2) * (Wcd + 1))
         subsP[Pdc] = ((1. / 2) * (Wdc + 1))
 
+    for key in subsP.keys():
+        subsP[key] = s.simplify(subsP[key])
+
     # Jumps in state space i.e. Effect of events on state vector S = (X, Y, Z) - denoted r = X-X' in van Kampen
+    print('define stochiometric matrix and probabilities,')
 
     # regular adaptive voter events
     s1 = s.Matrix([0, 1, -1])  # clean investor rewires
@@ -147,8 +150,6 @@ def calc_rhs(interaction=1):
 
     # Create S and r matrices to write down rhs markov jump process for pair based proxy:
 
-    # In[ ]:
-
     r = s.Matrix(s1)
     for i, si in enumerate([s2, s3, s4, s5, s6, s7, s8, s9, s10]):
         r = r.col_insert(i+1, si)
@@ -156,6 +157,8 @@ def calc_rhs(interaction=1):
     W = s.Matrix([p1])
     for j, pj in enumerate([s.Matrix([p]) for p in[p2, p3, p4, p5, p6, p7, p8, p9, p10]]):
         W = W.col_insert(j+1, pj)
+
+    print('simplify rhs for PBP jump process,', flush=True)
 
     # rhs of the pair based proxy is given by the first jump moment. This is formally given by 
     # 
@@ -168,25 +171,23 @@ def calc_rhs(interaction=1):
     # To calculate this, we first write the jumps and transition matrix in terms of
     # X, Y, Z and then substitute with rescalled variables and eliminate N.
 
-    # In[ ]:
-
     r = r.subs(subs1)
     W = W.subs(subs1)
 
     x, y, z = s.symbols('x y z')
-    c, g, l, g0, k = s.symbols('c, g, l, g_0, k', positive=True, real=True)
-    subs4 = {Kc: (N/2.*(1+x)*mucc + N/2.*(1-x)*mudc),
-             Kd: (N/2.*(1+x)*mucd + N/2.*(1-x)*mudd),
+    c, g, l, g0, m = s.symbols('c, g, l, g_0, k', positive=True, real=True)
+    subs4 = {Kc: (N/2.*(1+x)*mucc + N/2.*(1-x)*mucd),
+             Kd: (N/2.*(1+x)*mudc + N/2.*(1-x)*mudd),
              C: N * c,
              L: N * l,
              G: N * g,
              G0: N * g0,
              X: N*x,
-             Y: N*k*y,
-             Z: N*k*z,
-             M: N*k}
+             Y: N*m*y,
+             Z: N*m*z,
+             M: N*m}
 
-    variables = [x, y, z, c, g, l, g0, k]
+    variables = [x, y, z, c, g, l, g0, m]
 
     r = r.subs(subs4)
     W = W.subs(subs4)
@@ -214,9 +215,7 @@ def calc_rhs(interaction=1):
              rd: kappad/Kd*Xd*XR*L**pi*(Xc + Xd*XR)**(-pi),
              R:  bd/e*Kd**kappad*L**pi*(Xd*XR/(Xc + Xd*XR))**pi,
              Lc: L*Xc/(Xc + Xd*XR),
-             Ld: L*Xd*XR/(Xc + Xd*XR),
-             Wc: rc * mucc + rd * mudc,
-             Wd: rc * mucd + rd * mudd}
+             Ld: L*Xd*XR/(Xc + Xd*XR)}
 
     subsX = {Xc: (bc*Kc**kappac * C**xi)**(1./(1.-pi)),
              Xd: (bd*Kd**kappad)**(1./(1.-pi)),
@@ -227,9 +226,21 @@ def calc_rhs(interaction=1):
         subs2[key] = s.simplify(subs2[key].subs(subsX))
 
     # Substitutions to ensure constant returns to scale:
-
     subs5 = {kappac: 1. - pi - xi,
              kappad: 1. - pi}
+
+    # Try to further simplify the imitation probabilities given
+    # the expressions for capital returns
+    print('simplify imitation probabilities')
+    with s.assuming((1 - bR / e * (g0 / g) ** 2) > 0,
+                    mucd * (x + 1) - mudd * (x - 1) > 0,
+                    mucc * (x - 1) - mudc(x - 1) > 0):
+        for key in subsDW.keys():
+            subsDW[key] = s.simplify(
+                s.powdenest(subsDW[key].subs(subs2).subs(subs4).subs(subs5),
+                            force=True))
+    for key in subsP.keys():
+        subsP[key] = (subsP[key].subs(subsDW))
 
     # Write down dynamic equations for the economic subsystem in
     # terms of means of clean and dirty capital stocks for clean and dirty households
@@ -254,33 +265,24 @@ def calc_rhs(interaction=1):
                              0,
                              0])
     rhsECO_switch = rhsECO_switch.subs(subs1)
-    with s.assuming((1 - bR / e * (g0 / g) ** 2) > 0):
-        rhsECO = s.simplify(rhsECO + rhsECO_switch)
+    rhsECO = rhsECO + rhsECO_switch
 
     # Next, we have to write the economic system in terms of X, Y, Z and then
     # in terms of rescaled variables and check the dependency on the system size N:
     # - 1) substitute primitive variables for dependent variables (subs1)
     # - 2) substitute dependent variables for system variables (subs4)
 
-    rhsECO = rhsECO.subs(subs1).subs(subs2).subs(subs3).subs(subs4).subs(subs5)
+    rhsECO = rhsECO.subs(subs1).subs(subs2).subs(subs4).subs(subs5)
 
     # In the PBP rhs substitute economic variables for their proper expressions
     # ($r_c$, $r_d$ ect.) and then again substitute lingering 'primitive' variables with rescaled ones
 
-    rhsPBP = rhsPBP.subs(subs2).subs(subs3).subs(subs5)
+    rhsPBP = rhsPBP.subs(subs2).subs(subs5)
     rhsPBP = rhsPBP.subs(subs1).subs(subs4).subs({N: 1})
-
-    # Check expressions to assure eliminating N the evil way does not break stuff
-
-    subs2[w].subs(subs3).subs(subs5).subs(subs1).subs(subs4).collect(N)
-    subs2[rc].subs(subs3).subs(subs5).subs(subs1).subs(subs4).collect(N)
-    subs2[rd].subs(subs3).subs(subs5).subs(subs1).subs(subs4).collect(N)
-
-    # This checks out. Capital return rates and wages do not depend on N (even if sympy is too stupid to see this)
 
     # Combine dynamic equations of economic and social subsystem:
 
     rhsECO = rhsECO.subs({N: 1})
-    rhs = s.Matrix([rhsPBP, rhsECO]).subs(subs1)
+    rhs = s.Matrix([rhsPBP, rhsECO]).subs(subs1).subs(subsP).subs({N: 1})
     
     return rhs
