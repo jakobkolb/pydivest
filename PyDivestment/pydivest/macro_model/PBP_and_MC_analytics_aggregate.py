@@ -25,7 +25,7 @@ def calc_rhs(interaction=1):
     # number of clean nodes
     Nc = s.Symbol('N_c', integer=True)
     # number of edges
-    K = s.Symbol('K', integer=True)
+    M = s.Symbol('M', integer=True)
     # number of clean edges
     cc = s.Symbol('[cc]', integer=True)
     # number of dirty edges
@@ -47,7 +47,9 @@ def calc_rhs(interaction=1):
     # wealth of clean node
     Wc = s.Symbol('W_c')
     # imitation probabilities
-    Pcd, Pdc = s.symbols('Pcd Pdc')
+    Pcd, Pdc = s.symbols('P_{cd} P_{dc}')
+    # relative fittness differences
+    Wcd, Wdc = s.symbols('W_{cd} W_{dc}')
 
     # Define variables and parameters for the economic subsystem:
 
@@ -79,7 +81,7 @@ def calc_rhs(interaction=1):
         # total number of households is fixed,
         Nd+Nc-N,
         # total number of edges is fixed,
-        cc+dd+cd-K,
+        cc+dd+cd-M,
         # definition of state space variables
         X-Nc+Nd,
         Y-cc+dd,
@@ -89,23 +91,36 @@ def calc_rhs(interaction=1):
         kd-(2*dd+cd)/Nd
     ]
     vars1 = (Nc, Nd, cc, dd, cd, kc, kd)
+    vars2 = (N, M, X, Y, Z)
     subs1 = s.solve(eqs, vars1, dict=True)[0]
 
     # define expected wealth as expected income
-    subs1[Wc] = ((rc * Kcc + rd * Kdc) / Nc).subs(subs1)
-    subs1[Wd] = ((rc * Kcd + rd * Kdd) / Nd).subs(subs1)
+    subsW = {}
+    subsW[Wc] = ((rc * Kcc + rd * Kdc) / Nc).subs(subs1)
+    subsW[Wd] = ((rc * Kcd + rd * Kdd) / Nd).subs(subs1)
+
+    # Define substitutions for relative fitness differences
+    subsDW = {}
+    subsDW[Wcd] = (Wd - Wc) / (Wc + Wd)
+    subsDW[Wdc] = (Wc - Wd) / (Wc + Wd)
+
+    for key in subsDW.keys():
+        subsDW[key] = s.simplify(subsDW[key].subs(subsW))
+
+    subsP = {}
+
     if interaction == 0:
         raise ValueError('only interactions depending on relative differences of agent properties are'
                          'possible with a macroscopic approximation in aggregate quantities')
     if interaction == 1:
-        subs1[Pcd] = (1. / (1 + s.exp(8. * (Wd - Wc) / (Wc + Wd)))).subs(subs1)
-        subs1[Pdc] = (1. / (1 + s.exp(8. * (Wc - Wd) / (Wc + Wd)))).subs(subs1)
+        subsP[Pcd] = (1. / (1 + s.exp(8. * Wcd))).subs(subs1).subs(subsW)
+        subsP[Pdc] = (1. / (1 + s.exp(8. * Wdc))).subs(subs1).subs(subsW)
     elif interaction == 2:
-        subs1[Pcd] = ((1./2)*((Wd-Wc)/(Wd+Wc)+1)).subs(subs1)
-        subs1[Pdc] = ((1./2)*((Wc-Wd)/(Wd+Wc)+1)).subs(subs1)
+        subsP[Pcd] = ((1. / 2) * (Wcd + 1)).subs(subs1)
+        subsP[Pdc] = ((1. / 2) * (Wdc + 1)).subs(subs1)
 
-
-
+    for key in subsP.keys():
+        subsP[key] = s.simplify(subsP[key])
 
     # Jumps in state space i.e. Effect of events on state vector S = (X, Y, Z) - denoted r = X-X' in van Kampen
     print('define stochiometric matrix and probabilities,')
@@ -171,7 +186,7 @@ def calc_rhs(interaction=1):
              X: N*x,
              Y: N*k*y,
              Z: N*k*z,
-             K: N*k}
+             M: N*k}
 
     r = r.subs(subs4)
     W = W.subs(subs4)
@@ -203,14 +218,23 @@ def calc_rhs(interaction=1):
              Wd: rc * Kcd + rd * Kdd,
              Wc: rc * Kcc + rd * Kdc}
 
-    subs3 = {Xc: (bc*Kc**kappac * C**xi)**(1./(1.-pi)),
-             Xd: (bd*Kd**kappad)**(1./(1.-pi)),
-             XR: (1.-bR/e*(G0/G)**2)**(1./(1.-pi))}
+    subsX = {Xc: (bc * Kc ** kappac * C ** xi) ** (1. / (1. - pi)),
+             Xd: (bd * Kd ** kappad) ** (1. / (1. - pi)),
+             XR: (1 - bR / e * (G0 / G) ** 2) ** (1. / (1. - pi))}
+    for key in subs2.keys():
+        subs2[key] = subs2[key].subs(subs4)
+        subs2[key] = s.simplify(subs2[key].subs(subsX))
 
-    # Substitutions to ensure constant returns to scale: ** This is not needed in this verions!!**
-
-    # subs5 = {kappac: 1. - pi - xi,
-    #          kappad: 1. - pi}
+    # Try to further simplify the imitation probabilities given
+    # the expressions for capital returns
+    print('simplify imitation probabilities')
+    with s.assuming((1 - bR / e * (G0 / G) ** 2) > 0):
+        for key in subsDW.keys():
+            subsDW[key] = s.simplify(
+                s.powdenest(subsDW[key].subs(subs2).subs(subs4), force=True))
+    for key in subsP.keys():
+        subsP[key] = (subsP[key].subs(subsDW))
+    subsP
 
     # Write down dynamic equations for the economic subsystem in
     # terms of means of clean and dirty capital stocks for clean and dirty households
@@ -244,17 +268,17 @@ def calc_rhs(interaction=1):
     # - 1) substitute primitive variables for dependent variables (subs1)
     # - 2) substitute dependent variables for system variables (subs4)
 
-    rhsECO = rhsECO.subs(subs1).subs(subs2).subs(subs3).subs(subs4)
+    rhsECO = rhsECO.subs(subs1).subs(subs2).subs(subs4)
 
     # In the PBP rhs substitute economic variables for their proper
     # expressions ($r_c$, $r_d$ ect.) and then again substitute lingering 'primitive' variables with rescaled ones
 
-    rhsPBP = rhsPBP.subs(subs2).subs(subs3)
+    rhsPBP = rhsPBP.subs(subs2)
     rhsPBP = rhsPBP.subs(subs1).subs(subs4).subs({N: 1})
 
     # Combine dynamic equations of economic and social subsystem:
     rhsECO = rhsECO.subs({N: 1})
-    rhs = s.Matrix([rhsPBP, rhsECO]).subs(subs1)
+    rhs = s.Matrix([rhsPBP, rhsECO]).subs(subs1).subs(subsP)
 
     return rhs
 

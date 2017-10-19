@@ -22,7 +22,7 @@ def calc_rhs(interaction=1):
     # number of clean nodes
     Nc = s.Symbol('N_c', integer=True)
     # number of edges
-    K = s.Symbol('K', integer=True)
+    M = s.Symbol('K', integer=True)
     # number of clean edges
     cc = s.Symbol('[cc]', integer=True)
     # number of dirty edges
@@ -44,7 +44,9 @@ def calc_rhs(interaction=1):
     # wealth of clean node
     Wc = s.Symbol('W_c')
     # imitation probabilities
-    Pcd, Pdc = s.symbols('Pcd Pdc')
+    Pcd, Pdc = s.symbols('P_{cd} P_{dc}')
+    # relative fittness differences
+    Wcd, Wdc = s.symbols('W_{cd} W_{dc}')
 
     # Define variables and parameters for the economic subsystem:
 
@@ -76,7 +78,7 @@ def calc_rhs(interaction=1):
         # total number of households is fixed,
         Nd+Nc-N,
         # total number of edges is fixed,
-        cc+dd+cd-K,
+        cc+dd+cd-M,
         # definition of state space variables
         X-Nc+Nd,
         Y-cc+dd,
@@ -86,22 +88,32 @@ def calc_rhs(interaction=1):
         kd-(2*dd+cd)/Nd
     ]
     vars1 = (Nc, Nd, cc, dd, cd, kc, kd)
-
+    vars2 = (N, M, X, Y, Z)
     subs1 = s.solve(eqs, vars1, dict=True)[0]
 
-    # define expected wealth as expected income.
-    subs1[Wc] = rc * mucc + rd * mudc
-    subs1[Wd] = rc * mucd + rd * mudd
+    # define expected wealth as expected income
+    subsW = {}
+    subsW[Wc] = (rc * mucc + rd * mudc)
+    subsW[Wd] = (rc * mucd + rd * mudd)
 
+    # Define substitutions for relative fitness differences
+    subsDW = {}
+    subsDW[Wcd] = (Wd - Wc) / (Wc + Wd)
+    subsDW[Wdc] = (Wc - Wd) / (Wc + Wd)
+
+    for key in subsDW.keys():
+        subsDW[key] = s.simplify(subsDW[key].subs(subsW))
+
+    subsP = {}
     if interaction == 0:
-        subs1[Pcd] = (Wd - Wc).subs(subs1)
-        subs1[Pdc] = (Wc - Wd).subs(subs1)
+        subs1[Pcd] = (Wd - Wc).subs(subsW)
+        subs1[Pdc] = (Wc - Wd).subs(subsW)
     elif interaction == 1:
-        subs1[Pcd] = (1. / (1 + s.exp(8. * (Wd - Wc) / (Wc + Wd)))).subs(subs1)
-        subs1[Pdc] = (1. / (1 + s.exp(8. * (Wc - Wd) / (Wc + Wd)))).subs(subs1)
+        subsP[Pcd] = (1. / (1 + s.exp(8. * Wcd)))
+        subsP[Pdc] = (1. / (1 + s.exp(8. * Wdc)))
     elif interaction == 2:
-        subs1[Pcd] = ((1./2)*((Wd-Wc)/(Wd+Wc)+1)).subs(subs1)
-        subs1[Pdc] = ((1./2)*((Wc-Wd)/(Wd+Wc)+1)).subs(subs1)
+        subsP[Pcd] = ((1. / 2) * (Wcd + 1))
+        subsP[Pdc] = ((1. / 2) * (Wdc + 1))
 
     # Jumps in state space i.e. Effect of events on state vector S = (X, Y, Z) - denoted r = X-X' in van Kampen
 
@@ -172,7 +184,7 @@ def calc_rhs(interaction=1):
              X: N*x,
              Y: N*k*y,
              Z: N*k*z,
-             K: N*k}
+             M: N*k}
 
     variables = [x, y, z, c, g, l, g0, k]
 
@@ -206,9 +218,13 @@ def calc_rhs(interaction=1):
              Wc: rc * mucc + rd * mudc,
              Wd: rc * mucd + rd * mudd}
 
-    subs3 = {Xc: (bc*Kc**kappac * C**xi)**(1./(1.-pi)),
+    subsX = {Xc: (bc*Kc**kappac * C**xi)**(1./(1.-pi)),
              Xd: (bd*Kd**kappad)**(1./(1.-pi)),
              XR: (1.-bR/e*(G0/G)**2)**(1./(1.-pi))}
+
+    for key in subs2.keys():
+        subs2[key] = subs2[key].subs(subs4)
+        subs2[key] = s.simplify(subs2[key].subs(subsX))
 
     # Substitutions to ensure constant returns to scale:
 
@@ -237,9 +253,9 @@ def calc_rhs(interaction=1):
                              (mudc-mudd)*dtNcd/Nd,
                              0,
                              0])
-    rhsECO_switch = s.simplify(rhsECO_switch.subs(subs1))
-
-    rhsECO = rhsECO + rhsECO_switch
+    rhsECO_switch = rhsECO_switch.subs(subs1)
+    with s.assuming((1 - bR / e * (g0 / g) ** 2) > 0):
+        rhsECO = s.simplify(rhsECO + rhsECO_switch)
 
     # Next, we have to write the economic system in terms of X, Y, Z and then
     # in terms of rescaled variables and check the dependency on the system size N:
