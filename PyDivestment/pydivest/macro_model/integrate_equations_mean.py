@@ -76,6 +76,8 @@ class Integrate_Equations:
         self.l = float(L) / self.n
         # total knowledge stock
         self.C = float(C)
+        # knowledge per household
+        self.c = float(self.C) / self.n
         # unprofitable fraction of fossil reserve
         self.alpha = (b_r0 / e) ** 0.5
 
@@ -83,10 +85,12 @@ class Integrate_Equations:
 
         # initial fossil resource stock
         self.G_0 = float(G_0)
+        # initial resource stock per household
+        self.g_0 = float(self.G_0) / self.n
         # total fossil resource stock
         self.G = float(G_0)
-        # initial fossil resource stock per household
-        self.g_0 = float(G_0) / self.n
+        # total fossil resource stock per household
+        self.g = float(self.G_0) / self.n
         # toggle resource depletion
         self.R_depletion = R_depletion
 
@@ -533,8 +537,8 @@ if __name__ == '__main__':
 
     # Parameters:
 
-    input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
-                        'b_c': 0.4, 'phi': 0.8, 'e': 100,
+    input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
+                        'b_c': 0.4, 'i_phi': 0.8, 'e': 100,
                         'G_0': 30000, 'b_r0': 0.1 ** 2 * 100,
                         'possible_opinions': possible_opinions,
                         'c': 100, 'xi': 1./8., 'beta': 0.06,
