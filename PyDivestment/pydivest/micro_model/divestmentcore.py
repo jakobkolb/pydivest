@@ -1265,6 +1265,16 @@ class DivestmentCore:
 
         return df
 
+    def get_unified_trajectory(self):
+        """
+        Calculates unified trajectory in per capita variables
+        
+        Returns
+        -------
+        Dataframe of unified per capita variables
+        """
+
+        return
 
 if __name__ == '__main__':
     """
