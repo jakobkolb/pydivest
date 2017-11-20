@@ -992,7 +992,8 @@ class DivestmentCore:
               'c_R',
               'consensus',
               'decision state',
-              'G_alpha'],
+              'G_alpha',
+              'i_c'],
              [str(x) for x in self.possible_opinions],
              ['c' + str(x) for x in self.possible_opinions],
              ['d' + str(x) for x in self.possible_opinions]]))
@@ -1040,7 +1041,8 @@ class DivestmentCore:
               self.c_R,
               self.converged,
               self.decision_state,
-              (self.G - alpha * self.G_0) / (self.G_0 * (1. - alpha))],
+              (self.G - alpha * self.G_0) / (self.G_0 * (1. - alpha)),
+              sum(self.income * self.investment_decisions) / sum(self.income)],
              self.opinion_state,
              self.clean_opinions,
              self.dirty_opinions]))
@@ -1048,8 +1050,8 @@ class DivestmentCore:
 
     def get_economic_trajectory(self):
         # make up DataFrame from micro data
-        columns = self.e_trajectory.pop(0)
-        df = pd.DataFrame(self.e_trajectory, columns=columns)
+        columns = self.e_trajectory[0]
+        df = pd.DataFrame(data = self.e_trajectory[1:], columns=columns)
         df = df.set_index('time')
 
         return df
@@ -1273,6 +1275,27 @@ class DivestmentCore:
         -------
         Dataframe of unified per capita variables
         """
+        if self.e_trajectory is False:
+            print('calculating the economic trajectory is a prerequisite.'
+                  'please rerun the model with e_trajectory set to true.')
+            return -1
+
+        columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r', 'n_c', 'i_c',
+                   'r_c', 'r_d', 'w']
+        edf = self.get_economic_trajectory()
+        df = pd.DataFrame(index=edf.index, columns=columns)
+        df['k_c'] = edf['K_c']/self.L
+        df['k_d'] = edf['K_d'] / self.L
+        df['l_c'] = edf['P_c'] / self.L
+        df['l_d'] = edf['P_d'] / self.L
+        df['g'] = edf['G'] / self.L
+        df['c'] = edf['C'] / self.L
+        df['r'] = edf['R'] / self.L
+        df['n_c'] = edf['[1]'] / self.n
+        df['i_c'] = edf['i_c']
+        df['r_c'] = edf['r_c']
+        df['r_d'] = edf['r_d']
+        df['w'] = edf['wage']
 
         return
 
@@ -1300,8 +1323,8 @@ if __name__ == '__main__':
                              [4, 0],  # dirty conformer
                              [1],  # Gutmensch
                              [0]]  # redneck
-        input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
-                            'b_c': 1., 'phi': 0.8, 'e': 100,
+        input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
+                            'b_c': 1., 'i_phi': 0.8, 'e': 100,
                             'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
                             'possible_opinions': possible_opinions,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
@@ -1314,8 +1337,8 @@ if __name__ == '__main__':
 
         # Parameters:
 
-        input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
-                            'b_c': 1., 'phi': 0.8, 'e': 100,
+        input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
+                            'b_c': 1., 'i_phi': 0.8, 'e': 100,
                             'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
                             'possible_opinions': possible_opinions,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
@@ -1367,9 +1390,9 @@ if __name__ == '__main__':
 
     # Run Model
     model.R_depletion = False
-    model.run(t_max=100)
+    model.run(t_max=1)
     model.R_depletion = True
-    model.run(t_max=600)
+    model.run(t_max=6)
 
     # Print some output
 
@@ -1380,6 +1403,8 @@ if __name__ == '__main__':
     print(model.convergence_state)
     print('finish time', model.t)
     print('steps computed', model.steps)
+
+    model.get_unified_trajectory()
 
     colors = [c for c in 'gk']
 
