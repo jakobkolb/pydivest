@@ -117,7 +117,7 @@ def RUN_FUNC(t_a, phi, eps, t_G, alpha, test, filename):
 
     #input parameters
 
-    input_params = {'tau':tau, 'phi':phi, 'eps':eps, \
+    input_params = {'i_tau':tau, 'i_phi':phi, 'eps':eps, \
             'L':P, 'b_d':b_d, 'b_R0':b_R0, 'G_0':G_0, \
             'e':e, 'd_c':d_c, 'test':bool(test)}
 

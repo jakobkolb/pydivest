@@ -118,7 +118,7 @@ def RUN_FUNC(t_G, nopinions, alpha,
 
     input_params = {
             'possible_opinions': possible_opinions,
-            'tau': tau, 'phi': phi, 'eps': eps,
+            'i_tau': tau, 'i_phi': phi, 'eps': eps,
         'L': P, 'b_d': b_d, 'b_r0': b_R0, 'G_0': G_0,
             'e': e, 'd_c': d_c, 'test': bool(test)}
 

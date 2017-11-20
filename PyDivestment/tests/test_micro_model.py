@@ -6,7 +6,7 @@ from random import shuffle
 import networkx as nx
 import numpy as np
 
-from PyDivestment.pydivest.micro_model import divestment_core as dc
+from pydivest.micro_model import divestmentcore as dc
 
 output_location = \
     'test_output/' \
@@ -26,8 +26,8 @@ for FFH in [False, True]:
                              [4, 0],  # dirty conformer
                              [1],  # gutmensch
                              [0]]  # redneck
-        input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
-                            'b_c': 1., 'phi': 0.8, 'e': 100,
+        input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
+                            'b_c': 1., 'i_phi': 0.8, 'e': 100,
                             'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
                             'possible_opinions': possible_opinions,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
@@ -40,8 +40,8 @@ for FFH in [False, True]:
 
         # Parameters:
 
-        input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
-                            'b_c': 1., 'phi': 0.8, 'e': 100,
+        input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
+                            'b_c': 1., 'i_phi': 0.8, 'e': 100,
                             'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
                             'possible_opinions': possible_opinions,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
@@ -78,5 +78,5 @@ for FFH in [False, True]:
 
     # Initialize Model
 
-    model = dc.Divestment_Core(*init_conditions,
-                               **input_parameters)
+    model = dc.DivestmentCore(*init_conditions,
+                              **input_parameters)
