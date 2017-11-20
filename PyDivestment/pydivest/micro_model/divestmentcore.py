@@ -1278,7 +1278,7 @@ if __name__ == '__main__':
         + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
     # Initial conditions:
-    FFH = False
+    FFH = True
 
     if FFH:
         nopinions = [10, 10, 10, 10, 10, 10, 10, 10]
