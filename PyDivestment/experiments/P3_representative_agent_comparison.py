@@ -2,9 +2,17 @@
 This experiment is meant to create trajectories of macroscopic variables from
 1) the numeric micro model and
 2) the analytic macro model
+3) the representative agent model
 that can be compared to evaluate the validity and quality of the analytic
 approximation.
 The variable Parameters are b_d and phi.
+
+since the representative agent model ist the most reduced version, 
+the trajectories of the more complex models will have to be reduced to 
+its simplicity.
+
+Also, since the representative agent puts restraints on possible initial conditions, 
+we will use it to set the initial conditions for the other models as well.
 """
 
 # TODO: Find a measure that allows to copmare trajectories in one real number,
@@ -26,6 +34,7 @@ import pandas as pd
 from pydivest.divestvisuals.data_visualization import plot_trajectories
 from pydivest.macro_model import integrate_equations_mean as mean_macro_model
 from pydivest.macro_model import integrate_equations_aggregate as aggregate_macro_model
+from pydivest.macro_model import integrate_equations_rep as rep_agent_macro_model
 from pydivest.micro_model import divestmentcore as micro_model
 from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
 
@@ -58,12 +67,15 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
 
     input_params = {'b_c': 1., 'i_phi': phi, 'i_tau': 1.,
                     'eps': 0.05, 'b_d': b_d, 'e': 100.,
-                    'b_r0': 0.1 ** 2 * 100.,
+                    'b_r0': 0.1 ** 2 * 100.,  # Todo: find out, why I did this
                     'possible_opinions': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
                     'interaction': 1}
+
+    # C and the investment decisions will be set from initial conditions for
+    # the representative agent model.
 
     # investment_decisions:
     nopinions = [100, 100]
@@ -86,6 +98,29 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
 
     init_conditions = (adjacency_matrix, investment_decisions,
                        clean_investment, dirty_investment)
+
+    # initialize the representative agent model
+    ra_model = rep_agent_macro_model(*init_conditions, **input_params)
+
+    # get sane initial conditions for C and n
+    C_val, n_val = ra_model.find_initial_conditions()
+
+    # update input parameters
+    input_params['C'] = C_val
+
+    # this only works to decrease n. But since I start from a 50/50 distribution and
+    # abundant fossil resrouces, this is the only case tha matters.
+    # maybe crosscheck, that this is true, and n_val < 0.5
+
+    assert n_val < 0.5
+    while True:
+        n_is = sum(investment_decisions)
+        if n_is > n_val:
+            # TODO: pick a random household and set it to invest in dirty.
+            pass
+        else:
+            break
+
 
     # initializing the model
     if approximate == 1:
