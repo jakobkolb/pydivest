@@ -26,20 +26,20 @@ import os
 import pickle as cp
 import sys
 import time
+from random import shuffle
 
 import networkx as nx
 import numpy as np
 import pandas as pd
-
-from pydivest.divestvisuals.data_visualization import plot_trajectories
-from pydivest.macro_model import integrate_equations_mean as mean_macro_model
-from pydivest.macro_model import integrate_equations_aggregate as aggregate_macro_model
-from pydivest.macro_model import integrate_equations_rep as rep_agent_macro_model
-from pydivest.micro_model import divestmentcore as micro_model
 from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
 
+from pydivest.macro_model.integrate_equations_aggregate import Integrate_Equations as aggregate_macro_model
+from pydivest.macro_model.integrate_equations_mean import Integrate_Equations as mean_macro_model
+from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as rep_agent_macro_model
+from pydivest.micro_model import divestmentcore as micro_model
 
-def RUN_FUNC(b_d, phi, approximate, test, filename):
+
+def RUN_FUNC(b_d, phi, tau, approximate, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -53,50 +53,55 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
         the solow residual in the dirty sector
     phi : float \in [0,1]
         the rewiring probability for the network update
-    approximate: bool
-        if True: run macroscopic approximation
-        if False: run micro-model
+    model: int
+        if 0: run abm
+        if 1: run mean approximation
+        if 2: run aggregate approximation
+        if 3: run representative agent approximation
     test: int \in [0,1]
-        wheter this is a test run, e.g.
+        whether this is a test run, e.g.
         can be executed with lower runtime
     filename: string
         filename for the results of the run
     """
 
-    # Parameters:
+    # SET PARAMETERS:
 
-    input_params = {'b_c': 1., 'i_phi': phi, 'i_tau': 1.,
+    input_params = {'b_c': 1., 'i_phi': phi, 'i_tau': tau,
                     'eps': 0.05, 'b_d': b_d, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,  # Todo: find out, why I did this
-                    'possible_opinions': [[0], [1]],
+                    'possible_cue_orders': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
                     'interaction': 1}
+    K_c = 50
+    K_d = 50
 
-    # C and the investment decisions will be set from initial conditions for
-    # the representative agent model.
+    # SET INITIAL CONDITIONS
 
     # investment_decisions:
     nopinions = [100, 100]
+    opinions = []
+    for i, n in enumerate(nopinions):
+        opinions.append(np.full((n), i, dtype='I'))
+    opinions = [item for sublist in opinions for item in sublist]
+    shuffle(opinions)
 
     # network:
     N = sum(nopinions)
     k = 10
-
-    # building initial conditions
     p = float(k) / N
     while True:
         net = nx.erdos_renyi_graph(N, p)
         if len(list(net)) > 1:
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
-    investment_decisions = np.random.randint(low=0, high=2, size=N)
 
-    clean_investment = np.ones(N) * 50. / float(N)
-    dirty_investment = np.ones(N) * 50. / float(N)
+    clean_investment = np.ones(N) * K_c / float(N)
+    dirty_investment = np.ones(N) * K_d / float(N)
 
-    init_conditions = (adjacency_matrix, investment_decisions,
+    init_conditions = (adjacency_matrix, opinions,
                        clean_investment, dirty_investment)
 
     # initialize the representative agent model

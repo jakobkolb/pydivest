@@ -2,11 +2,13 @@
 
 from __future__ import print_function
 
-from scipy.integrate import odeint
 import pickle as pkl
+import sys
+
 import numpy as np
 import pandas as pd
 import sympy as sp
+from scipy.integrate import odeint
 from sympy.abc import epsilon, tau, phi
 
 
@@ -25,6 +27,8 @@ class Integrate_Equations:
             print('got superfluous keyword arguments')
             print(kwargs.keys())
 
+        self.t_max = 0
+
         # Social parameters
 
         # interaction either with 1) tanh(Wi-Wj) or 2) (Wi-Wj)/(Wi+Wj)
@@ -40,7 +44,7 @@ class Integrate_Equations:
         self.n = float(adjacency.shape[0])
         # edges/nodes
         self.k = float(sum(sum(adjacency))) / self.n
-        # investment_decisions as indices of possible_opinions
+        # investment_decisions as indices of possible_cue_orders
         self.investment_decisions = np.array(investment_decisions)
 
         # Sector parameters
@@ -228,7 +232,6 @@ class Integrate_Equations:
             kd - (2 * dd + cd) / Nd
         ]
         vars1 = (Nc, Nd, cc, dd, cd, kc, kd)
-
         subs1 = sp.solve(eqs, vars1, dict=True)[0]
 
         # define expected wealth as expected income.
@@ -244,6 +247,8 @@ class Integrate_Equations:
         elif interaction == 2:
             subs1[Pcd] = ((1. / 2) * ((Wd - Wc) / (Wd + Wc) + 1)).subs(subs1)
             subs1[Pdc] = ((1. / 2) * ((Wc - Wd) / (Wd + Wc) + 1)).subs(subs1)
+        else:
+            raise ValueError('interaction must be in [0, 1, 2] but is {}'.format(self.interaction))
 
         # Jumps in state space i.e. Effect of events on state vector S = (X, Y, Z) - denoted r = X-X' in van Kampen
 
@@ -264,16 +269,16 @@ class Integrate_Equations:
 
         # Probabilities per unit time for events to occur (denoted by W in van Kampen)
 
-        p1 = 1. / tau * (1 - epsilon) * (Nc / N) * cd / (Nc * kc) * phi  # clean investor rewires
-        p2 = 1. / tau * (1 - epsilon) * (Nd / N) * cd / (Nd * kd) * phi  # dirty investor rewires
-        p3 = 1. / tau * (1 - epsilon) * (Nc / N) * cd / (Nc * kc) * (1 - phi) * Pcd  # clean investor imitates c -> d
-        p4 = 1. / tau * (1 - epsilon) * (Nd / N) * cd / (Nd * kd) * (1 - phi) * Pdc  # dirty investor imitates d -> c
-        p5 = 1. / tau * epsilon * (1. / 2) * Nc / N  # c -> d
-        p6 = 1. / tau * epsilon * (1. / 2) * Nd / N  # d -> c
-        p7 = 1. / tau * epsilon * Nc / N * (2 * cc) / (2 * cc + cd) * Nd / N  # c-c -> c-d
-        p8 = 1. / tau * epsilon * Nc / N * cd / (2 * cc + cd) * Nc / N  # c-d -> c-c
-        p9 = 1. / tau * epsilon * Nd / N * (2 * dd) / (2 * dd + cd) * Nc / N  # d-d -> d-c
-        p10 = 1. / tau * epsilon * Nd / N * cd / (2 * dd + cd) * Nd / N  # d-c -> d-d
+        p1 = 1. / tau * phi * (1 - epsilon) * (Nc / N) * cd / (Nc * kc)  # clean investor rewires
+        p2 = 1. / tau * phi * (1 - epsilon) * (Nd / N) * cd / (Nd * kd)  # dirty investor rewires
+        p3 = 1. / tau * (1 - phi) * (1 - epsilon) * (Nc / N) * cd / (Nc * kc) * Pcd  # clean investor imitates c -> d
+        p4 = 1. / tau * (1 - phi) * (1 - epsilon) * (Nd / N) * cd / (Nd * kd) * Pdc  # dirty investor imitates d -> c
+        p5 = 1. / tau * (1 - phi) * epsilon * (1. / 2) * Nc / N  # c -> d
+        p6 = 1. / tau * (1 - phi) * epsilon * (1. / 2) * Nd / N  # d -> c
+        p7 = 1. / tau * phi * epsilon * Nc / N * (2 * cc) / (2 * cc + cd) * Nd / N  # c-c -> c-d
+        p8 = 1. / tau * phi * epsilon * Nc / N * cd / (2 * cc + cd) * Nc / N  # c-d -> c-c
+        p9 = 1. / tau * phi * epsilon * Nd / N * (2 * dd) / (2 * dd + cd) * Nc / N  # d-d -> d-c
+        p10 = 1. / tau * phi * epsilon * Nd / N * cd / (2 * dd + cd) * Nd / N  # d-c -> d-d
 
         # Create S and r matrices to write down rhs markov jump process for pair based proxy:
 
@@ -301,8 +306,8 @@ class Integrate_Equations:
 
         x, y, z = sp.symbols('x y z')
         c, g, l, g0, k = sp.symbols('c, g, l, g_0, k', positive=True, real=True)
-        subs4 = {Kc: (N / 2. * (1 + x) * mucc + N / 2. * (1 - x) * mudc),
-                 Kd: (N / 2. * (1 + x) * mucd + N / 2. * (1 - x) * mudd),
+        subs4 = {Kc: (N / 2. * (1 + x) * mucc + N / 2. * (1 - x) * mucd),
+                 Kd: (N / 2. * (1 + x) * mudc + N / 2. * (1 - x) * mudd),
                  C: N * c,
                  L: N * l,
                  G: N * g,
@@ -311,8 +316,6 @@ class Integrate_Equations:
                  Y: N * k * y,
                  Z: N * k * z,
                  K: N * k}
-
-        variables = [x, y, z, c, g, l, g0, k]
 
         r = r.subs(subs4)
         W = W.subs(subs4)
@@ -335,9 +338,7 @@ class Integrate_Equations:
                  rd: kappad / Kd * Xd * XR * L ** pi * (Xc + Xd * XR) ** (-pi),
                  R: bd / e * Kd ** kappad * L ** pi * (Xd * XR / (Xc + Xd * XR)) ** pi,
                  Lc: L * Xc / (Xc + Xd * XR),
-                 Ld: L * Xd * XR / (Xc + Xd * XR),
-                 Wc: rc * mucc + rd * mudc,
-                 Wd: rc * mucd + rd * mudd}
+                 Ld: L * Xd * XR / (Xc + Xd * XR)}
 
         subs3 = {Xc: (bc * Kc ** kappac * C ** xi) ** (1. / (1. - pi)),
                  Xd: (bd * Kd ** kappad) ** (1. / (1. - pi)),
@@ -361,10 +362,10 @@ class Integrate_Equations:
         # Write down changes in means of capital stocks through agents'
         # switching of opinions and add them to the capital accumulation terms
 
-        dtNcd = 1. / tau * Nc * (
-        Nc / N * cd / (2 * cc + cd) * (1 - phi) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
-        dtNdc = 1. / tau * Nd * (
-        Nd / N * cd / (2 * dd + cd) * (1 - phi) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
+        dtNcd = 1. / tau * Nc * (1 - phi) * (
+            Nc / N * cd / (2 * cc + cd) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
+        dtNdc = 1. / tau * Nd * (1 - phi) * (
+            Nd / N * cd / (2 * dd + cd) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
 
         rhsECO_switch = sp.Matrix([(mucd - mucc) * dtNdc / Nc,
                                    (mudd - mudc) * dtNdc / Nc,
@@ -409,25 +410,27 @@ class Integrate_Equations:
 
         # Define lists of symbols and values for parameters to substitute
         # in rhs expression
-        param_symbols = [bc, bd, bR, e, delta, rs, xi,
-                         epsilon, phi, tau, pi, kappac, kappad, N, g0, k, l]
-        param_values = [self.b_c, self.b_d, self.b_r0, self.e, self.d_c,
-                        self.s, self.xi, self.eps, self.phi, self.tau, self.pi,
-                        self.kappa_c, self.kappa_d, self.n,
-                        float(self.g_0), self.k, float(self.l)]
+        param_symbols = [bc, bd, bR, e, rs, delta, pi, kappac, kappad, xi, g0, l,
+                         epsilon, phi, tau, k]
+        param_values = [self.b_c, self.b_d, self.b_r0, self.e, self.s, self.d_c,
+                        self.pi, self.kappa_c, self.kappa_d, self.xi, float(self.g_0), float(self.l),
+                        self.eps, self.phi, self.tau, self.k]
 
         self.subs_params = {symbol: value for symbol, value
                             in zip(param_symbols, param_values)}
         self.rhs = rhs.subs(self.subs_params)
 
-        self.independent_vars = {'mu_c^c': mucc, 'mu_c^d': mudc,
-                                 'mu_d^c': mudc, 'mu_d^d': mudd,
+        self.independent_vars = {'mu_c^c': mucc, 'mu_d^c': mudc,
+                                 'mu_c^d': mucd, 'mu_d^d': mudd,
                                  'x': x, 'y': y, 'z': z,
                                  'R': R, 'c': c, 'g': g}
-        self.dependent_vars = {'w': w, 'rc': rc, 'rd': rd, 'R': R, 'Lc': Lc, 'Ld': Ld, 'L': L, 'rs': rs, 'l': l}
+        self.dependent_vars = {'w': w, 'rc': rc, 'rd': rd, 'R': R,
+                               'Lc': Lc, 'Ld': Ld, 'L': L, 'rs': rs,
+                               'W_d': Wd, 'W_c': Wc, 'Pcd': Pcd, 'Pdc': Pdc,
+                               'l': l, 'Nc': Nc, 'Nd': Nd}
 
         for key in self.dependent_vars.keys():
-            self.dependent_vars[key] = self.dependent_vars[key].subs(subs2).subs(subs3)\
+            self.dependent_vars[key] = self.dependent_vars[key].subs(subs1).subs(subs2).subs(subs3) \
                 .subs(subs1).subs(subs4).subs({N: 1}).subs(self.subs_params)
 
         self.var_symbols = [x, y, z, mucc, mudc, mucd, mudd, c, g]
@@ -438,8 +441,19 @@ class Integrate_Equations:
         # dictionary for final state
         self.final_state = {}
 
+    @staticmethod
+    def progress(count, total, status=''):
+        bar_len = 60
+        filled_len = int(round(bar_len * count / float(total)))
+
+        percents = round(100.0 * count / float(total), 1)
+        bar = '=' * filled_len + '-' * (bar_len - filled_len)
+
+        sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
+        sys.stdout.flush()
+
     def dot_rhs(self, values, t):
-        print(t)
+        self.progress(t, self.t_max, 'mean approximation running')
         # add to g such that 1 - alpha**2 * (g/G_0)**2 remains positive
         if values[-1] < self.alpha * self.g_0:
             values[-1] = self.alpha * self.g_0
@@ -453,6 +467,7 @@ class Integrate_Equations:
         return rval
 
     def run(self, t_max):
+        self.t_max = t_max
         if t_max > self.t:
             print('integrating equations from t={} to t={}'.format(self.t, t_max))
             t = np.linspace(self.t, t_max, 50)
@@ -493,9 +508,13 @@ class Integrate_Equations:
         L = self.dependent_vars['L']
         l = self.dependent_vars['l']
 
-        columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r', 'n_c', 'i_c', 'r_c', 'r_d', 'w']
-        var_expressions = [(self.independent_vars['mu_c^c'] + self.independent_vars['mu_d^c']) / l,
-                           (self.independent_vars['mu_c^d'] + self.independent_vars['mu_d^d']) / l,
+        columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r',
+                   'n_c', 'i_c', 'r_c', 'r_d', 'w',
+                   'W_c', 'W_d', 'Pcd', 'Pdc']
+        var_expressions = [(self.independent_vars['mu_c^c'] * self.dependent_vars['Nc']
+                            + self.independent_vars['mu_c^d'] * self.dependent_vars['Nd']) / L,
+                           (self.independent_vars['mu_d^c'] * self.dependent_vars['Nc']
+                            + self.independent_vars['mu_d^d'] * self.dependent_vars['Nd']) / L,
                            self.dependent_vars['Lc'] / L,
                            self.dependent_vars['Ld'] / L,
                            self.independent_vars['g'] / l,
@@ -507,7 +526,10 @@ class Integrate_Equations:
                               + self.dependent_vars['rd'] * (self.independent_vars['mu_d^c'] + self.independent_vars['mu_d^d'])),
                            self.dependent_vars['rc'],
                            self.dependent_vars['rd'],
-                           self.dependent_vars['w']]
+                           self.dependent_vars['w'],
+                           self.dependent_vars['W_c'],
+                           self.dependent_vars['W_d']
+                           ]
         t_values = self.m_trajectory.index.values
         data = np.zeros((len(t_values), len(columns)))
         for i, t in enumerate(t_values):
@@ -533,14 +555,14 @@ if __name__ == '__main__':
     # investment_decisions:
 
     nopinions = [50, 50]
-    possible_opinions = [[0], [1]]
+    possible_cue_orders = [[0], [1]]
 
     # Parameters:
 
     input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
                         'b_c': 0.4, 'i_phi': 0.8, 'e': 100,
                         'G_0': 30000, 'b_r0': 0.1 ** 2 * 100,
-                        'possible_opinions': possible_opinions,
+                        'possible_cue_orders': possible_cue_orders,
                         'c': 100, 'xi': 1./8., 'beta': 0.06,
                         'campaign': False, 'learning': True,
                         'imitation': 2}

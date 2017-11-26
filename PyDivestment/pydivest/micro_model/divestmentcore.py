@@ -1,10 +1,11 @@
 import datetime
+import sys
 from itertools import chain
 from random import shuffle
 
+import networkx as nx
 import numpy as np
 import pandas as pd
-import networkx as nx
 from scipy.integrate import odeint
 from scipy.sparse.csgraph import connected_components
 from scipy.stats import linregress
@@ -13,7 +14,7 @@ from scipy.stats import linregress
 class DivestmentCore:
     def __init__(self, adjacency=None, opinions=None,
                  investment_clean=None, investment_dirty=None,
-                 possible_opinions=None,
+                 possible_cue_orders=None,
                  investment_decisions=None,
                  i_tau=0.8, i_phi=.7, eps=0.05,
                  L=100., G_0=3000, C=1.,
@@ -24,35 +25,69 @@ class DivestmentCore:
                  beta=0.06, learning=False,
                  campaign=False, interaction=1, crs=True):
         """
-        
-        Parameters
-        ----------
-        adjacency: ndarray
-        opinions: list
-        investment_clean: list
-        investment_dirty: list
-        possible_opinions: list
-        investment_decisions: list
-        i_tau: float
-        i_phi: float
-        eps: float
-        L: float
-        G_0: float
-        C: float
-        b_c: float
-        b_d: float
-        s: float
-        d_c: float
-        b_r0: float
-        e: float
-        resource_depletion: bool
-        test: bool
-        beta: float
-        xi: float
-        learning: bool
-        campaign: bool
-        interaction: int
-        """
+
+                Parameters
+                ----------
+                adjacency: ndarray
+                    Acquaintance matrix between the households. Has to be symmetric unweighted and without self loops.
+                possible_cue_orders: list
+                    A list of possible cue orders. Cue orders are integers that have to be implemented in the dict of
+                    possible cues with their respective callables in the init.
+                opinions: list
+                    A list, specifying for each household a cue order of the above
+                investment_clean: list
+                    Initial household endowments in the clean sector
+                investment_dirty: list
+                    Initial household endowments in the dirty sector
+                investment_decisions: list
+                    Initial investment decisions of households. Will be updated 
+                    from their actual heuristic decision making during initialization
+                tau: float
+                    Mean waiting time between household opinion updates
+                phi: float
+                    Rewiring probability in the network adaptation process
+                eps: float
+                    fraction of exploration events (noise) in the opinion formation process
+                L: float
+                    Total labor (fixed)
+                G_0: float
+                    Total initial resource stock
+                C: float
+                    Total initial knowledge stock
+                b_c: float
+                    Solow residual of the production function of the clean sector
+                b_d: float
+                    Solow residual of the production function of the dirty sector
+                s: float
+                    Savings rate of the households
+                d_c: float
+                    Capital depreciation rate
+                b_r0: float
+                    Resource cost factor
+                e: float
+                    Resource efficiency in the dirty sector
+                resource_depletion: bool
+                    Switch to turn resource depreciation on or off
+                test: bool
+                    switch for verbose output for debugging
+                beta: float
+                    Knowledge depreciation (forgetting) rate in the clean sector
+                xi: float
+                    Elasticity of knowledge stock in the production process in the clean sector
+                learning: bool
+                    Switch to toggle learning in the clean sector. 
+                    If False, the knowledge stock is set to 1 and its dynamics are turned off.
+                campaign: bool
+                    Switch to toggle separate treatment of zealots (campaigners) in the model, such that they do not immiatate 
+                    other households decisions.
+                interaction: int
+                    Switch for different imitation probabilities.
+                    if 0: tanh(Wi-Wj) interaction,
+                    if 1: interaction as in Traulsen, 2010 but with relative differences
+                    if 2: (Wi-Wj)/(Wi+Wj) interaction.
+                t_trend: float
+                    length of running window average that chartes use to predict trends
+                """
 
         # Modes:
         #  1: only economy,
@@ -66,12 +101,12 @@ class DivestmentCore:
 
         self.interaction = interaction
 
-        if possible_opinions is None:
-            possible_opinions = [[0], [1]]
+        if possible_cue_orders is None:
+            possible_cue_orders = [[0], [1]]
 
         # check, if heuristic decision making of imitation only
         self.heuristic_decision_making = False
-        for p in possible_opinions:
+        for p in possible_cue_orders:
             if p not in [[0], [1]]:
                 self.heuristic_decision_making = True
 
@@ -167,28 +202,28 @@ class DivestmentCore:
         self.neighbors = adjacency
         # to select random investment_decisions,
         # all possible investment_decisions must be known
-        self.possible_opinions = possible_opinions
-        # investment_decisions as indices of possible_opinions
+        self.possible_cue_orders = possible_cue_orders
+        # investment_decisions as indices of possible_cue_orders
         self.opinions = np.array(opinions)
-        # to keep track of the current ration of investment_decisions
-        self.clean_opinions = np.zeros((len(possible_opinions)))
-        self.dirty_opinions = np.zeros((len(possible_opinions)))
+        # to keep track of the current ratio of investment_decisions
+        self.clean_opinions = np.zeros((len(possible_cue_orders)))
+        self.dirty_opinions = np.zeros((len(possible_cue_orders)))
 
         i, n = np.unique(self.opinions,
                          return_counts=True)
-        for j in range(len(possible_opinions)):
+        for j in range(len(possible_cue_orders)):
             if j not in list(i):
                 n = np.append(n, [0])
                 i = np.append(i, [j])
         self.opinion_state = [n[list(i).index(j)]
                               if j in i else 0
-                              for j in range(len(self.possible_opinions))]
+                              for j in range(len(self.possible_cue_orders))]
 
         # to keep track of investment decisions.
         self.decision_state = 0.
         # investment decision vector, so far equal to investment_decisions
         if investment_decisions is None:
-            if possible_opinions == [[0], [1]]:
+            if possible_cue_orders == [[0], [1]]:
                 self.investment_decisions = np.array(opinions)
             else:
                 self.investment_decisions = np.random.randint(0, 2, self.n)
@@ -301,6 +336,17 @@ class DivestmentCore:
             self.init_mean_trajectory()
         if self.switchlist_output:
             self.init_switchlist()
+
+    @staticmethod
+    def progress(count, total, status=''):
+        bar_len = 60
+        filled_len = int(round(bar_len * count / float(total)))
+
+        percents = round(100.0 * count / float(total), 1)
+        bar = '=' * filled_len + '-' * (bar_len - filled_len)
+
+        sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
+        sys.stdout.flush()
 
     @staticmethod
     def cue_0(i):
@@ -459,6 +505,9 @@ class DivestmentCore:
 
         candidate = 0
         while self.t < t_max:
+
+            self.progress(self.t, t_max, 'abm running')
+
             # if self.debug:
             #     print self.t, t_max
 
@@ -491,7 +540,7 @@ class DivestmentCore:
             'investment_decisions': self.investment_decisions,
             'investment_clean': self.investment_clean,
             'investment_dirty': self.investment_dirty,
-            'possible_opinions': self.possible_opinions,
+            'possible_cue_orders': self.possible_cue_orders,
             'tau': self.tau, 'phi': self.phi, 'eps': self.eps,
             'L': self.L, 'b_c': self.b_c,
             'b_d': self.b_d, 's': self.s, 'd_c': self.d_c,
@@ -757,7 +806,7 @@ class DivestmentCore:
                          return_counts=True)
         self.opinion_state = [n[list(i).index(j)] if j in i
                               else 0
-                              for j in range(len(self.possible_opinions))]
+                              for j in range(len(self.possible_cue_orders))]
         i = 0
         i_max = 1000 * self.n
         candidate = 0
@@ -779,19 +828,17 @@ class DivestmentCore:
             neighbors = self.neighbors[:, candidate].nonzero()[0]
 
             # noise in imitation (exploration of strategies)
-            # people trying new stuff at random
             rdn = np.random.uniform()
             if rdn < self.eps * (1 - self.phi) and self.imitation:
                 old_opinion = self.opinions[candidate]
                 new_opinion = np.random.randint(
-                    len(self.possible_opinions))
+                    len(self.possible_cue_orders))
                 self.opinions[candidate] = new_opinion
                 if old_opinion != new_opinion and self.switchlist_output:
                     self.save_switch(candidate, old_opinion)
                 candidate = -1
                 break
-            # noise in rewiring (sometimes they make new friends
-            # at random..)
+            # noise in rewiring (sometimes they make new friends at random..)
             elif rdn > 1. - self.eps * self.phi and len(neighbors) > 0:
                 unconnected = np.zeros(self.n, dtype=int)
                 for i in range(self.n):
@@ -848,7 +895,7 @@ class DivestmentCore:
             # if rewire
             for i in range(self.n):
                 # campaigners rewire to everybody
-                if self.campaign is True and opinion[candidate] == len(self.possible_opinions):
+                if self.campaign is True and opinion[candidate] == len(self.possible_cue_orders):
                     same_unconnected[i] = 1
 
                 # everybody else rewires to people with same opinion
@@ -876,7 +923,7 @@ class DivestmentCore:
             else:
                 raise ValueError('interaction not defined, must be in [0, 1, 2] but is {}'.format(self.interaction))
             # and imitate, if not a campaigner
-            if ((self.campaign is False or opinion[candidate] != (len(self.possible_opinions) - 1))
+            if ((self.campaign is False or opinion[candidate] != (len(self.possible_cue_orders) - 1))
                     and (np.random.uniform() < p_imitate)
                     and self.imitation):
                     if self.switchlist_output:
@@ -890,11 +937,11 @@ class DivestmentCore:
         cue orders (opinion) and the state of the economy
         """
 
-        self.dirty_opinions = np.zeros((len(self.possible_opinions)))
-        self.clean_opinions = np.zeros((len(self.possible_opinions)))
+        self.dirty_opinions = np.zeros((len(self.possible_cue_orders)))
+        self.clean_opinions = np.zeros((len(self.possible_cue_orders)))
 
         for i in range(self.n):
-            for cue in self.possible_opinions[self.opinions[i]]:
+            for cue in self.possible_cue_orders[self.opinions[i]]:
                 decision = self.cues[cue](i)
                 if decision != -1:
                     self.investment_decisions[i] = decision
@@ -994,9 +1041,9 @@ class DivestmentCore:
               'decision state',
               'G_alpha',
               'i_c'],
-             [str(x) for x in self.possible_opinions],
-             ['c' + str(x) for x in self.possible_opinions],
-             ['d' + str(x) for x in self.possible_opinions]]))
+             [str(x) for x in self.possible_cue_orders],
+             ['c' + str(x) for x in self.possible_cue_orders],
+             ['d' + str(x) for x in self.possible_cue_orders]]))
         self.e_trajectory.append(element)
 
         dt = [self.t, self.t]
@@ -1042,7 +1089,7 @@ class DivestmentCore:
               self.converged,
               self.decision_state,
               (self.G - alpha * self.G_0) / (self.G_0 * (1. - alpha)),
-              sum(self.income * self.investment_decisions) / sum(self.income)],
+              sum(self.income * self.investment_decisions) / sum(self.income) if sum(self.income) > 0 else 0],
              self.opinion_state,
              self.clean_opinions,
              self.dirty_opinions]))
@@ -1051,7 +1098,7 @@ class DivestmentCore:
     def get_economic_trajectory(self):
         # make up DataFrame from micro data
         columns = self.e_trajectory[0]
-        df = pd.DataFrame(data = self.e_trajectory[1:], columns=columns)
+        df = pd.DataFrame(data=self.e_trajectory[2:], columns=columns)
         df = df.set_index('time')
 
         return df
@@ -1279,9 +1326,13 @@ class DivestmentCore:
             print('calculating the economic trajectory is a prerequisite.'
                   'please rerun the model with e_trajectory set to true.')
             return -1
+        if self.m_trajectory is False:
+            print('needs mean trajectory to be enabled.')
+            return -1
+        mdf = self.get_mean_trajectory()
 
         columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r', 'n_c', 'i_c',
-                   'r_c', 'r_d', 'w']
+                   'r_c', 'r_d', 'w', 'W_c', 'W_d']
         edf = self.get_economic_trajectory()
         df = pd.DataFrame(index=edf.index, columns=columns)
         df['k_c'] = edf['K_c']/self.L
@@ -1296,8 +1347,10 @@ class DivestmentCore:
         df['r_c'] = edf['r_c']
         df['r_d'] = edf['r_d']
         df['w'] = edf['wage']
+        df['W_c'] = mdf['mucc'] * edf['r_c'] + mdf['mudc'] * edf['r_d']
+        df['W_d'] = mdf['mucd'] * edf['r_c'] + mdf['mudd'] * edf['r_d']
 
-        return
+        return df
 
 if __name__ == '__main__':
     """
@@ -1315,7 +1368,7 @@ if __name__ == '__main__':
 
     if FFH:
         nopinions = [10, 10, 10, 10, 10, 10, 10, 10]
-        possible_opinions = [[2, 3],  # short term investor
+        possible_cue_orders = [[2, 3],  # short term investor
                              [3, 2],  # long term investor
                              [4, 2],  # short term herder
                              [4, 3],  # trending herder
@@ -1326,27 +1379,27 @@ if __name__ == '__main__':
         input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
                             'b_c': 1., 'i_phi': 0.8, 'e': 100,
                             'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
-                            'possible_opinions': possible_opinions,
+                            'possible_cue_orders': possible_cue_orders,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
                             'campaign': False, 'learning': True}
 
     if not FFH:
         # investment_decisions:
         nopinions = [10, 10]
-        possible_opinions = [[0], [1]]
+        possible_cue_orders = [[0], [1]]
 
         # Parameters:
 
         input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
                             'b_c': 1., 'i_phi': 0.8, 'e': 100,
                             'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
-                            'possible_opinions': possible_opinions,
+                            'possible_cue_orders': possible_cue_orders,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
                             'campaign': False, 'learning': True}
 
-    cops = ['c' + str(x) for x in possible_opinions]
-    dops = ['d' + str(x) for x in possible_opinions]
-    colors = [np.random.rand(3, 1) for x in possible_opinions]
+    cops = ['c' + str(x) for x in possible_cue_orders]
+    dops = ['d' + str(x) for x in possible_cue_orders]
+    colors = [np.random.rand(3, 1) for x in possible_cue_orders]
     colors = colors + colors
 
     opinions = []

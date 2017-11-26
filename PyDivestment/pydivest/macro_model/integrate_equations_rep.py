@@ -6,12 +6,13 @@
 
 # Imports and setup
 
-import sympy as sp
+import sys
+
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from assimulo.solvers import IDA
+import sympy as sp
 from assimulo.problem import Implicit_Problem
+from assimulo.solvers import IDA
 from scipy.optimize import root
 
 
@@ -30,9 +31,7 @@ class Integrate_Equations:
             print('got superfluous keyword arguments')
             print(kwargs.keys())
 
-        if len(kwargs.keys()) > 0:
-            print('got superfluous keyword arguments')
-            print(kwargs.keys())
+        self.t_max = 0
 
         # Social parameters
 
@@ -49,7 +48,7 @@ class Integrate_Equations:
         self.n = float(adjacency.shape[0])
         # edges/nodes
         self.k = float(sum(sum(adjacency))) / self.n
-        # investment_decisions as indices of possible_opinions
+        # investment_decisions as indices of possible_cue_orders
         self.investment_decisions = np.array(investment_decisions)
 
         # Sector parameters
@@ -204,6 +203,7 @@ class Integrate_Equations:
         raw_drdiff = L**pi*(-pi)*(Xc + Xd*XR)**(-pi-1)*(dXc + dXd*XR + Xd*dXR)*(kappac/Kc*Xc - kappad/Kd*Xd*XR) + \
             L**pi*(Xc + Xd*XR)**(-pi)*(kappac*(dXc*Kc - Xc*dKc)/(Kc**2.)
                                        - kappad*((dXd*XR + Xd*dXR)*Kd - Xd*XR*dKd)/(Kd**2.))
+        drdiff_g_const = raw_drdiff.subs(subs4).subs(subs5).subs(subs2).subs(subs3)
         drdiff = raw_drdiff.subs(subs4).subs(subs5).subs(subs2).subs(subs3)
 
         # List of dynamic variables and the right hand side of their dynamic equations as well as a list of
@@ -219,13 +219,29 @@ class Integrate_Equations:
 
         rhs_1 = sp.Matrix([dKc, dKd, dG, dC, drdiff]).subs(subs5).subs(subs2).subs(subs3)
         rhs_2 = sp.Matrix([dKc, dKd, dG, dC, n - 1]).subs(subs5).subs(subs2).subs(subs3)
+        rhs_3 = sp.Matrix([dKc, dKd, 0., dC, drdiff_g_const]).subs(subs5).subs(subs2).subs(subs3)
+        rhs_4 = sp.Matrix([dKc, dKd, 0., dC, n - 1]).subs(subs5).subs(subs2).subs(subs3)
 
         self.eq_implicit = [False, False, False, False, True]
 
         self.rhs_1 = rhs_1.subs(self.subs_params)
         self.rhs_2 = rhs_2.subs(self.subs_params)
+        self.rhs_3 = rhs_3.subs(self.subs_params)
+        self.rhs_4 = rhs_4.subs(self.subs_params)
         self.rdiff = rdiff.subs(self.subs_params)
         self.drdiff = drdiff.subs(self.subs_params)
+        self.drdiff_g_const = drdiff_g_const.subs(self.subs_params)
+
+    @staticmethod
+    def progress(count, total, status=''):
+        bar_len = 60
+        filled_len = int(round(bar_len * count / float(total)))
+
+        percents = round(100.0 * count / float(total), 1)
+        bar = '=' * filled_len + '-' * (bar_len - filled_len)
+
+        sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
+        sys.stdout.flush()
 
     def find_initial_conditions(self):
         """
@@ -239,13 +255,12 @@ class Integrate_Equations:
         n: float
             the fraction of investment going into the clean sector
         """
-
+        print('sanitizing initial conditions to')
 
         # define initial values for Kc, Kd, C and G
         Y0 = [self.Kc_0, self.Kd_0, self.G_0]
         sym = self.var_symbols[:3]
         subs_ini = {symbol: value for symbol, value in zip(sym, Y0)}
-        print(subs_ini)
 
         C = self.var_symbols[3]
         F_ini_1 = sp.simplify(self.rdiff.subs(subs_ini))
@@ -254,7 +269,10 @@ class Integrate_Equations:
         subs_ini[C] = r1.x[0]
 
         n = self.var_symbols[4]
-        F_ini_2 = sp.simplify(self.drdiff.subs(subs_ini))
+        if self.R_depletion:
+            F_ini_2 = sp.simplify(self.drdiff.subs(subs_ini))
+        else:
+            F_ini_2 = sp.simplify(self.drdiff_g_const.subs(subs_ini))
         fun2 = lambda x: F_ini_2.subs({n: x}).evalf()
         r2 = root(fun2, .5)
         subs_ini[n] = r2.x[0]
@@ -263,25 +281,34 @@ class Integrate_Equations:
         self.Yd0 = np.array(list(self.rhs_1.subs(subs_ini)))
         self.t0 = 0
         self.sw0 = [True, False, False]
-        print([self.rdiff.subs(subs_ini), self.drdiff.subs(subs_ini)])
         print(subs_ini)
         return r1.x[0], r2.x[0]
 
     def run(self, t_max):
+
+        self.t_max = t_max
         # Define the problem for assimulo and run the simulation
 
         def prep_rhs(t, Y, Yd, sw):
 
             sbs = {var: val for (var, val) in zip(self.var_symbols, Y)}
             if sw[0] or sw[2]:
-                rval = self.rhs_1.subs(sbs)
+                if self.R_depletion:
+                    rval = self.rhs_1.subs(sbs)
+                else:
+                    rval = self.rhs_3.subs(sbs)
             else:
-                rval = self.rhs_2.subs(sbs)
+                if self.R_depletion:
+                    rval = self.rhs_2.subs(sbs)
+                else:
+                    rval = self.rhs_4.subs(sbs)
 
             for i in [0, 1, 2, 3]:
                 rval[i] = Yd[i] - sp.simplify(rval[i])
             rval = np.array([float(x) for x in rval.evalf()])
-            print(t)
+
+            self.progress(t, self.t_max, 'representative agent running')
+
             return rval
 
         def state_events(t, Y, Yd, sw):
@@ -298,9 +325,9 @@ class Integrate_Equations:
                 solver.sw[1] = True
                 subs_ini = {symbol: value for symbol, value in zip(self.var_symbols, solver.y)}
                 solver.yd = np.array([float(x) for x in list(self.rhs_2.subs(subs_ini).evalf())])
-                print('first event, n reaching 1')
-                print(solver.y)
-                print(solver.yd)
+                # print('first event, n reaching 1')
+                # print(solver.y)
+                # print(solver.yd)
                 solver.re_init(solver.t, solver.y, solver.yd, sw0=solver.sw)
             elif event_info[1] != 0:
                 solver.sw[1] = False
@@ -321,9 +348,9 @@ class Integrate_Equations:
         t, Y, Yd = sim.simulate(t_max)
 
         df = pd.DataFrame(Y, index=t, columns=self.var_names)
-        self.m_trajectory = pd.concat([self.m_trajectory, df])
+        self.m_trajectory = pd.concat([self.m_trajectory, df]).groupby(level=0).mean()
 
-        return t, Y
+        return
 
     def get_aggregate_trajectory(self):
 
@@ -375,7 +402,6 @@ if __name__ == "__main__":
     Perform test run and plot some output to check
     functionality
     """
-    import datetime
     import networkx as nx
     from random import shuffle
     import matplotlib.pyplot as plt
@@ -383,14 +409,14 @@ if __name__ == "__main__":
     # investment_decisions:
 
     nopinions = [50, 50]
-    possible_opinions = [[0], [1]]
+    possible_cue_orders = [[0], [1]]
 
     # Parameters:
 
     input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
                         'b_c': 0.4, 'i_phi': 0.8, 'e': 100,
-                        'G_0': 30000, 'b_r0': 0.1 ** 2 * 100,
-                        'possible_opinions': possible_opinions,
+                        'G_0': 3, 'b_r0': 0.1 ** 2 * 100,
+                        'possible_cue_orders': possible_cue_orders,
                         'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
                         'campaign': False, 'learning': True,
                         'crs': True}
@@ -421,16 +447,25 @@ if __name__ == "__main__":
 
     m = Integrate_Equations(*init_conditions, **input_parameters)
     m.find_initial_conditions()
-    t, Y = m.run(t_max=.2)
+    m.R_depletion = True
+    t, Y = m.run(t_max=3)
     # Plot the results
 
-    trj = m.get_aggregate_trajectory()
+    trj = m.get_unified_trajectory()
 
-    fig, axes = plt.subplots()
-    for i, lab in enumerate(['Kc', 'Kd', 'G', 'C', 'n']):
-        axes.plot(t, Y[:, i], label=lab)
-    plt.legend()
+    fig = plt.figure()
+    ax1 = fig.add_subplot(141)
+    trj[['n_c']].plot(ax=ax1)
 
-    fig, axes = plt.subplots()
-    trj.plot(ax=axes, legend=True)
+    ax2 = fig.add_subplot(142)
+    trj[['k_c', 'k_d']].plot(ax=ax2)
+    ax2b = ax2.twinx()
+    trj[['c']].plot(ax=ax2b)
+
+    ax3 = fig.add_subplot(143)
+    trj[['r_c', 'r_d']].plot(ax=ax3)
+
+    ax4 = fig.add_subplot(144)
+    trj[['g']].plot(ax=ax4)
+
     plt.show()
