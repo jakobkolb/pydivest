@@ -2,11 +2,13 @@
 
 from __future__ import print_function
 
-from scipy.integrate import odeint
 import pickle as pkl
+import sys
+
 import numpy as np
 import pandas as pd
 import sympy as sp
+from scipy.integrate import odeint
 from sympy.abc import epsilon, tau, phi
 
 
@@ -25,6 +27,8 @@ class Integrate_Equations:
             print('got superfluous keyword arguments')
             print(kwargs.keys())
 
+        self.t_max = 0
+
         # Social parameters
 
         # interaction either with 1) tanh(Wi-Wj) or 2) (Wi-Wj)/(Wi+Wj)
@@ -40,7 +44,7 @@ class Integrate_Equations:
         self.n = float(adjacency.shape[0])
         # edges/nodes
         self.k = float(sum(sum(adjacency))) / self.n
-        # investment_decisions as indices of possible_opinions
+        # investment_decisions as indices of possible_cue_orders
         self.investment_decisions = np.array(investment_decisions)
 
         # Sector parameters
@@ -95,13 +99,13 @@ class Integrate_Equations:
 
         # household investment in dirty capital
         if investment_dirty is None:
-            self.investment_dirty = np.ones(self.n)
+            self.investment_dirty = np.ones(int(self.n))
         else:
             self.investment_dirty = investment_dirty
 
         # household investment in clean capital
         if investment_clean is None:
-            self.investment_clean = np.ones(self.n)
+            self.investment_clean = np.ones(int(self.n))
         else:
             self.investment_clean = investment_clean
 
@@ -232,7 +236,7 @@ class Integrate_Equations:
         if interaction == 0:
             raise ValueError('only interactions depending on relative differences of agent properties are'
                              'possible with a macroscopic approximation in aggregate quantities')
-        if interaction == 1:
+        elif interaction == 1:
             subs1[Pcd] = (1. / (1 + sp.exp(8. * (Wd - Wc) / (Wc + Wd)))).subs(subs1)
             subs1[Pdc] = (1. / (1 + sp.exp(8. * (Wc - Wd) / (Wc + Wd)))).subs(subs1)
         elif interaction == 2:
@@ -242,7 +246,6 @@ class Integrate_Equations:
             raise ValueError('interaction must be in [1, 2] but is {}'.format(self.interaction))
 
         # Jumps in state space i.e. Effect of events on state vector S = (X, Y, Z) - denoted r = X-X' in van Kampen
-        print('define stochiometric matrix and probabilities,')
 
         # regular adaptive voter events
         s1 = sp.Matrix([0, 1, -1])  # clean investor rewires
@@ -261,16 +264,16 @@ class Integrate_Equations:
 
         # Probabilities per unit time for events to occur (denoted by W in van Kampen)
 
-        p1 = 1. / tau * (1 - epsilon) * (Nc / N) * cd / (Nc * kc) * phi  # clean investor rewires
-        p2 = 1. / tau * (1 - epsilon) * (Nd / N) * cd / (Nd * kd) * phi  # dirty investor rewires
-        p3 = 1. / tau * (1 - epsilon) * (Nc / N) * cd / (Nc * kc) * (1 - phi) * Pcd  # clean investor imitates c -> d
-        p4 = 1. / tau * (1 - epsilon) * (Nd / N) * cd / (Nd * kd) * (1 - phi) * Pdc  # dirty investor imitates d -> c
-        p5 = 1. / tau * epsilon * (1. / 2) * Nc / N  # c -> d
-        p6 = 1. / tau * epsilon * (1. / 2) * Nd / N  # d -> c
-        p7 = 1. / tau * epsilon * Nc / N * (2 * cc) / (2 * cc + cd) * Nd / N  # c-c -> c-d
-        p8 = 1. / tau * epsilon * Nc / N * cd / (2 * cc + cd) * Nc / N  # c-d -> c-c
-        p9 = 1. / tau * epsilon * Nd / N * (2 * dd) / (2 * dd + cd) * Nc / N  # d-d -> d-c
-        p10 = 1. / tau * epsilon * Nd / N * cd / (2 * dd + cd) * Nd / N  # d-c -> d-d
+        p1 = 1. / tau * phi * (1 - epsilon) * (Nc / N) * cd / (Nc * kc)  # clean investor rewires
+        p2 = 1. / tau * phi * (1 - epsilon) * (Nd / N) * cd / (Nd * kd)  # dirty investor rewires
+        p3 = 1. / tau * (1 - phi) * (1 - epsilon) * (Nc / N) * cd / (Nc * kc) * Pcd  # clean investor imitates c -> d
+        p4 = 1. / tau * (1 - phi) * (1 - epsilon) * (Nd / N) * cd / (Nd * kd) * Pdc  # dirty investor imitates d -> c
+        p5 = 1. / tau * (1 - phi) * epsilon * (1. / 2) * Nc / N  # c -> d
+        p6 = 1. / tau * (1 - phi) * epsilon * (1. / 2) * Nd / N  # d -> c
+        p7 = 1. / tau * phi * epsilon * Nc / N * (2 * cc) / (2 * cc + cd) * Nd / N  # c-c -> c-d
+        p8 = 1. / tau * phi * epsilon * Nc / N * cd / (2 * cc + cd) * Nc / N  # c-d -> c-c
+        p9 = 1. / tau * phi * epsilon * Nd / N * (2 * dd) / (2 * dd + cd) * Nc / N  # d-d -> d-c
+        p10 = 1. / tau * phi * epsilon * Nd / N * cd / (2 * dd + cd) * Nd / N  # d-c -> d-d
 
         # Create S and r matrices to write down rhs markov jump process for pair based proxy:
 
@@ -327,9 +330,7 @@ class Integrate_Equations:
                  rd: kappad / Kd * Xd * XR * L ** pi * (Xc + Xd * XR) ** (-pi),
                  R: bd / e * Kd ** kappad * L ** pi * (Xd * XR / (Xc + Xd * XR)) ** pi,
                  Lc: L * Xc / (Xc + Xd * XR),
-                 Ld: L * Xd * XR / (Xc + Xd * XR),
-                 Wd: rc * Kcd + rd * Kdd,
-                 Wc: rc * Kcc + rd * Kdc}
+                 Ld: L * Xd * XR / (Xc + Xd * XR)}
 
         subs3 = {Xc: (bc * Kc ** kappac * C ** xi) ** (1. / (1. - pi)),
                  Xd: (bd * Kd ** kappad) ** (1. / (1. - pi)),
@@ -344,20 +345,20 @@ class Integrate_Equations:
         # terms of means of clean and dirty capital stocks for clean and dirty households
         print('define economic equations,', flush=True)
 
-        rhsECO = sp.Matrix([(rs * rc - delta) * Kcc + rs * rd * Kdc + rs * w * L / N,
+        rhsECO = sp.Matrix([(rs * rc - delta) * Kcc + rs * rd * Kdc + rs * w * L * Nc / N,
                             -delta * Kdc,
                             -delta * Kcd,
-                            rs * rc * Kcd + (rs * rd - delta) * Kdd + rs * w * L / N,
-                            bc * Lc ** pi * (Nc * Kcc + Nd * Kcd) ** kappac * C ** xi - delta * C,
+                            rs * rc * Kcd + (rs * rd - delta) * Kdd + rs * w * L * Nd / N,
+                            bc * Lc ** pi * Kc ** kappac * C ** xi - delta * C,
                             -R])
 
         # Write down changes in means of capital stocks through agents'
         # switching of opinions and add them to the capital accuKlation terms
 
-        dtNcd = 1. / tau * Nc * (
-            Nc / N * cd / (2 * cc + cd) * (1 - phi) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
-        dtNdc = 1. / tau * Nd * (
-            Nd / N * cd / (2 * dd + cd) * (1 - phi) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
+        dtNcd = 1. / tau * Nc * (1 - phi) * (
+            Nc / N * cd / (2 * cc + cd) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
+        dtNdc = 1. / tau * Nd * (1 - phi) * (
+            Nd / N * cd / (2 * dd + cd) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
 
         rhsECO_switch = sp.Matrix([Kcd / Nd * dtNdc - Kcc / Nc * dtNcd,
                                    Kdd / Nd * dtNdc - Kdc / Nc * dtNcd,
@@ -401,13 +402,11 @@ class Integrate_Equations:
 
         # Define lists of symbols and values for parameters to substitute
         # in rhs expression
-        param_symbols = [bc, bd, bR, e, G0,
-                         rs, delta, pi, kappac, kappad, xi,
-                         epsilon, phi, tau, k, L]
-        param_values = [self.b_c, self.b_d, self.b_r0, self.e, self.G_0,
-                        self.s, self.d_c, self.pi, self.kappa_c, self.kappa_d, self.xi,
-                        self.eps, self.phi, self.tau,
-                        self.k, self.L]
+        param_symbols = [bc, bd, bR, e, rs, delta, pi, kappac, kappad, xi, G0, L,
+                         epsilon, phi, tau, k]
+        param_values = [self.b_c, self.b_d, self.b_r0, self.e, self.s, self.d_c,
+                        self.pi, self.kappa_c, self.kappa_d, self.xi, self.G_0, self.L,
+                        self.eps, self.phi, self.tau, self.k]
 
         self.subs_params = {symbol: value for symbol, value
                             in zip(param_symbols, param_values)}
@@ -417,9 +416,11 @@ class Integrate_Equations:
                                  'K_c^d': Kcd, 'K_d^d': Kdd,
                                  'x': x, 'y': y, 'z': z,
                                  'R': R, 'C': C, 'G': G}
-        self.dependent_vars = {'w': w, 'rc': rc, 'rd': rd, 'R': R, 'Lc': Lc, 'Ld': Ld, 'L': L, 'rs': rs}
+        self.dependent_vars = {'w': w, 'rc': rc, 'rd': rd, 'R': R,
+                               'Lc': Lc, 'Ld': Ld, 'L': L, 'rs': rs,
+                               'W_d': Wd, 'W_c': Wc, 'Pcd': Pcd, 'Pdc': Pdc}
         for key in self.dependent_vars.keys():
-            self.dependent_vars[key] = self.dependent_vars[key].subs(subs2).subs(subs3)\
+            self.dependent_vars[key] = self.dependent_vars[key].subs(subs1).subs(subs2).subs(subs3) \
                 .subs(subs1).subs(subs4).subs({N: 1}).subs(self.subs_params)
 
         self.var_symbols = [x, y, z, Kcc, Kdc, Kcd, Kdd, C, G]
@@ -432,8 +433,19 @@ class Integrate_Equations:
         # dictionary for final state
         self.final_state = {}
 
+    @staticmethod
+    def progress(count, total, status=''):
+        bar_len = 60
+        filled_len = int(round(bar_len * count / float(total)))
+
+        percents = round(100.0 * count / float(total), 1)
+        bar = '=' * filled_len + '-' * (bar_len - filled_len)
+
+        sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
+        sys.stdout.flush()
+
     def dot_rhs(self, values, t):
-        print(t)
+        self.progress(t, self.t_max, 'aggregate approximation running')
         # add to g such that 1 - alpha**2 * (g/G_0)**2 remains positive
         if values[-1] < self.alpha * self.G_0:
             values[-1] = self.alpha * self.G_0
@@ -447,6 +459,7 @@ class Integrate_Equations:
         return rval
 
     def run(self, t_max):
+        self.t_max = t_max
         if t_max > self.t:
             print('integrating equations from t={} to t={}'.format(self.t, t_max))
             t = np.linspace(self.t, t_max, 50)
@@ -481,9 +494,11 @@ class Integrate_Equations:
         """
 
         L = self.dependent_vars['L']
-        columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r', 'n_c', 'i_c', 'r_c', 'r_d', 'w']
-        var_expressions = [(self.independent_vars['K_c^c'] + self.independent_vars['K_d^c']) / L,
-                           (self.independent_vars['K_c^d'] + self.independent_vars['K_d^d']) / L,
+        columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r',
+                   'n_c', 'i_c', 'r_c', 'r_d', 'w',
+                   'W_c', 'W_d', 'Pcd', 'Pdc']
+        var_expressions = [(self.independent_vars['K_c^c'] + self.independent_vars['K_c^d']) / L,
+                           (self.independent_vars['K_d^c'] + self.independent_vars['K_d^d']) / L,
                            self.dependent_vars['Lc'] / L,
                            self.dependent_vars['Ld'] / L,
                            self.independent_vars['G'] / L,
@@ -498,7 +513,9 @@ class Integrate_Equations:
                                                              + self.independent_vars['K_d^d'])),
                            self.dependent_vars['rc'],
                            self.dependent_vars['rd'],
-                           self.dependent_vars['w']
+                           self.dependent_vars['w'],
+                           self.dependent_vars['W_c'] / self.n,
+                           self.dependent_vars['W_d'] / self.n
                            ]
         t_values = self.m_trajectory.index.values
         data = np.zeros((len(t_values), len(columns)))
@@ -526,14 +543,14 @@ if __name__ == '__main__':
     # investment_decisions:
 
     nopinions = [50, 50]
-    possible_opinions = [[0], [1]]
+    possible_cue_orders = [[0], [1]]
 
     # Parameters:
 
     input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
                         'b_c': 0.4, 'i_phi': 0.8, 'e': 100,
                         'G_0': 30000, 'b_r0': 0.1 ** 2 * 100,
-                        'possible_opinions': possible_opinions,
+                        'possible_cue_orders': possible_cue_orders,
                         'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
                         'campaign': False, 'learning': True,
                         'crs': True, 'imitation': 2}

@@ -12,11 +12,10 @@ import time
 import networkx as nx
 import numpy as np
 import pandas as pd
-
-from pydivest.divestvisuals.data_visualization import plot_trajectories
-from pydivest.micro_model import divestmentcore as micro_model
 from pymofa.experiment_handling import experiment_handling, \
     even_time_series_spacing
+
+from pydivest.micro_model import divestmentcore as micro_model
 
 test = False
 
@@ -50,7 +49,7 @@ def RUN_FUNC(b_d, phi, interaction, filename):
     input_params = {'b_c': 1., 'i_phi': phi, 'i_tau': 1.,
                     'eps': 0.05, 'b_d': b_d, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,
-                    'possible_opinions': [[0], [1]],
+                    'possible_cue_orders': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
