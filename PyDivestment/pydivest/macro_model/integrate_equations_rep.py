@@ -11,8 +11,11 @@ import sys
 import numpy as np
 import pandas as pd
 import sympy as sp
-from assimulo.problem import Implicit_Problem
-from assimulo.solvers import IDA
+try:
+    from assimulo.problem import Implicit_Problem
+    from assimulo.solvers import IDA
+except ImportError:
+    print('assimulo not available. Running model impossible.')
 from scipy.optimize import root
 
 

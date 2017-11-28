@@ -155,10 +155,9 @@ class Integrate_Equations:
         self.k = float(k) / n
 
         # Define variables and parameters for the adaptive voter model
-        print('define variables,', flush=True)
 
         # number of nodes
-        N = sp.symbols('N', integer=True)
+        N = sp.Symbol('N', integer=True)
         # number of dirty nodes
         Nd = sp.Symbol('N_d', integer=True)
         # number of clean nodes
@@ -190,8 +189,6 @@ class Integrate_Equations:
 
         # Define variables and parameters for the economic subsystem:
 
-        # In[ ]:
-
         # Total labor and labor shares in sectors
         L, Lc, Ld = sp.symbols('L L_c L_d', positive=True, real=True)
         # Total capital in sectors
@@ -199,8 +196,8 @@ class Integrate_Equations:
         # Equilibrium wage and capital return rates in sectors
         w, rc, rd = sp.symbols('w r_c r_d', positive=True, real=True)
         # Resource usage rage, resource stock, knowledge Stock
-        R, G, C = sp.symbols('R G C', positive=True, real=True)
-        # aggregate capital endowments of clean and dirty households
+        R, G, C = sp.symbols('R, G, C', positive=True, real=True)
+        # aggreagate capital endowments of clean and dirty households
         # lower (first) index: capital type, upper (second) index: household type
         Kcc, Kcd, Kdc, Kdd = sp.symbols('K_c^c K_c^d K_d^c K_d^d', positive=True, real=True)
         # savings rate, capital depreciaten rate, and elasticities of labor, capital and knowledge
@@ -212,7 +209,6 @@ class Integrate_Equations:
 
         # Defination of relations between variables and calculation of
         # substitution of *primitive variables* by *state variables* of the system
-        print('define derived variables and derive substitutions,')
 
         eqs = [
             # total number of households is fixed,
@@ -285,8 +281,6 @@ class Integrate_Equations:
         for j, pj in enumerate([sp.Matrix([p]) for p in [p2, p3, p4, p5, p6, p7, p8, p9, p10]]):
             W = W.col_insert(j + 1, pj)
 
-        print('simplify rhs for PBP jump process,', flush=True)
-
         # rhs of the pair based proxy is given by the first jump moment. This is formally given by
         #
         # $\int r W(S,r) dr$
@@ -315,7 +309,7 @@ class Integrate_Equations:
             W[i] = W[i].collect(N)
         for i in range(len(r)):
             r[i] = r[i].collect(N)
-            # flamming hack to circumvent sympies inability to collect with core.add.Add.
+            # flaming hack to circumvent sympy's inability to collect with core.add.Add.
             # eyeballing the expressions it is obvious that this is justified.
             if isinstance(r[i], sp.add.Add):
                 r[i] = r[i].subs({N: 1})
@@ -353,12 +347,14 @@ class Integrate_Equations:
                             -R])
 
         # Write down changes in means of capital stocks through agents'
-        # switching of opinions and add them to the capital accuKlation terms
+        # switching of opinions and add them to the capital accumulation terms
 
-        dtNcd = 1. / tau * Nc * (1 - phi) * (
-            Nc / N * cd / (2 * cc + cd) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
-        dtNdc = 1. / tau * Nd * (1 - phi) * (
-            Nd / N * cd / (2 * dd + cd) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
+        #dtNcd = .5 * sp.Matrix(r * sp.Transpose(W))[0]
+        #dtNdc = - dtNcd
+        dtNcd = 1. / tau * Nc * (
+            Nc / N * cd / (2 * cc + cd) * (1 - phi) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
+        dtNdc = 1. / tau * Nd * (
+            Nd / N * cd / (2 * dd + cd) * (1 - phi) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
 
         rhsECO_switch = sp.Matrix([Kcd / Nd * dtNdc - Kcc / Nc * dtNcd,
                                    Kdd / Nd * dtNdc - Kdc / Nc * dtNcd,
@@ -416,7 +412,7 @@ class Integrate_Equations:
                                  'K_c^d': Kcd, 'K_d^d': Kdd,
                                  'x': x, 'y': y, 'z': z,
                                  'R': R, 'C': C, 'G': G}
-        self.dependent_vars = {'w': w, 'rc': rc, 'rd': rd, 'R': R,
+        self.dependent_vars = {'w': w, 'rc': rc, 'rd': rd, 'R': R, 'Kd': Kd, 'Kc': Kc,
                                'Lc': Lc, 'Ld': Ld, 'L': L, 'rs': rs,
                                'W_d': Wd, 'W_c': Wc, 'Pcd': Pcd, 'Pdc': Pdc}
         for key in self.dependent_vars.keys():
@@ -426,8 +422,6 @@ class Integrate_Equations:
         self.var_symbols = [x, y, z, Kcc, Kdc, Kcd, Kdd, C, G]
         self.var_names = ['x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d', 'C', 'G']
 
-        # list to save macroscopic quantities to compare with
-        # moment closure / pair based proxy approach
         self.m_trajectory = pd.DataFrame(columns=self.var_names)
 
         # dictionary for final state
@@ -458,11 +452,11 @@ class Integrate_Equations:
             rval[-1] = 0
         return rval
 
-    def run(self, t_max):
+    def run(self, t_max, t_steps=100):
         self.t_max = t_max
         if t_max > self.t:
             print('integrating equations from t={} to t={}'.format(self.t, t_max))
-            t = np.linspace(self.t, t_max, 50)
+            t = np.linspace(self.t, t_max, t_steps)
             initial_conditions = [self.x, self.y, self.z, self.Kcc,
                                   self.Kdc, self.Kcd, self.Kdd,
                                   self.C, self.G]
@@ -515,14 +509,23 @@ class Integrate_Equations:
                            self.dependent_vars['rd'],
                            self.dependent_vars['w'],
                            self.dependent_vars['W_c'] / self.n,
-                           self.dependent_vars['W_d'] / self.n
+                           self.dependent_vars['W_d'] / self.n,
+                           self.dependent_vars['Pcd'],
+                           self.dependent_vars['Pdc']
                            ]
         t_values = self.m_trajectory.index.values
         data = np.zeros((len(t_values), len(columns)))
         for i, t in enumerate(t_values):
             Yi = self.m_trajectory.loc[t]
             sbs = {var_symbol: Yi[var_name] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
-            data[i, :] = [var.subs(sbs) for var in var_expressions]
+            try:
+                data[i, :] = [var.subs(sbs) for var in var_expressions]
+            except ValueError:
+                print(t)
+                print(sbs)
+                print(data[i-1, :])
+                sbs = {var_symbol: Yi[var_name][0] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
+                data[i, :] = [var.subs(sbs) for var in var_expressions]
 
         return pd.DataFrame(index=t_values, columns=columns, data=data)
 
@@ -537,8 +540,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
     output_location = 'test_output/' \
-                      + datetime.datetime.now().strftime(
-        "%d_%m_%H-%M-%Ss") + '_output'
+                      + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
     # investment_decisions:
 
@@ -558,7 +560,7 @@ if __name__ == '__main__':
     # investment_decisions
     opinions = []
     for i, n in enumerate(nopinions):
-        opinions.append(np.full((n), i, dtype='I'))
+        opinions.append(np.full(n, i, dtype='I'))
     opinions = [item for sublist in opinions for item in sublist]
     shuffle(opinions)
 
@@ -581,29 +583,24 @@ if __name__ == '__main__':
 
     model = Integrate_Equations(*init_conditions, **input_parameters)
 
-    model.run(t_max=2)
+    model.run(t_max=20)
 
-    trj = model.m_trajectory
+    trj = model.get_unified_trajectory()
 
     print(trj)
 
     fig = plt.figure()
 
     ax1 = fig.add_subplot(221)
-    trj[model.var_names[0:3]].plot(ax=ax1)
+    trj[['k_c', 'k_d']].plot(ax=ax1)
 
     ax2 = fig.add_subplot(222)
-    trj[model.var_names[3:7]].plot(ax=ax2)
+    trj[['n_c']].plot(ax=ax2)
 
     ax3 = fig.add_subplot(223)
-    trj[model.var_names[7]].plot(ax=ax3)
+    trj[['c']].plot(ax=ax3)
 
     ax4 = fig.add_subplot(224)
-    trj[model.var_names[8]].plot(ax=ax4)
-
-    plt.show()
-
-    trj2 = model.get_unified_trajectory()
-    trj2.plot()
+    trj[['g']].plot(ax=ax4)
 
     plt.show()
