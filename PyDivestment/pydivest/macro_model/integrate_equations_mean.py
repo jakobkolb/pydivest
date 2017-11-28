@@ -207,10 +207,8 @@ class Integrate_Equations:
         # lower (first) index: capital type, upper (second) index: household type
         mucc, mucd, mudc, mudd = sp.symbols('mu_c^c mu_c^d mu_d^c mu_d^d', positive=True, real=True)
         # savings rate, capital depreciaten rate, and elasticities of labor, capital and knowledge
-        rs, delta, pi, kappac, kappad, xi = sp.symbols('s delta pi kappa_c, kappa_d xi',
-                                                       positive=True, real=True)
-        # solow residuals of clean and dirty sector,
-        # pre factor for resource cost, energy efficiency, initial resource stock
+        rs, delta, pi, kappac, kappad, xi = sp.symbols('s delta pi kappa_c kappa_d xi', positive=True, real=True)
+        # solow residuals of clean and dirty sector, prefactor for resource cost, energy efficiency, initial resource stock
         bc, bd, bR, e, G0 = sp.symbols('b_c b_d b_R e G_0', positive=True, real=True)
         # substitutions for resolution on constraints from market clearing.
         Xc, Xd, XR = sp.symbols('X_c X_d X_R', positive=True, real=True)
@@ -356,16 +354,16 @@ class Integrate_Equations:
                             -delta * mudc,
                             -delta * mucd,
                             rs * rc * mucd + (rs * rd - delta) * mudd + rs * w * L / N,
-                            bc * Lc ** pi * (Nc * mucc + Nd * mucd) ** kappac * C ** xi - delta * C,
+                            bc * Lc ** pi * Kc ** kappac * C ** xi - delta * C,
                             -R])
 
         # Write down changes in means of capital stocks through agents'
         # switching of opinions and add them to the capital accumulation terms
 
-        dtNcd = 1. / tau * Nc * (1 - phi) * (
-            Nc / N * cd / (2 * cc + cd) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
-        dtNdc = 1. / tau * Nd * (1 - phi) * (
-            Nd / N * cd / (2 * dd + cd) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
+        dtNcd = 1. / tau * Nc * (
+            Nc / N * cd / (2 * cc + cd) * (1 - phi) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
+        dtNdc = 1. / tau * Nd * (
+            Nd / N * cd / (2 * dd + cd) * (1 - phi) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
 
         rhsECO_switch = sp.Matrix([(mucd - mucc) * dtNdc / Nc,
                                    (mudd - mudc) * dtNdc / Nc,
@@ -389,19 +387,21 @@ class Integrate_Equations:
 
             rhsECO = rhsECO + rhsECO_switch
 
-            # Next, we have to write the economic system in terms of X, Y, Z and then
-            # in terms of rescaled variables and check the dependency on the system size N:
+            # Next, we have to write the economic system in terms of X, Y, Z and
+            # then in terms of rescaled variables and check the dependency on the system size N:
             # - 1) substitute primitive variables for dependent variables (subs1)
             # - 2) substitute dependent variables for system variables (subs4)
 
             rhsECO = rhsECO.subs(subs1).subs(subs2).subs(subs3).subs(subs4).subs(subs5)
 
-            # In the PBP rhs substitute economic variables for their proper expressions
-            # ($r_c$, $r_d$ ect.) and then again substitute lingering 'primitive' variables with rescaled ones
+            # In the PBP rhs substitute economic variables for their proper
+            # expressions ($r_c$, $r_d$ ect.) and then again
+            # substitute lingering 'primitive' variables with rescaled ones
 
             rhsPBP = rhsPBP.subs(subs2).subs(subs3).subs(subs5)
             rhsPBP = rhsPBP.subs(subs1).subs(subs4).subs({N: 1})
 
+            # Combine dynamic equations of economic and social subsystem:
             rhsECO = rhsECO.subs({N: 1})
             rhs = sp.Matrix([rhsPBP, rhsECO]).subs(subs1)
             with open('mean_rhs.pkl', 'wb') as outfile:
@@ -424,7 +424,7 @@ class Integrate_Equations:
                                  'mu_c^d': mucd, 'mu_d^d': mudd,
                                  'x': x, 'y': y, 'z': z,
                                  'R': R, 'c': c, 'g': g}
-        self.dependent_vars = {'w': w, 'rc': rc, 'rd': rd, 'R': R,
+        self.dependent_vars = {'w': w, 'rc': rc, 'rd': rd, 'R': R, 'Kd': Kd, 'Kc': Kc,
                                'Lc': Lc, 'Ld': Ld, 'L': L, 'rs': rs,
                                'W_d': Wd, 'W_c': Wc, 'Pcd': Pcd, 'Pdc': Pdc,
                                'l': l, 'Nc': Nc, 'Nd': Nd}
@@ -461,16 +461,15 @@ class Integrate_Equations:
         # evaluate expression by substituting symbol values
         subs1 = {var: val for (var, val) in zip(self.var_symbols, values)}
         rval = list(self.rhs.subs(subs1).evalf())
-
         if not self.R_depletion:
             rval[-1] = 0
         return rval
 
-    def run(self, t_max):
+    def run(self, t_max, t_steps=100):
         self.t_max = t_max
         if t_max > self.t:
             print('integrating equations from t={} to t={}'.format(self.t, t_max))
-            t = np.linspace(self.t, t_max, 50)
+            t = np.linspace(self.t, t_max, t_steps)
             initial_conditions = [self.x, self.y, self.z, self.mucc,
                                   self.mudc, self.mucd, self.mudd,
                                   self.c, self.g]
@@ -499,7 +498,7 @@ class Integrate_Equations:
     def get_unified_trajectory(self):
         """
         Calculates unified trajectory in per capita variables
-        
+
         Returns
         -------
         Dataframe of unified per capita variables
@@ -528,14 +527,23 @@ class Integrate_Equations:
                            self.dependent_vars['rd'],
                            self.dependent_vars['w'],
                            self.dependent_vars['W_c'],
-                           self.dependent_vars['W_d']
+                           self.dependent_vars['W_d'],
+                           self.dependent_vars['Pcd'],
+                           self.dependent_vars['Pdc']
                            ]
         t_values = self.m_trajectory.index.values
         data = np.zeros((len(t_values), len(columns)))
         for i, t in enumerate(t_values):
             Yi = self.m_trajectory.loc[t]
             sbs = {var_symbol: Yi[var_name] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
-            data[i, :] = [var.subs(sbs) for var in var_expressions]
+            try:
+                data[i, :] = [var.subs(sbs) for var in var_expressions]
+            except ValueError:
+                print(t)
+                print(sbs)
+                print(data[i-1, :])
+                sbs = {var_symbol: Yi[var_name][0] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
+                data[i, :] = [var.subs(sbs) for var in var_expressions]
 
         return pd.DataFrame(index=t_values, columns=columns, data=data)
 
@@ -563,9 +571,9 @@ if __name__ == '__main__':
                         'b_c': 0.4, 'i_phi': 0.8, 'e': 100,
                         'G_0': 30000, 'b_r0': 0.1 ** 2 * 100,
                         'possible_cue_orders': possible_cue_orders,
-                        'c': 100, 'xi': 1./8., 'beta': 0.06,
+                        'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
                         'campaign': False, 'learning': True,
-                        'imitation': 2}
+                        'crs': True, 'imitation': 2}
 
     # investment_decisions
     opinions = []
@@ -593,7 +601,7 @@ if __name__ == '__main__':
 
     model = Integrate_Equations(*init_conditions, **input_parameters)
 
-    model.run(t_max=1)
+    model.run(t_max=20)
 
     trj = model.get_unified_trajectory()
 
@@ -602,15 +610,15 @@ if __name__ == '__main__':
     fig = plt.figure()
 
     ax1 = fig.add_subplot(221)
-    trj[model.var_names[0:3]].plot(ax=ax1)
+    trj[['k_c', 'k_d']].plot(ax=ax1)
 
     ax2 = fig.add_subplot(222)
-    trj[model.var_names[3:7]].plot(ax=ax2)
+    trj[['n_c']].plot(ax=ax2)
 
     ax3 = fig.add_subplot(223)
-    trj[model.var_names[7]].plot(ax=ax3)
+    trj[['c']].plot(ax=ax3)
 
     ax4 = fig.add_subplot(224)
-    trj[model.var_names[8]].plot(ax=ax4)
+    trj[['g']].plot(ax=ax4)
 
     plt.show()
