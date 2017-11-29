@@ -245,6 +245,9 @@ class Integrate_Equations:
         elif interaction == 2:
             subs1[Pcd] = ((1. / 2) * ((Wd - Wc) / (Wd + Wc) + 1)).subs(subs1)
             subs1[Pdc] = ((1. / 2) * ((Wc - Wd) / (Wd + Wc) + 1)).subs(subs1)
+        elif interaction == 3:
+            subs1[Pcd] = .5
+            subs1[Pdc] = .5
         else:
             raise ValueError('interaction must be in [0, 1, 2] but is {}'.format(self.interaction))
 
@@ -360,10 +363,10 @@ class Integrate_Equations:
         # Write down changes in means of capital stocks through agents'
         # switching of opinions and add them to the capital accumulation terms
 
-        dtNcd = 1. / tau * Nc * (
-            Nc / N * cd / (2 * cc + cd) * (1 - phi) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
-        dtNdc = 1. / tau * Nd * (
-            Nd / N * cd / (2 * dd + cd) * (1 - phi) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
+        dtNcd = 1. / tau * Nc * (1 - phi) * (
+            Nc / N * cd / (2 * cc + cd) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
+        dtNdc = 1. / tau * Nd * (1 - phi) * (
+            Nd / N * cd / (2 * dd + cd) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
 
         rhsECO_switch = sp.Matrix([(mucd - mucc) * dtNdc / Nc,
                                    (mudd - mudc) * dtNdc / Nc,

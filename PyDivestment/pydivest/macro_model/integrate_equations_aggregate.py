@@ -238,6 +238,9 @@ class Integrate_Equations:
         elif interaction == 2:
             subs1[Pcd] = ((1. / 2) * ((Wd - Wc) / (Wd + Wc) + 1)).subs(subs1)
             subs1[Pdc] = ((1. / 2) * ((Wc - Wd) / (Wd + Wc) + 1)).subs(subs1)
+        elif interaction == 3:
+            subs1[Pcd] = .5
+            subs1[Pdc] = .5
         else:
             raise ValueError('interaction must be in [1, 2] but is {}'.format(self.interaction))
 
