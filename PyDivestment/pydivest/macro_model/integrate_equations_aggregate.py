@@ -354,10 +354,10 @@ class Integrate_Equations:
 
         #dtNcd = .5 * sp.Matrix(r * sp.Transpose(W))[0]
         #dtNdc = - dtNcd
-        dtNcd = 1. / tau * Nc * (
-            Nc / N * cd / (2 * cc + cd) * (1 - phi) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
-        dtNdc = 1. / tau * Nd * (
-            Nd / N * cd / (2 * dd + cd) * (1 - phi) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
+        dtNcd = 1. / tau * Nc * (1 - phi) * (
+            Nc / N * cd / (2 * cc + cd) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
+        dtNdc = 1. / tau * Nd * (1 - phi) * (
+            Nd / N * cd / (2 * dd + cd) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
 
         rhsECO_switch = sp.Matrix([Kcd / Nd * dtNdc - Kcc / Nc * dtNcd,
                                    Kdd / Nd * dtNdc - Kdc / Nc * dtNcd,
