@@ -920,6 +920,8 @@ class DivestmentCore:
                 p_imitate = 1. / (1 + np.exp(- 8. * (Wj - Wi) / (Wj + Wi)))
             elif self.interaction == 2:
                 p_imitate = .5 * ((Wj - Wi) / (Wj + Wi) + 1)
+            elif self.interaction == 3:
+                p_imitate = .5
             else:
                 raise ValueError('interaction not defined, must be in [0, 1, 2] but is {}'.format(self.interaction))
             # and imitate, if not a campaigner
