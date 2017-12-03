@@ -23,9 +23,74 @@ class Integrate_Equations:
                  R_depletion=True,
                  interaction=2, crs=True, **kwargs):
 
+        """
+        Class containing the aggregate capital stocks 
+        approximation for the pydivest model.
+        Allows for non-constant returns to scale if crs is set to False 
+        and values for kappa_c and kappa_d are provided.
+
+        Parameters
+        ----------
+        adjacency: ndarray
+            Acquaintance matrix between the households. Has to be symmetric unweighted and without self loops.
+        investment_decisions: list
+            Initial investment decisions of households. Will be updated 
+            from their actual heuristic decision making during initialization
+        investment_clean: list
+            Initial household endowments in the clean sector
+        investment_dirty: list
+            Initial household endowments in the dirty sector
+        i_tau: float
+            Mean waiting time between household opinion updates
+        i_phi: float
+            Rewiring probability in the network adaptation process
+        eps: float
+            fraction of exploration events (noise) in the opinion formation process
+        b_c: float
+            Solow residual of the production function of the clean sector
+        b_d: float
+            Solow residual of the production function of the dirty sector
+        s: float
+            Savings rate of the households
+        d_c: float
+            Capital depreciation rate
+        b_r0: float
+            Resource cost factor
+        e: float
+            Resource efficiency in the dirty sector
+        pi: float
+            labor elasticity for both sectors
+        kappa_c: float
+            capital elasticity for the clean sector
+        kappa_d:
+            capital elasticity for the dirty sector
+        xi:
+            elasticity of the knowledge stock in the clean sector
+        L: float
+            Total labor (fixed)
+        G_0: float
+            Total initial resource stock
+        C: float
+            Total initial knowledge stock
+        resource_depletion: bool
+            Switch to turn resource depreciation on or off
+        interaction: int
+            Switch for different imitation probabilities.
+            if 0: tanh(Wi-Wj) interaction,
+            if 1: interaction as in Traulsen, 2010 but with relative differences
+            if 2: (Wi-Wj)/(Wi+Wj) interaction.
+        crs: bool
+            switch for constant returns to scale. If True, values of kappa are ignored.
+        """
+
         if len(kwargs.keys()) > 0:
             print('got superfluous keyword arguments')
             print(kwargs.keys())
+
+        if 'deltap' in kwargs.keys():
+            deltap = kwargs['deltap']
+        else:
+            deltap = 0
 
         self.t_max = 0
 
@@ -236,11 +301,11 @@ class Integrate_Equations:
             subs1[Pcd] = (1. / (1 + sp.exp(8. * (Wd - Wc) / (Wc + Wd)))).subs(subs1)
             subs1[Pdc] = (1. / (1 + sp.exp(8. * (Wc - Wd) / (Wc + Wd)))).subs(subs1)
         elif interaction == 2:
-            subs1[Pcd] = ((1. / 2) * ((Wd - Wc) / (Wd + Wc) + 1)).subs(subs1)
-            subs1[Pdc] = ((1. / 2) * ((Wc - Wd) / (Wd + Wc) + 1)).subs(subs1)
+            subs1[Pcd] = ((1. / 2.) * ((Wd - Wc) / (Wd + Wc) + 1.)).subs(subs1)
+            subs1[Pdc] = ((1. / 2.) * ((Wc - Wd) / (Wd + Wc) + 1.)).subs(subs1)
         elif interaction == 3:
-            subs1[Pcd] = .5
-            subs1[Pdc] = .5
+            subs1[Pcd] = .5 - deltap
+            subs1[Pdc] = .5 + deltap
         else:
             raise ValueError('interaction must be in [1, 2] but is {}'.format(self.interaction))
 
@@ -352,12 +417,8 @@ class Integrate_Equations:
         # Write down changes in means of capital stocks through agents'
         # switching of opinions and add them to the capital accumulation terms
 
-        #dtNcd = .5 * sp.Matrix(r * sp.Transpose(W))[0]
-        #dtNdc = - dtNcd
-        dtNcd = 1. / tau * Nc * (1 - phi) * (
-            Nc / N * cd / (2 * cc + cd) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
-        dtNdc = 1. / tau * Nd * (1 - phi) * (
-            Nd / N * cd / (2 * dd + cd) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
+        dtNcd = p3 + p5
+        dtNdc = p4 + p6
 
         rhsECO_switch = sp.Matrix([Kcd / Nd * dtNdc - Kcc / Nc * dtNcd,
                                    Kdd / Nd * dtNdc - Kdc / Nc * dtNcd,
@@ -365,6 +426,7 @@ class Integrate_Equations:
                                    Kdc / Nc * dtNcd - Kdd / Nd * dtNdc,
                                    0,
                                    0])
+
         try:
             rhs = np.load('agg_rhs.pkl')
             print('loading rhs successful')
