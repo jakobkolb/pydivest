@@ -1,10 +1,5 @@
 """
-This experiment is meant to create trajectories of macroscopic variables from
-1) the numeric micro model and
-2) the analytic macro model
-that can be compared to evaluate the validity and quality of the analytic
-approximation.
-The variable Parameters are b_d and phi.
+Compare Trajectory from micro simulation for new and old interaction between households.
 """
 
 import getpass
@@ -20,12 +15,12 @@ import pandas as pd
 from pymofa.experiment_handling import experiment_handling, \
     even_time_series_spacing
 
-from pydivest.divestvisuals.data_visualization import plot_trajectories
-from pydivest.macro_model import integrate_equations_mean as macro_model
 from pydivest.micro_model import divestmentcore as micro_model
 
+test = False
 
-def RUN_FUNC(b_d, phi, approximate, test, filename):
+
+def RUN_FUNC(b_d, phi, interaction, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -57,7 +52,8 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
                     'possible_cue_orders': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
-                    'campaign': False, 'learning': True}
+                    'campaign': False, 'learning': True,
+                    'interaction': interaction}
 
     # investment_decisions:
     nopinions = [100, 100]
@@ -81,13 +77,8 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     init_conditions = (adjacency_matrix, investment_decisions,
                        clean_investment, dirty_investment)
 
-    # initializing the model
-    print('approximate', approximate)
-    if approximate:
-        m = macro_model.Integrate_Equations(*init_conditions, **input_params)
-    else:
-        m = micro_model.DivestmentCore(*init_conditions, **input_params)
-        m.init_switchlist()
+    m = micro_model.DivestmentCore(*init_conditions, **input_params)
+    m.init_switchlist()
 
     # storing initial conditions and parameters
 
@@ -116,11 +107,11 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     # run the model
     t_start = time.clock()
 
-    t_max = 200 if not test else 1
+    t_max = 300 if not test else 3
     m.R_depletion = False
     m.run(t_max=t_max)
 
-    t_max += 400 if not test else 1
+    t_max += 600 if not test else 6
     m.R_depletion = True
     exit_status = m.run(t_max=t_max)
 
@@ -131,8 +122,6 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
         # interpolate m_trajectory to get evenly spaced time series.
         res["macro_trajectory"] = \
             even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
-        if not approximate:
-            res["switchlist"] = m.get_switch_list()
 
     # save data
     with open(filename, 'wb') as dumpfile:
@@ -179,27 +168,32 @@ def run_experiment(argv):
     [test, mode, micro/macro]
     """
 
+    global test
+
     # switch testing mode
     if len(argv) > 1:
         test = bool(int(argv[1]))
     else:
-        test = False
+        test = True
     # switch sub_experiment mode
     if len(argv) > 2:
         mode = int(argv[2])
     else:
         mode = 0
-    # switch micro macro model
     if len(argv) > 3:
-        approximate = int(argv[3])
+        job_id = int(argv[3])
     else:
-        approximate = 0
+        job_id = 1
+    if len(argv) > 4:
+        max_id = int(argv[4])
+    else:
+        max_id = 1
 
     """
     set input/output paths
     """
 
-    respath = os.path.dirname(os.path.realpath(__file__)) + "/divestdata"
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/../divestdata"
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":
@@ -207,19 +201,19 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    sub_experiment = ['micro', 'macro'][approximate]
-    folder = 'X6'
+
+    folder = 'P1_compare_interaction'
 
     # make sure, testing output goes to its own folder:
 
     test_folder = ['', 'test_output/'][int(test)]
 
-    SAVE_PATH_RAW = \
-        "{}/{}{}/{}/" \
-        .format(tmppath, test_folder, folder, sub_experiment)
-    SAVE_PATH_RES = \
-        "{}/{}{}/{}/" \
-        .format(respath, test_folder, folder, sub_experiment)
+    save_path_raw = \
+        "{}/{}{}/" \
+        .format(tmppath, test_folder, folder)
+    save_path_res = \
+        "{}/{}{}/" \
+        .format(respath, test_folder, folder)
 
     """
     create parameter combinations and index
@@ -227,63 +221,74 @@ def run_experiment(argv):
 
     phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
     b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
-    b_d, phi, approximate, exact = [1.2], [.8], [True], [False]
+    interactions = [0, 1, 2]
+    b_d, phi, interaction = [1.2, 1.4], [.5, .8], [0, 1, 2]
 
     if test:
-        PARAM_COMBS = list(it.product(b_d, phi, [bool(approximate)], [test]))
+        param_combs = list(it.product(interaction, phi, b_d))
     else:
-        PARAM_COMBS = list(it.product(b_ds, phis, [bool(approximate)], [test]))
+        param_combs = list(it.product(interactions, phis, b_ds))
 
-    INDEX = {0: "b_d", 1: "phi"}
+    index = {0: "interaction", 1: "phi", 2: "b_d"}
 
     """
     create names and dicts of callables for post processing
     """
-    def foo(fnames):
-        return 0
 
-    NAME = 'b_c_scan_' + sub_experiment + '_trajectory'
+    name = 'interaction_trajectory'
 
-    NAME1 = NAME + '_trajectory'
-    EVA1 = {"mean_trajectory":
+    name1 = name + '_trajectory'
+    eva1 = {"mean_trajectory":
             lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
                                       for f in fnames]).groupby(
                     level=0).mean(),
             "sem_trajectory":
             lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
                                       for f in fnames]).groupby(level=0).std(),
-            "foo_results":
-            foo(fnames)
             }
-    NAME2 = NAME + '_switchlist'
-    CF2 = {"switching_capital":
-           lambda fnames: pd.concat([np.load(f)["switchlist"]
-                                     for f in fnames]).sortlevel(level=0)
-           }
 
     """
     run computation and/or post processing and/or plotting
     """
 
-    # cluster mode: computation and post processing
+    # calculate (splitting parameter combinations between threads)
     if mode == 0:
         print('cluster mode')
         sys.stdout.flush()
-        SAMPLE_SIZE = 100 if not (test or approximate == 1) else 2
-        handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
-                                     SAVE_PATH_RAW, SAVE_PATH_RES)
+
+        if len(param_combs) % max_id != 0:
+            print('number of jobs ({}) has to be multiple of max_id ({})!!'.format(len(param_combs), max_id))
+            exit(-1)
+
+        # devide parameter combination into equally sized chunks.
+        cl = int(len(param_combs) / max_id)
+        i = (job_id - 1) * cl
+        j = job_id * cl
+
+        sample_size = 100 if not test else 3
+
+        handle = experiment_handling(sample_size=sample_size,
+                                     parameter_combinations=param_combs[i:j],
+                                     index=index,
+                                     path_raw=save_path_raw,
+                                     path_res=save_path_res,
+                                     use_kwargs=True)
         handle.compute(RUN_FUNC)
-        handle.resave(EVA1, NAME1)
-        if approximate == 0:
-            handle.collect(CF2, NAME2)
 
         return 1
 
-    # local mode: plotting only
+    # post processing (all parameter combinations on one thread)
     if mode == 1:
-        print('plot mode')
-        sys.stdout.flush()
-        plot_trajectories(SAVE_PATH_RES, NAME1, None, None)
+        sample_size = 100 if not test else 3
+
+        handle = experiment_handling(sample_size=sample_size,
+                                     parameter_combinations=param_combs,
+                                     index=index,
+                                     path_raw=save_path_raw,
+                                     path_res=save_path_res,
+                                     use_kwargs=True)
+        handle.resave(eva1, name1)
+
 
         return 1
 

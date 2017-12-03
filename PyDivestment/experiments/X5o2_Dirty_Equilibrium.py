@@ -24,6 +24,8 @@ Variable parameters are:
    nature of the transition.
 """
 
+
+
 try:
     import cPickle as cp
 except ImportError:
@@ -39,17 +41,18 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import scipy.stats as st
+from pymofa.experiment_handling \
+    import experiment_handling, even_time_series_spacing
+
 from pydivest.divestvisuals.data_visualization \
     import plot_obs_grid, plot_tau_phi
 from pydivest.micro_model import divestmentcore as model
-from pymofa.experiment_handling \
-    import experiment_handling, even_time_series_spacing
 
 save_path_init = ""
 
 
 def RUN_FUNC(t_a, phi, alpha,
-             t_d, possible_opinions, eps, transition, test, filename):
+             t_d, possible_cue_orders, eps, transition, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -78,7 +81,7 @@ def RUN_FUNC(t_a, phi, alpha,
     t_d : float
         the capital accumulation timescale
         t_d = 1/(d_c(1-kappa_d))
-    possible_opinions : list of list of integers
+    possible_cue_orders : list of list of integers
         the set of cue orders that are allowed in the
         model. investment_decisions determine the individual cue
         order, that a household uses.
@@ -92,12 +95,12 @@ def RUN_FUNC(t_a, phi, alpha,
     filename: string
         filename for the results of the run
     """
-    assert isinstance(test, int), \
+    assert isinstance(test, int),\
         'test must be int, is {!r}'.format(test)
-    assert alpha < 1, \
+    assert alpha < 1,\
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
-    (N, p, tau, P, b_d, b_R0, e, s) = \
+    (N, p, tau, P, b_d, b_R0, e, s) =\
         (100, 0.125, 0.8, 500, 1.2, 1., 100, 0.23)
 
     # ROUND ONE: FIND EQUILIBRIUM DISTRIBUTIONS:
@@ -106,22 +109,22 @@ def RUN_FUNC(t_a, phi, alpha,
             tau = 1.
         # capital accumulation of dirty capital
         # (t_d = 1/(d_c*(1-kappa_c)) with kappa_c = 0.5 :
-        d_c = 2. / t_d
+        d_c = 2./t_d
 
         # set t_G to some value approx. half of run time
-        t_G = 50 * t_d
+        t_G = 50*t_d
 
         # set G_0 according to resource depletion time:
-        # t_G = G_0*e*d_c/(P*s*b_d**2)
-        G_0 = t_G * P * s * b_d ** 2 / (e * d_c)
+        # t_G = G_0*e*d_c/(L*s*b_d**2)
+        G_0 = t_G*P*s*b_d**2/(e*d_c)
 
         # set b_r0 according to alpha and e:
         # alpha = (b_r0/e)**(1/2)
-        b_R0 = alpha ** 2 * e
+        b_R0 = alpha**2 * e
 
         # calculate equilibrium dirty capital
         # for full on dirty economy
-        K_d0 = (s / d_c * b_d * P ** (1. / 2.) * (1 - alpha ** 2)) ** 2.
+        K_d0 = (s/d_c*b_d*P**(1./2.)*(1-alpha**2))**2.
 
         # set t_max for run
         t_max = 300 if not test else 5
@@ -134,10 +137,10 @@ def RUN_FUNC(t_a, phi, alpha,
                 break
         adjacency_matrix = nx.adj_matrix(net).toarray()
 
-        opinions = [np.random.randint(0, len(possible_opinions))
+        opinions = [np.random.randint(0, len(possible_cue_orders))
                     for x in range(N)]
         investment_clean = np.full((N), 0.1)
-        investment_dirty = np.full((N), K_d0 / N)
+        investment_dirty = np.full((N), K_d0/N)
 
         # input parameters
 
@@ -145,9 +148,9 @@ def RUN_FUNC(t_a, phi, alpha,
                         'opinions': opinions,
                         'investment_clean': investment_clean,
                         'investment_dirty': investment_dirty,
-                        'possible_opinions': possible_opinions,
-                        'tau': tau, 'phi': phi, 'eps': eps,
-                        'P': P, 'b_d': b_d, 'b_r0': b_R0, 'G_0': G_0,
+                        'possible_cue_orders': possible_cue_orders,
+                        'i_tau': tau, 'i_phi': phi, 'eps': eps,
+                        'L': P, 'b_d': b_d, 'b_r0': b_R0, 'G_0': G_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
                         'R_depletion': transition}
 
@@ -170,7 +173,7 @@ def RUN_FUNC(t_a, phi, alpha,
         # adapt parameters where necessary
 
         # set tau according to t_a and phi
-        input_params['tau'] = t_a / (1. - phi)
+        input_params['tau'] = t_a/(1.-phi)
         input_params['R_depletion'] = True
 
         # set t_max for run
@@ -188,8 +191,8 @@ def RUN_FUNC(t_a, phi, alpha,
         pd.Series({"tau": m.tau,
                    "phi": m.phi,
                    "n": m.n,
-                   "P": p,
-                   "P": m.P,
+                   "L": p,
+                   "L": m.L,
                    "birth rate": m.r_b,
                    "savings rate": m.s,
                    "clean capital depreciation rate": m.d_c,
@@ -219,21 +222,21 @@ def RUN_FUNC(t_a, phi, alpha,
     # store data in case of successful run
 
     res["convergence_data"] = \
-        pd.DataFrame({"Investment decisions": m.investment_decisions,
-                      "Investment clean": m.investment_clean,
-                      "Investment dirty": m.investment_dirty})
+            pd.DataFrame({"Investment decisions": m.investment_decisions,
+                          "Investment clean": m.investment_clean,
+                          "Investment dirty": m.investment_dirty})
     res["convergence_state"] = m.convergence_state
     res["convergence_time"] = m.convergence_time
 
     # interpolate e_trajectory to get evenly spaced time series.
 
     res["e_trajectory"] = \
-        even_time_series_spacing(m.get_e_trajectory(), 201, 0., t_max)
+        even_time_series_spacing(m.get_economic_trajectory(), 201, 0., t_max)
     res["m_trajectory"] = \
-        even_time_series_spacing(m.get_m_trajectory(), 201, 0., t_max)
+        even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
 
     end = time.clock()
-    res["runtime"] = end - start
+    res["runtime"] = end-start
 
     # save data
     if transition:
@@ -244,7 +247,6 @@ def RUN_FUNC(t_a, phi, alpha,
             cp.dump(res, dumpfile)
 
     return 1
-
 
 def run_experiment(argv):
     """
@@ -307,22 +309,21 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
+
     folder = 'X5o2'
 
     sub_experiments = ['Dirty_Equilibrium',
-                       'Dirty_Clean_Transition']
+                      'Dirty_Clean_Transition']
     sub_experiment = sub_experiments[int(transition)]
     heuristics = ['TTB', 'No_TTB'][int(no_heuristics)]
     test_folder = 'test_output/' if test else ''
 
-    SAVE_PATH_RAW = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw',
-                                              folder,
-                                              sub_experiment, heuristics)
+    SAVE_PATH_RAW = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw', folder,
+                                         sub_experiment, heuristics)
     SAVE_PATH_RES = "{}/{}{}_{}_{}".format(respath, test_folder, folder,
-                                           sub_experiment, heuristics)
-    SAVE_PATH_INIT = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw',
-                                               folder,
-                                               sub_experiments[0], heuristics)
+                                         sub_experiment, heuristics)
+    SAVE_PATH_INIT = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw', folder,
+                                         sub_experiments[0], heuristics)
 
     # make init path global, so run function can access it.
     global save_path_init
@@ -332,19 +333,19 @@ def run_experiment(argv):
     Make different types of decision makers. Cues are
     """
     cue_names = {
-        0: 'always dirty',
-        1: 'always clean',
-        2: 'capital rent',
-        3: 'capital rent trend',
-        4: 'peer pressure'}
+            0: 'always dirty',
+            1: 'always clean',
+            2: 'capital rent',
+            3: 'capital rent trend',
+            4: 'peer pressure'}
     opinion_presets = [[2, 3],  # short term investor
                        [3, 2],  # long term investor
                        [4, 2],  # short term herder
                        [4, 3],  # trending herder
                        [4, 1],  # green conformer
                        [4, 0],  # dirty conformer
-                       [1],  # gutmensch
-                       [0]]  # redneck
+                       [1],     # gutmensch
+                       [0]]     # redneck
     if no_heuristics:
         opinion_presets = [[1], [0]]
 
@@ -352,7 +353,7 @@ def run_experiment(argv):
     set different times for resource depletion
     in units of capital accumulation time t_d = 1/(d_c*(1-kappa_d))
     """
-    t_as = [round(x, 5) for x in list(10 ** np.linspace(0, 1, 3))]
+    t_as = [round(x, 5) for x in list(10**np.linspace(0, 1, 3))]
 
     """
     set array of phis to generate equilibrium conditions for
@@ -370,10 +371,10 @@ def run_experiment(argv):
     position in the index of the dictionary of results
     """
     parameters = {
-        't_a': 0,
-        'phi': 1,
-        'alpha': 2,
-        'test': 3}
+            't_a': 0,
+            'phi': 1,
+            'alpha': 2,
+            'test': 3}
     """
     Default values of variable parameter in this experiment
     """
@@ -381,9 +382,9 @@ def run_experiment(argv):
 
     NAME = 'Cue_order_testing'
     INDEX = {
-        parameters["t_a"]: "t_a",
-        parameters['phi']: "phi",
-        parameters['alpha']: "alpha"}
+            parameters["t_a"]: "t_a",
+            parameters['phi']: "phi",
+            parameters['alpha']: "alpha"}
 
     """
     create list of parameter combinations according to testing mode.
@@ -404,54 +405,52 @@ def run_experiment(argv):
 
     # names and function dictionaries for post processing:
 
-    NAME1 = NAME + '_trajectory'
+    NAME1 = NAME+'_trajectory'
     EVA1 = {"<mean_trajectory>":
-                lambda fnames: pd.concat([np.load(f)["e_trajectory"]
-                                          for f in fnames]).groupby(
-                    level=0).mean(),
+            lambda fnames: pd.concat([np.load(f)["e_trajectory"]
+                                      for f in fnames]).groupby(level=0).mean(),
             "<sem_trajectory>":
-                lambda fnames: pd.concat([np.load(f)["e_trajectory"]
-                                          for f in fnames]).groupby(
-                    level=0).sem(),
+            lambda fnames: pd.concat([np.load(f)["e_trajectory"]
+                                      for f in fnames]).groupby(level=0).sem(),
             "<min_trajectory>":
-                lambda fnames: pd.concat([np.load(f)["e_trajectory"]
-                                          for f in
-                                          fnames]).groupby(level=0).min(),
+            lambda fnames: pd.concat([np.load(f)["e_trajectory"]
+                                      for f in
+                                      fnames]).groupby(level=0).min(),
             "<max_trajectory>":
-                lambda fnames: pd.concat([np.load(f)["e_trajectory"]
-                                          for f in
-                                          fnames]).groupby(level=0).max()
+            lambda fnames: pd.concat([np.load(f)["e_trajectory"]
+                                      for f in
+                                      fnames]).groupby(level=0).max()
             }
 
-    NAME2 = NAME + '_convergence'
+    NAME2 = NAME+'_convergence'
     EVA2 = {"<mean_convergence_state>":
-                lambda fnames: np.nanmean([np.load(f)["convergence_state"]
-                                           for f in fnames]),
+            lambda fnames: np.nanmean([np.load(f)["convergence_state"]
+                                       for f in fnames]),
             "<mean_convergence_time>":
-                lambda fnames: np.nanmean([np.load(f)["convergence_time"]
-                                           for f in fnames]),
+            lambda fnames: np.nanmean([np.load(f)["convergence_time"]
+                                       for f in fnames]),
             "<min_convergence_time>":
-                lambda fnames: np.nanmin([np.load(f)["convergence_time"]
-                                          for f in fnames]),
+            lambda fnames: np.nanmin([np.load(f)["convergence_time"]
+                                      for f in fnames]),
             "<max_convergence_time>":
-                lambda fnames: np.max([np.load(f)["convergence_time"]
-                                       for f in fnames]),
+            lambda fnames: np.max([np.load(f)["convergence_time"]
+                                   for f in fnames]),
             "<nanmax_convergence_time>":
-                lambda fnames: np.nanmax([np.load(f)["convergence_time"]
-                                          for f in fnames]),
+            lambda fnames: np.nanmax([np.load(f)["convergence_time"]
+                                      for f in fnames]),
             "<sem_convergence_time>":
-                lambda fnames: st.sem([np.load(f)["convergence_time"]
-                                       for f in fnames]),
+            lambda fnames: st.sem([np.load(f)["convergence_time"]
+                                   for f in fnames]),
             "<runtime>":
-                lambda fnames: st.sem([np.load(f)["runtime"]
-                                       for f in fnames]),
+            lambda fnames: st.sem([np.load(f)["runtime"]
+                                   for f in fnames]),
             }
 
     # Cluster - computation and plotting
     if mode == 0:
         SAMPLE_SIZE = 100 if not test else 2
         handle = experiment_handling(
-            SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+                SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
         handle.compute(RUN_FUNC)
         if transition:
             handle.resave(EVA1, NAME1)  # economic trajectories
@@ -473,7 +472,6 @@ def run_experiment(argv):
         sys.exit()
 
     return 1
-
 
 if __name__ == "__main__":
     cmdline_arguments = sys.argv
