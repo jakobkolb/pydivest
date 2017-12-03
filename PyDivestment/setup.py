@@ -26,7 +26,9 @@ setup(name="pydivest",
             "pandas",
             "scipy",
             "networkx",
-            "pickle", 'matplotlib'
+            "pickle",
+            'matplotlib',
+            'Assimulo'
       ],
       # see http://stackoverflow.com/questions/15869473/what-is-the-advantage-
       # of-setting-zip-safe-to-true-when-packaging-a-python-projec
