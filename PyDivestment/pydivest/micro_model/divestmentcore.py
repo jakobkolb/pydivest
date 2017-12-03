@@ -23,7 +23,7 @@ class DivestmentCore:
                  xi=1./8., pi=1./2., kappa_c=1./2., kappa_d=1./2.,
                  resource_depletion=True, test=False,
                  beta=0.06, learning=False,
-                 campaign=False, interaction=1, crs=True):
+                 campaign=False, interaction=1, crs=True, **kwargs):
         """
 
                 Parameters
@@ -483,7 +483,7 @@ class DivestmentCore:
 
         return dec
 
-    def run(self, t_max=200.):
+    def run(self, t_max=200., **kwargs):
         """
         run model for t<t_max or until consensus is reached
 

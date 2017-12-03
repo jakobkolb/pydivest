@@ -287,7 +287,7 @@ class Integrate_Equations:
         print(subs_ini)
         return r1.x[0], r2.x[0]
 
-    def run(self, t_max):
+    def run(self, t_max, **kwargs):
 
         self.t_max = t_max
         # Define the problem for assimulo and run the simulation
