@@ -1,3 +1,4 @@
+
 """
 This experiment investigates the phase transition in the adaptive voter
 dynamics and finite size scaling for the number of households.
@@ -52,16 +53,17 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import scipy.stats as st
-from pydivest.divestvisuals.data_visualization import plot_phase_transition
-from pydivest.micro_model import divestmentcore as model
 from pymofa.experiment_handling import \
     experiment_handling, even_time_series_spacing
+
+from pydivest.divestvisuals.data_visualization import plot_phase_transition
+from pydivest.micro_model import divestmentcore as model
 
 save_path_init = ""
 
 
 def RUN_FUNC(phi, N, alpha,
-             possible_opinions, eps, transition, test, filename):
+             possible_cue_orders, eps, transition, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -85,7 +87,7 @@ def RUN_FUNC(phi, N, alpha,
     t_d : float
         the capital accumulation timescale
         t_d = 1/(d_c(1-kappa_d))
-    possible_opinions : list of list of integers
+    possible_cue_orders : list of list of integers
         the set of cue orders that are allowed in the
         model. investment_decisions determine the individual cue
         order, that a household uses.
@@ -105,7 +107,7 @@ def RUN_FUNC(phi, N, alpha,
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
     # CHOCES OF PARAMETERS:
-    # P = 0.125  # question: SHOULDN'T THE MEAN DEGREE STAY CONSTANT?? Yes!
+    # L = 0.125  # question: SHOULDN'T THE MEAN DEGREE STAY CONSTANT?? Yes!
     p = 10. / N
     tau = 1.
     P = float(N) * 10
@@ -119,7 +121,7 @@ def RUN_FUNC(phi, N, alpha,
     # ROUND ONE: FIND EQUILIBRIUM DISTRIBUTIONS:
     if not transition:
         # set G_0 according to resource depletion time:
-        # t_g = G_0*e*d_c/(P*s*b_d**2)
+        # t_g = G_0*e*d_c/(L*s*b_d**2)
         G_0 = t_g * P * s * b_d ** 2 / (e * d_c)
 
         # set b_r0 according to alpha and e:
@@ -143,7 +145,7 @@ def RUN_FUNC(phi, N, alpha,
                 break
         adjacency_matrix = nx.adj_matrix(net).toarray()
 
-        opinions = [np.random.randint(0, len(possible_opinions))
+        opinions = [np.random.randint(0, len(possible_cue_orders))
                     for x in range(N)]
         investment_clean = np.full(N, 0.1)
         investment_dirty = np.full(N, k_d0 / N)
@@ -154,9 +156,9 @@ def RUN_FUNC(phi, N, alpha,
                         'opinions': opinions,
                         'investment_clean': investment_clean,
                         'investment_dirty': investment_dirty,
-                        'possible_opinions': possible_opinions,
-                        'tau': tau, 'phi': phi, 'eps': eps,
-                        'P': P, 'b_d': b_d, 'b_c': b_c,
+                        'possible_cue_orders': possible_cue_orders,
+                        'i_tau': tau, 'i_phi': phi, 'eps': eps,
+                        'L': P, 'b_d': b_d, 'b_c': b_c,
                         'b_r0': b_R0, 'G_0': G_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
                         'R_depletion': transition, 'learning': True}
@@ -194,7 +196,7 @@ def RUN_FUNC(phi, N, alpha,
     res = {"parameters": pd.Series({"tau": m.tau,
                                     "phi": m.phi,
                                     "n": m.n,
-                                    "P": P,
+                                    "L": P,
                                     "p": p,
                                     "birth rate": m.r_b,
                                     "savings rate": m.s,
@@ -229,9 +231,9 @@ def RUN_FUNC(phi, N, alpha,
     res["majority_time"] = m.convergence_time
 
     res["e_trajectory"] = \
-        even_time_series_spacing(m.get_e_trajectory(), 201, 0., t_max)
+        even_time_series_spacing(m.get_economic_trajectory(), 201, 0., t_max)
     res["m_trajectory"] = \
-        even_time_series_spacing(m.get_m_trajectory(), 201, 0., t_max)
+        even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
 
     # store runtime:
 
@@ -318,13 +320,11 @@ def run_experiment(argv):
     heuristics = ['TTB', 'No_TTB'][int(no_heuristics)]
     test_folder = 'test_output/' if test else ''
 
-    SAVE_PATH_RAW = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw',
-                                              folder,
+    SAVE_PATH_RAW = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw', folder,
                                               sub_experiment, heuristics)
     SAVE_PATH_RES = "{}/{}{}_{}_{}".format(respath, test_folder, folder,
                                            sub_experiment, heuristics)
-    SAVE_PATH_INIT = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw',
-                                               folder,
+    SAVE_PATH_INIT = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw', folder,
                                                sub_experiments[0], heuristics)
 
     # make init path global, so run function can access it.
@@ -407,7 +407,7 @@ def run_experiment(argv):
         """define reduced parameter sets for testing"""
         phis = [round(x, 2) for x in list(np.linspace(0.0, 1.0, 5))[:-1]]
         Ns = [10, 100]
-        alphas = [0.01, 0.5]
+        alphas = [0.01,0.5]
         PARAM_COMBS = list(it.product(
             phis, Ns, alphas,
             [opinion_presets], eps,

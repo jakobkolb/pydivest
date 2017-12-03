@@ -5,7 +5,8 @@ from random import shuffle
 
 import networkx as nx
 import numpy as np
-from PyDivestment.pydivest.micro_model import divestment_core as dc
+
+from pydivest.micro_model import divestmentcore as dc
 
 output_location = \
     'test_output/' \
@@ -17,7 +18,7 @@ for FFH in [False, True]:
 
     if FFH:
         nopinions = [10, 10, 10, 10, 10, 10, 10, 10]
-        possible_opinions = [[2, 3],  # short term investor
+        possible_cue_orders = [[2, 3],  # short term investor
                              [3, 2],  # long term investor
                              [4, 2],  # short term herder
                              [4, 3],  # trending herder
@@ -25,29 +26,29 @@ for FFH in [False, True]:
                              [4, 0],  # dirty conformer
                              [1],  # gutmensch
                              [0]]  # redneck
-        input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
-                            'b_c': 1., 'phi': 0.8, 'e': 100,
+        input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
+                            'b_c': 1., 'i_phi': 0.8, 'e': 100,
                             'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
-                            'possible_opinions': possible_opinions,
+                            'possible_cue_orders': possible_cue_orders,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
                             'campaign': False, 'learning': True}
 
     else:
         # investment_decisions:
         nopinions = [10, 10]
-        possible_opinions = [[0], [1]]
+        possible_cue_orders = [[0], [1]]
 
         # Parameters:
 
-        input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
-                            'b_c': 1., 'phi': 0.8, 'e': 100,
+        input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
+                            'b_c': 1., 'i_phi': 0.8, 'e': 100,
                             'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
-                            'possible_opinions': possible_opinions,
+                            'possible_cue_orders': possible_cue_orders,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
                             'campaign': False, 'learning': True}
 
-    cops = ['c' + str(x) for x in possible_opinions]
-    dops = ['d' + str(x) for x in possible_opinions]
+    cops = ['c' + str(x) for x in possible_cue_orders]
+    dops = ['d' + str(x) for x in possible_cue_orders]
 
     opinions = []
     for i, n in enumerate(nopinions):
@@ -77,5 +78,5 @@ for FFH in [False, True]:
 
     # Initialize Model
 
-    model = dc.Divestment_Core(*init_conditions,
-                               **input_parameters)
+    model = dc.DivestmentCore(*init_conditions,
+                              **input_parameters)

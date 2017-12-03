@@ -22,14 +22,15 @@ import time
 import networkx as nx
 import numpy as np
 import pandas as pd
-from pydivest.divestvisuals.data_visualization \
-    import plot_amsterdam, plot_trajectories
-from pydivest.micro_model import divestmentcore as model
 from pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
 
+from pydivest.divestvisuals.data_visualization \
+    import plot_amsterdam, plot_trajectories
+from pydivest.micro_model import divestmentcore as model
 
-def run_func(eps, phi, ffh, test, filename):
+
+def RUN_FUNC(eps, phi, ffh, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -56,7 +57,7 @@ def run_func(eps, phi, ffh, test, filename):
     # Make different types of decision makers. Cues are
 
     if ffh:
-        possible_opinions = [[2, 3],  # short term investor
+        possible_cue_orders = [[2, 3],  # short term investor
                              [3, 2],  # long term investor
                              [4, 2],  # short term herder
                              [4, 3],  # trending herder
@@ -65,16 +66,16 @@ def run_func(eps, phi, ffh, test, filename):
                              [1],  # gutmensch
                              [0]]  # redneck
     else:
-        possible_opinions = [[1], [0]]
+        possible_cue_orders = [[1], [0]]
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
+    input_params = {'b_c': 1., 'i_phi': phi, 'i_tau': 1.,
                     'eps': eps, 'b_d': 1.5, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,  # alpha^2 * e
-                    'possible_opinions': possible_opinions,
+                    'possible_cue_orders': possible_cue_orders,
                     'xi': 1. / 8., 'beta': 0.06,
-                    'P': 100., 'C': 100., 'G_0': 1600.,
+                    'L': 100., 'C': 100., 'G_0': 1600.,
                     'campaign': False, 'learning': True,
                     'test': test, 'R_depletion': False}
 
@@ -96,7 +97,7 @@ def run_func(eps, phi, ffh, test, filename):
 
     # opinions and investment
 
-    opinions = [np.random.randint(0, len(possible_opinions))
+    opinions = [np.random.randint(0, len(possible_cue_orders))
                 for x in range(n)]
     clean_investment = np.ones(n) * 50. / float(n)
     dirty_investment = np.ones(n) * 50. / float(n)
@@ -117,7 +118,7 @@ def run_func(eps, phi, ffh, test, filename):
         "parameters": pd.Series({"tau": m.tau,
                                  "phi": m.phi,
                                  "n": m.n,
-                                 "P": m.P,
+                                 "L": m.L,
                                  "savings rate": m.s,
                                  "clean capital depreciation rate": m.d_c,
                                  "dirty capital depreciation rate": m.d_d,
@@ -145,7 +146,7 @@ def run_func(eps, phi, ffh, test, filename):
     # store data in case of successful run
     if exit_status in [0, 1] or test:
         res["micro_trajectory"] = \
-            even_time_series_spacing(m.get_e_trajectory(), 401, 0., t_max)
+            even_time_series_spacing(m.get_economic_trajectory(), 401, 0., t_max)
         res["convergence_state"] = m.convergence_state
         res["convergence_time"] = m.convergence_time
 
@@ -246,7 +247,7 @@ def run_experiment(argv):
     eps, phi = [0., 0.5], [.7, .9]
 
     if ffh:
-        possible_opinions = [[2, 3],  # short term investor
+        possible_cue_orders = [[2, 3],  # short term investor
                              [3, 2],  # long term investor
                              [4, 2],  # short term herder
                              [4, 3],  # trending herder
@@ -255,9 +256,9 @@ def run_experiment(argv):
                              [1],  # gutmensch
                              [0]]  # redneck
     else:
-        possible_opinions = [[1], [0]]
+        possible_cue_orders = [[1], [0]]
 
-    cue_list = [str(o) for o in possible_opinions]
+    cue_list = [str(o) for o in possible_cue_orders]
 
     if test:
         param_combs = list(it.product(eps, phi, [ffh], [test]))
@@ -285,10 +286,10 @@ def run_experiment(argv):
     name2 = name + '_convergence'
     eva2 = {'times_mean':
             lambda fnames: np.nanmean([np.load(f)["convergence_time"]
-                                      for f in fnames]),
+                                       for f in fnames]),
             'states_mean':
             lambda fnames: np.nanmean([np.load(f)["convergence_state"]
-                                      for f in fnames]),
+                                       for f in fnames]),
             'times_std':
             lambda fnames: np.std([np.load(f)["convergence_time"]
                                    for f in fnames]),
@@ -296,16 +297,16 @@ def run_experiment(argv):
             lambda fnames: np.std([np.load(f)["convergence_state"]
                                    for f in fnames])
             }
-    # name3 = name + '_convergence_times'
-    # cf3 = {'times':
-    #        lambda fnames: pd.DataFrame(data=[np.load(f)["convergence_time"]
-    #                                          for f in fnames]).sortlevel(
-    #                level=0),
-    #        'states':
-    #        lambda fnames: pd.DataFrame(
-    #                data=[np.load(f)["convergence_state"]
-    #                      for f in fnames]).sortlevel(level=0)
-    #        }
+    name3 = name + '_convergence_times'
+    cf3 = {'times':
+           lambda fnames: pd.DataFrame(data=[np.load(f)["convergence_time"]
+                                             for f in fnames]).sortlevel(
+                   level=0),
+           'states':
+           lambda fnames: pd.DataFrame(
+                   data=[np.load(f)["convergence_state"]
+                         for f in fnames]).sortlevel(level=0)
+           }
 
     """
     run computation and/or post processing and/or plotting
@@ -320,10 +321,10 @@ def run_experiment(argv):
 
         handle = experiment_handling(sample_size, param_combs, index,
                                      save_path_raw, save_path_res)
-        handle.compute(run_func)
+        handle.compute(RUN_FUNC)
         handle.resave(eva1, name1)
         handle.resave(eva2, name2)
-        # handle.collect(cf3, name3)
+        handle.collect(cf3, name3)
 
         return 1
 

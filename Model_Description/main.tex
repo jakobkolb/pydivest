@@ -2,7 +2,7 @@
 	ngerman,	%deutsch
 	a4paper,	%A4 Format
 	12pt,		%Schriftgrˆﬂe
-	twoside,		%zweiseitig
+	twocolumn,		%zweiseitig
 %	liststoto
 %	bibtotocnumbered
 				]{article}%Artikel
@@ -12,17 +12,17 @@
 \usepackage[english]{hyperref}
 %\usepackage[sort&compress]{natbib}
 \usepackage{
-    	textcomp,
-    	floatrow,
-    	color,
-    	cite,
-    	empheq,
+    textcomp,
+    floatrow,
+    color,
+    cite,
+    empheq,
 	amsmath,
 	amssymb,
         titleps,
-%    	libertine,
+%    libertine,
 	amsfonts,		%Mathepakete
-    	graphicx,		%Bilder einbinden
+    graphicx,		%Bilder einbinden
 	a4wide,			%volle Seitenbreite
 	multirow,		%Zellen verbinden in Tabellen
 	booktabs,		%schˆne Tabellen
@@ -35,8 +35,8 @@
 	hhline,
 	wrapfig,
         bbm,
-    	listings,
-    	bm
+    listings,
+    bm
 	}
 \usepackage[toc,page]{appendix}
 \usepackage{listings}
@@ -88,8 +88,18 @@
 
 %define command for comments on the side
 
-\newcommand{\JJK}[1]{{\emph{\color{red}#1}}} 
-\newcommand{\FMH}[1]{{\emph{\color{green}#1}}} 
+\newcommand{\comment}[1]%
+%{
+{\normalmarginpar % rechts
+    \marginpar{\emph{\color{red}#1}}} 
+
+%Def vom Absatz
+\newcommand{\absatz}{\hfill \medskip \newline}
+
+%Def von der Einheit
+\newcommand{\ein}{\ensuremath{\,\mathrm}}
+
+\newcommand\unity{\ensuremath{\mathbbm{1}}}
 
 %nice dirac brackets
 \newcommand{\ket}[1]{\left| #1 \right>} % for Dirac bras
@@ -126,12 +136,12 @@
 %Kopf- unf Fuﬂzeilen
 \newpagestyle{newstyle}{
       \setheadrule{.4pt}% Header rule
-        \sethead[Working Paper]% even left
+        \sethead[Preliminary results - Do not circulate!]% even left
             []% even centre
             [\thepage]% even right
             {\thepage}% odd left
             {}% odd centre
-            {Micro-Macro transition from an Agent Based Savings Model}% odd right
+            {Fast and Frugal Heuristics in Earth System Models}% odd right
         }
     
     \pagestyle{newstyle}
@@ -143,16 +153,10 @@
 %\fancyhf[CF]{\thepage}
 %\renewcommand{\headrulewidth}{0.4pt}
 %\renewcommand{\footrulewidth}{0.4pt}
-\newcommand{\cs}{c}
-\newcommand{\ds}{d}
 
 \begin{document}
 \setcounter{page}{1}%
 %Einbinden von externen Dateien
-\input{Abstract.tex}
-\input{Introduction.tex}
 \input{Model_Description.tex}
-\input{Approximate_Solution}
-\input{Discussion.tex}
-\input{Conclusion.tex}
+\input{Cue_Order_Learning.tex}
 \end{document}
