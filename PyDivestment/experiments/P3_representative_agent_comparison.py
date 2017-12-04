@@ -78,11 +78,12 @@ def RUN_FUNC(b_d, phi, tau, approximate, test, filename):
                         'G_0': 10000, 'b_r0': 0.1 ** 2 * 100,
                         'possible_cue_orders': possible_cue_orders,
                         'C': 100, 'xi': 1. / 8., 'd_c': 0.06, 's': 0.23,
+                        'pi': 1./2., 'L': 100,
                         'campaign': False, 'learning': True,
                         'crs': True}
 
     # investment_decisions
-    nopinions = [50, 50]
+    nopinions = [90, 10]
     opinions = []
     for i, n in enumerate(nopinions):
         opinions.append(np.full(n, i, dtype='I'))
@@ -99,9 +100,15 @@ def RUN_FUNC(b_d, phi, tau, approximate, test, filename):
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
 
+    # use equilibrium value for only dirty investment here.
+    Keq = (input_parameters['s'] * (1 - input_parameters['b_r0']
+                                    / input_parameters['e']) / input_parameters['d_c']
+           * input_parameters['b_d'] * input_parameters['L'] ** input_parameters['pi']) ** (1
+                                                                                            / (input_parameters['pi']))
+
     # investment
-    clean_investment = np.ones(N)
-    dirty_investment = np.ones(N)
+    clean_investment = 1. / N * np.ones(N)
+    dirty_investment = Keq / N * np.ones(N)
 
     init_conditions = (adjacency_matrix, opinions,
                        clean_investment, dirty_investment)
@@ -173,7 +180,7 @@ def RUN_FUNC(b_d, phi, tau, approximate, test, filename):
     # run the model
     t_start = time.clock()
 
-    t_max = 400 if not test else 4
+    t_max = 500 if not test else 4
     exit_status = m.run(t_max=t_max)
 
     res["runtime"] = time.clock() - t_start
@@ -267,7 +274,7 @@ def run_experiment(argv):
         tmppath = "./"
 
     sub_experiment = ['res', 'micro', 'mean', 'aggregate'][approximate]
-    folder = 'P2'
+    folder = 'P3'
 
     # make sure, testing output goes to its own folder:
 
