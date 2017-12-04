@@ -21,7 +21,7 @@ class Integrate_Equations:
                  pi=0.5, kappa_c=0.4, kappa_d=0.5, xi=1. / 8.,
                  L=100., G_0=3000, C=1,
                  R_depletion=True,
-                 interaction=2, crs=True, **kwargs):
+                 interaction=2, crs=True, test=False, **kwargs):
 
         """
         Class containing the aggregate capital stocks 
@@ -83,7 +83,9 @@ class Integrate_Equations:
             switch for constant returns to scale. If True, values of kappa are ignored.
         """
 
-        if len(kwargs.keys()) > 0:
+        self.test = test
+
+        if len(kwargs.keys()) > 0 and self.test:
             print('got superfluous keyword arguments')
             print(kwargs.keys())
 
@@ -139,8 +141,9 @@ class Integrate_Equations:
         else:
             self.kappa_c = float(kappa_c)
             self.kappa_d = float(kappa_d)
-        print('pi = {}, xi = {}, kappa_c = {}, kappa_d = {}'.format(self.pi, self.xi, self.kappa_c, self.kappa_d)
-              , flush=True)
+        if self.test:
+            print('pi = {}, xi = {}, kappa_c = {}, kappa_d = {}'.format(self.pi, self.xi,
+                                                                        self.kappa_c, self.kappa_d), flush=True)
         # fossil->energy->output conversion efficiency (Leontief)
         self.e = float(e)
         # total labor
@@ -405,7 +408,8 @@ class Integrate_Equations:
 
         # Write down dynamic equations for the economic subsystem in
         # terms of means of clean and dirty capital stocks for clean and dirty households
-        print('define economic equations,', flush=True)
+        if self.test:
+            print('define economic equations,', flush=True)
 
         rhsECO = sp.Matrix([(rs * rc - delta) * Kcc + rs * rd * Kdc + rs * w * L * Nc / N,
                             -delta * Kdc,
@@ -429,7 +433,8 @@ class Integrate_Equations:
 
         try:
             rhs = np.load('agg_rhs.pkl')
-            print('loading rhs successful')
+            if self.test:
+                print('loading rhs successful')
         except:
             # After eliminating N, we can write down the first jump moment:
 
@@ -459,7 +464,8 @@ class Integrate_Equations:
             rhs = sp.Matrix([rhsPBP, rhsECO]).subs(subs1)
             with open('agg_rhs.pkl', 'wb') as outfile:
                 pkl.dump(rhs, outfile)
-                print('saving rhs successful')
+                if self.test:
+                    print('saving rhs successful')
 
         # Define lists of symbols and values for parameters to substitute
         # in rhs expression
@@ -520,7 +526,8 @@ class Integrate_Equations:
     def run(self, t_max, t_steps=100):
         self.t_max = t_max
         if t_max > self.t:
-            print('integrating equations from t={} to t={}'.format(self.t, t_max))
+            if self.test:
+                print('integrating equations from t={} to t={}'.format(self.t, t_max))
             t = np.linspace(self.t, t_max, t_steps)
             initial_conditions = [self.x, self.y, self.z, self.Kcc,
                                   self.Kdc, self.Kcd, self.Kdd,
@@ -535,7 +542,8 @@ class Integrate_Equations:
              self.C, self.G) = trajectory[-1]
             self.t = t_max
         elif t_max <= self.t:
-            print('upper time limit is smaller than system time', self.t)
+            if self.test:
+                print('upper time limit is smaller than system time', self.t)
 
         return 1
 

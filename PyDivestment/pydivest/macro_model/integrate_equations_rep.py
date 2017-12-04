@@ -28,15 +28,17 @@ class Integrate_Equations:
                  pi=0.5, kappa_c=0.4, kappa_d=0.5, xi=1. / 8.,
                  L=100., G_0=3000, C=1,
                  R_depletion=True,
-                 interaction=2, crs=True, **kwargs):
+                 interaction=2, crs=True, test=False, **kwargs):
 
-        if len(kwargs.keys()) > 0:
+        self.test = test
+
+        if len(kwargs.keys()) > 0 and self.test:
             print('got superfluous keyword arguments')
             print(kwargs.keys())
 
         self.t_max = 0
 
-        # Social parameters
+        # Social parametersprint
 
         # interaction either with 1) tanh(Wi-Wj) or 2) (Wi-Wj)/(Wi+Wj)
         self.interaction = interaction
@@ -81,8 +83,9 @@ class Integrate_Equations:
         else:
             self.kappa_c = float(kappa_c)
             self.kappa_d = float(kappa_d)
-        print('pi = {}, xi = {}, kappa_c = {}, kappa_d = {}'
-              .format(self.pi, self.xi, self.kappa_c, self.kappa_d), flush=True)
+        if self.test:
+            print('pi = {}, xi = {}, kappa_c = {}, kappa_d = {}'
+                  .format(self.pi, self.xi, self.kappa_c, self.kappa_d), flush=True)
         # fossil->energy->output conversion efficiency (Leontief)
         self.e = float(e)
         # total labor
@@ -258,7 +261,8 @@ class Integrate_Equations:
         n: float
             the fraction of investment going into the clean sector
         """
-        print('sanitizing initial conditions to')
+        if self.test:
+            print('sanitizing initial conditions to')
 
         # define initial values for Kc, Kd, C and G
         Y0 = [self.Kc_0, self.Kd_0, self.G_0]
@@ -284,7 +288,8 @@ class Integrate_Equations:
         self.Yd0 = np.array(list(self.rhs_1.subs(subs_ini)))
         self.t0 = 0
         self.sw0 = [True, False, False]
-        print(subs_ini)
+        if self.test:
+            print(subs_ini)
         return r1.x[0], r2.x[0]
 
     def run(self, t_max, **kwargs):
