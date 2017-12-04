@@ -21,7 +21,7 @@ class Integrate_Equations:
                  pi=0.5, kappa_c=0.4, kappa_d=0.5, xi=1. / 8.,
                  L=100., G_0=3000, C=1,
                  R_depletion=True,
-                 interaction=2, crs=True, **kwargs):
+                 interaction=2, crs=True, test=False **kwargs):
 
         """
         Class containing the mean capital stocks approximation for the pydivest model.
@@ -80,13 +80,17 @@ class Integrate_Equations:
             if 2: (Wi-Wj)/(Wi+Wj) interaction.
         crs: bool
             switch for constant returns to scale. If True, values of kappa are ignored.
+        test: bool
+            switch on debugging options
         """
+
+        self.test = test
 
         if not crs:
             print('this approximation requires constant returns to scale.'
                   'Therefore, crs, kappa_d and kappa_c have no effect.')
 
-        if len(kwargs.keys()) > 0:
+        if len(kwargs.keys()) > 0 and self.test:
             print('got superfluous keyword arguments')
             print(kwargs.keys())
 
@@ -139,7 +143,8 @@ class Integrate_Equations:
         self.kappa_c = 1. - self.pi - self.xi
         # dirty capital elasticity
         self.kappa_d = 1. - self.pi
-        print('pi = {}, xi = {}, kappa_c = {}, kappa_d = {}'.format(self.pi, self.xi, self.kappa_c, self.kappa_d))
+        if self.test:
+            print('pi = {}, xi = {}, kappa_c = {}, kappa_d = {}'.format(self.pi, self.xi, self.kappa_c, self.kappa_d))
         # fossil->energy->output conversion efficiency (Leontief)
         self.e = float(e)
         # total labor
@@ -446,15 +451,16 @@ class Integrate_Equations:
 
         try:
             rhs = np.load('mean_rhs.pkl')
-            print('loading rhs successful')
+            if self.test:
+                print('loading rhs successful')
         except:
             # After eliminating N, we can write down the first jump moment:
-
-            print('simplify PBP rhs')
+            if self.test:
+                print('simplify PBP rhs')
             rhsPBP = sp.Matrix(r * sp.Transpose(W))
             rhsPBP = sp.Matrix(sp.simplify(rhsPBP))
-
-            print('simplifying eco switch terms')
+            if self.test:
+                print('simplifying eco switch terms')
             rhsECO_switch = sp.simplify(rhsECO_switch.subs(subs1))
 
             rhsECO = rhsECO + rhsECO_switch
@@ -478,7 +484,8 @@ class Integrate_Equations:
             rhs = sp.Matrix([rhsPBP, rhsECO]).subs(subs1)
             with open('mean_rhs.pkl', 'wb') as outfile:
                 pkl.dump(rhs, outfile)
-                print('saving rhs successful')
+                if self.test:
+                    print('saving rhs successful')
 
         # Define lists of symbols and values for parameters to substitute
         # in rhs expression
@@ -540,7 +547,8 @@ class Integrate_Equations:
     def run(self, t_max, t_steps=100):
         self.t_max = t_max
         if t_max > self.t:
-            print('integrating equations from t={} to t={}'.format(self.t, t_max))
+            if self.test:
+                print('integrating equations from t={} to t={}'.format(self.t, t_max))
             t = np.linspace(self.t, t_max, t_steps)
             initial_conditions = [self.x, self.y, self.z, self.mucc,
                                   self.mudc, self.mucd, self.mudd,
@@ -559,7 +567,8 @@ class Integrate_Equations:
             self.G = self.g * self.n
             self.t = t_max
         elif t_max <= self.t:
-            print('upper time limit is smaller than system time', self.t)
+            if self.test:
+                print('upper time limit is smaller than system time', self.t)
 
         return 1
 

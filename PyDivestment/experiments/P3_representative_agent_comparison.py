@@ -144,7 +144,7 @@ def RUN_FUNC(b_d, phi, tau, approximate, test, filename):
     # initializing the model
     if approximate == 0:
         m = m_rep
-    if approximate == 1:
+    elif approximate == 1:
         m = micro(*init_conditions, **input_parameters)
     elif approximate == 2:
         m = mean(*init_conditions, **input_parameters)
