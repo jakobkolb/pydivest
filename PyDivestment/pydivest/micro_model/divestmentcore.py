@@ -118,6 +118,7 @@ class DivestmentCore:
         # toggle e_trajectory output
         self.e_trajectory_output = True
         self.m_trajectory_output = True
+        self.a_trajectory_output = True
         self.switchlist_output = False
         # toggle whether to run full time or only until consensus
         self.run_full_time = True
@@ -330,10 +331,28 @@ class DivestmentCore:
 
         self.G = G_0
 
+        #calculate initial variables:
+
+        dt = [self.t, self.t]
+        x0 = np.fromiter(chain.from_iterable([
+            list(self.investment_clean),
+            list(self.investment_dirty),
+            [self.L, self.G, self.C]]), dtype='float')
+
+        [x0, x1] = odeint(self.economy_dot_leontief, x0, dt)
+
+        self.investment_clean = x1[0:self.n]
+        self.investment_dirty = x1[self.n:2 * self.n]
+        self.L = x1[-3]
+        self.G = x1[-2]
+        self.C = x1[-1]
+
         if self.e_trajectory_output:
             self.init_economic_trajectory()
         if self.m_trajectory_output:
             self.init_mean_trajectory()
+        if self.a_trajectory_output:
+            self.init_aggregate_trajectory()
         if self.switchlist_output:
             self.init_switchlist()
 
@@ -1048,20 +1067,6 @@ class DivestmentCore:
              ['d' + str(x) for x in self.possible_cue_orders]]))
         self.e_trajectory.append(element)
 
-        dt = [self.t, self.t]
-        x0 = np.fromiter(chain.from_iterable([
-            list(self.investment_clean),
-            list(self.investment_dirty),
-            [self.L, self.G, self.C]]), dtype='float')
-
-        [x0, x1] = odeint(self.economy_dot_leontief, x0, dt)
-
-        self.investment_clean = x1[0:self.n]
-        self.investment_dirty = x1[self.n:2 * self.n]
-        self.L = x1[-3]
-        self.G = x1[-2]
-        self.C = x1[-1]
-
         self.update_economic_trajectory()
 
     def update_economic_trajectory(self):
@@ -1100,7 +1105,7 @@ class DivestmentCore:
     def get_economic_trajectory(self):
         # make up DataFrame from micro data
         columns = self.e_trajectory[0]
-        df = pd.DataFrame(data=self.e_trajectory[2:], columns=columns)
+        df = pd.DataFrame(data=self.e_trajectory[1:], columns=columns)
         df = df.set_index('time')
 
         return df
@@ -1115,20 +1120,6 @@ class DivestmentCore:
         element = ['time', 'x', 'y', 'z', 'mucc', 'mudc', 'mucd', 'mudd', 'c',
                    'g', 'w', 'r_c', 'r_d', 'Wc', 'Wd']
         self.m_trajectory.append(element)
-
-        dt = [self.t, self.t]
-        x0 = np.fromiter(chain.from_iterable([
-            list(self.investment_clean),
-            list(self.investment_dirty),
-            [self.L, self.G, self.C]]), dtype='float')
-
-        [x0, x1] = odeint(self.economy_dot_leontief, x0, dt)
-
-        self.investment_clean = x1[0:self.n]
-        self.investment_dirty = x1[self.n:2 * self.n]
-        self.L = x1[-3]
-        self.G = x1[-2]
-        self.C = x1[-1]
 
         self.update_mean_trajectory()
 
@@ -1206,20 +1197,6 @@ class DivestmentCore:
         element = ['time', 'x', 'y', 'z', 'Kcc', 'Kdc', 'Kcd', 'Kdd', 'C',
                    'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d']
         self.ag_trajectory.append(element)
-
-        dt = [self.t, self.t]
-        x0 = np.fromiter(chain.from_iterable([
-            list(self.investment_clean),
-            list(self.investment_dirty),
-            [self.L, self.G, self.C]]), dtype='float')
-
-        [x0, x1] = odeint(self.economy_dot_leontief, x0, dt)
-
-        self.investment_clean = x1[0:self.n]
-        self.investment_dirty = x1[self.n:2 * self.n]
-        self.L = x1[-3]
-        self.G = x1[-2]
-        self.C = x1[-1]
 
         self.update_aggregate_trajectory()
 
@@ -1310,8 +1287,8 @@ class DivestmentCore:
                                 direction])
 
     def get_switch_list(self):
-        columns = self.switchlist.pop(0)
-        df = pd.DataFrame(self.switchlist, columns=columns)
+        columns = self.switchlist[0]
+        df = pd.DataFrame(self.switchlist[1:], columns=columns)
         df = df.set_index('time')
 
         return df
