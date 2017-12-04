@@ -21,7 +21,7 @@ class Integrate_Equations:
                  pi=0.5, kappa_c=0.4, kappa_d=0.5, xi=1. / 8.,
                  L=100., G_0=3000, C=1,
                  R_depletion=True,
-                 interaction=2, crs=True, test=False **kwargs):
+                 interaction=2, crs=True, test=False, **kwargs):
 
         """
         Class containing the mean capital stocks approximation for the pydivest model.

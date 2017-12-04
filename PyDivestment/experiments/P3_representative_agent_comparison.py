@@ -191,7 +191,7 @@ def RUN_FUNC(b_d, phi, tau, approximate, test, filename):
             res['unified_trajectory'] = m.get_unified_trajectory()
         elif approximate == 1:
             res['mean_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
-            res['aggregate_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+            res['aggregate_macro_trajectory'] = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
             res['unified_trajectory'] = even_time_series_spacing(m.get_unified_trajectory(), 201, 0, t_max)
         elif approximate == 2:
             res['mean_macro_trajectory'] = m.get_mean_trajectory()
