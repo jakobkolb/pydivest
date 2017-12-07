@@ -1,5 +1,6 @@
 import datetime
 import sys
+import traceback
 from itertools import chain
 from random import shuffle
 
@@ -283,7 +284,7 @@ class DivestmentCore:
         self.b_d = b_d
 
         # labor elasticity (equal in both sectors)
-        self.pi = 1. / 2.
+        self.pi = pi
         # elasticity of knowledge
         self.xi = xi
         # clean capital elasticity
@@ -333,13 +334,14 @@ class DivestmentCore:
 
         #calculate initial variables:
 
-        dt = [self.t, self.t]
+        dt = [self.t, self.t + 0.0001]
+        print(dt)
         x0 = np.fromiter(chain.from_iterable([
             list(self.investment_clean),
             list(self.investment_dirty),
             [self.L, self.G, self.C]]), dtype='float')
 
-        [x0, x1] = odeint(self.economy_dot_leontief, x0, dt)
+        [x0, x1], self.db_out = odeint(self.economy_dot_leontief, x0, dt, full_output=True)
 
         self.investment_clean = x1[0:self.n]
         self.investment_dirty = x1[self.n:2 * self.n]
@@ -525,7 +527,8 @@ class DivestmentCore:
         candidate = 0
         while self.t < t_max:
 
-            self.progress(self.t, t_max, 'abm running')
+            if self.debug:
+                self.progress(self.t, t_max, 'abm running')
 
             # if self.debug:
             #     print self.t, t_max
@@ -535,7 +538,15 @@ class DivestmentCore:
              neighbors, update_time) = self.find_update_candidates()
 
             # 2 integrate economic model until t=update_time:
-            self.update_economy(update_time)
+            # dont make steps too large. The integrator handles that badly..
+            if update_time - self.t < 1.:
+                self.update_economy(update_time)
+            else:
+                while True:
+                    inter_update_time = self.t + 1. if not self.t + 1. > update_time else update_time
+                    self.update_economy(inter_update_time)
+                    if inter_update_time >= update_time:
+                        break
 
             # 3 update opinion formation in case,
             # update candidate was found:
@@ -670,12 +681,32 @@ class DivestmentCore:
 
         K_c = sum(investment_clean)
         K_d = sum(investment_dirty)
-        b_R = self.b_rf(G)
 
-        assert K_c >= 0, 'negative clean capital'
-        assert K_d >= 0, 'negative dirty capital'
-        assert G >= 0, 'negative resource'
-        assert C >= 0, 'negative knowledge'
+        try:
+            assert K_c >= 0, 'negative clean capital'
+            assert K_d >= 0, 'negative dirty capital'
+            assert G >= 0, 'negative resource'
+            assert C >= 0, 'negative knowledge'
+        except AssertionError:
+            _, _, tb = sys.exc_info()
+            traceback.print_tb(tb) # Fixed format
+            tb_info = traceback.extract_tb(tb)
+            filename, line, func, text = tb_info[-1]
+            print('An error occurred on line {} in statement {} with'.format(line, text))
+            print('K_c = {}, K_d = {}, G = {}, C = {}'.format(K_c, K_d, G, C))
+            print('the trajectory tail:')
+            trj = self.get_economic_trajectory()
+            print(trj.tail(10))
+            print('and last stats from odeint')
+            print(self.db_out)
+            print('model configuration is:')
+            print(dir(self))
+            if G < 0:
+                G = 0
+            if C < 0:
+                C = 0
+
+        b_R = self.b_rf(G)
 
         X_c = (self.b_c * C ** self.xi * K_c ** self.kappa_c) ** (
             1. / (1. - self.pi))
@@ -717,13 +748,23 @@ class DivestmentCore:
         self.income = (self.r_c * self.investment_clean
                        + self.r_d * self.investment_dirty
                        + self.w * P / self.n)
+        try:
+            assert all([x > 0 for x in self.income])
 
-        assert all(self.income > 0), \
-            'income is negative, X_R: {}, X_d: {}, X_c: {},\
-            K_d: {}, K_c: {} \n investment decisions:\
-            \n {} \n income: \n {}' \
-                .format(X_R, X_d, X_c, K_d, K_c,
-                        self.investment_decisions, self.income)
+        except AssertionError:
+            print('after time t = {}'.format(t))
+            print('tau = {}, phi = {}, b_d = {}'.format(self.tau, self.phi, self.b_d))
+            print('income is negative, X_R: {}, X_d: {}, X_c: {}, \n '
+                  'K_d: {}, K_c: {} , G = {}, C = {} \n '
+                  'r_c = {}, r_d = {}, w = {}, R = {} \n '
+                  'investment decisions: \n {} \n '
+                  'income: \n {} \n'
+                  'clean investment: \n {} \n'
+                  'dirty investment: \n {}'.format(X_R, X_d, X_c, K_d, K_c, G, C, self.r_c, self.r_d, self.w, self.R,
+                                                   self.investment_decisions, self.income,
+                                                   self.investment_clean, self.investment_dirty))
+
+            exit(-1)
 
         G_dot = -R if self.R_depletion else 0.0
         P_dot = 0
@@ -761,7 +802,7 @@ class DivestmentCore:
         update_time : float
             time until which system is integrated
         """
-
+        
         dt = [self.t, update_time]
         x0 = np.fromiter(chain.from_iterable([
             list(self.investment_clean),
@@ -771,7 +812,9 @@ class DivestmentCore:
         # integrate the system unless it crashes.
         if not np.isnan(self.R):
             # with stdout_redirected():
-            [x0, x1] = odeint(self.economy_dot_leontief, x0, dt, mxhnil=1)
+            [x0, x1], self.db_out = odeint(self.economy_dot_leontief, x0, dt,
+                                           mxhnil=1, full_output=True,
+                                           hmax=1.)
         else:
             x1 = x0
 
@@ -1038,6 +1081,7 @@ class DivestmentCore:
     def init_economic_trajectory(self):
         element = list(chain.from_iterable(
             [['time',
+              'R',
               'wage',
               'r_c',
               'r_d',
@@ -1049,7 +1093,6 @@ class DivestmentCore:
               'P_d',
               'L',
               'G',
-              'R',
               'C',
               'Y_c',
               'Y_d',
@@ -1073,6 +1116,7 @@ class DivestmentCore:
         alpha = (self.b_r0 / self.e) ** (1. / 2.)
         element = list(chain.from_iterable(
             [[self.t,
+              self.R,
               self.w,
               self.r_c,
               self.r_d,
@@ -1084,7 +1128,6 @@ class DivestmentCore:
               self.P_d,
               self.L,
               self.G,
-              self.R,
               self.C,
               self.Y_c,
               self.Y_d,
@@ -1260,7 +1303,8 @@ class DivestmentCore:
     def get_aggregate_trajectory(self):
         # make up Dataframe from macro data:
         columns = self.ag_trajectory[0]
-        print(columns)
+        if self.debug:
+            print(columns)
         df = pd.DataFrame(self.ag_trajectory[1:], columns=columns)
         df = df.set_index('time')
 
