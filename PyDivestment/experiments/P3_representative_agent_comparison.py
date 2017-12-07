@@ -80,7 +80,7 @@ def RUN_FUNC(b_d, phi, tau, approximate, test, filename):
                         'C': 100, 'xi': 1. / 8., 'd_c': 0.06, 's': 0.23,
                         'pi': 1./2., 'L': 100,
                         'campaign': False, 'learning': True,
-                        'crs': True}
+                        'crs': True, 'test': test}
 
     # investment_decisions
     nopinions = [90, 10]
@@ -290,13 +290,13 @@ def run_experiment(argv):
     """
     create parameter combinations and index
     """
-    taus = [10**x for x in list(np.linspace(-1, 4., 10))]
+    taus = [10**x for x in list(np.linspace(-1, 3., 9))]
     phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 10))]
     b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
-    b_d, phi = [1.2], [.8]
+    tau, b_d, phi = [10000.], [1.], [.8]
 
     if test:
-        PARAM_COMBS = list(it.product(b_d, phi, taus, [approximate], [test]))
+        PARAM_COMBS = list(it.product(b_d, phi, tau, [approximate], [test]))
     else:
         PARAM_COMBS = list(it.product(b_ds, phis, taus, [approximate], [test]))
 
@@ -308,11 +308,11 @@ def run_experiment(argv):
 
     NAME0 = 'unified_trajectory'
     EVA0 = {"mean_trajectory":
-                lambda fnames: pd.concat([np.load(f)["unified_trajectory"]
+                lambda fnames: pd.concat([np.load(f)['unified_trajectory']
                                           for f in fnames]).groupby(
                     level=0).mean(),
             "sem_trajectory":
-                lambda fnames: pd.concat([np.load(f)["unified_trajectory"]
+                lambda fnames: pd.concat([np.load(f)['unified_trajectory']
                                           for f in fnames]).groupby(level=0).std(),
             }
     NAME1 = 'mean_trajectory'
@@ -342,7 +342,7 @@ def run_experiment(argv):
     if mode == 0:
         print('calculating {}: {}'.format(approximate, sub_experiment))
         sys.stdout.flush()
-        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 2
+        SAMPLE_SIZE = 100 if not (test or approximate in [0, 2, 3]) else 2
         handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
                                      SAVE_PATH_RAW, SAVE_PATH_RES)
         handle.compute(RUN_FUNC)
@@ -352,7 +352,7 @@ def run_experiment(argv):
     # Post processing
     if mode == 1:
         sys.stdout.flush()
-        SAMPLE_SIZE = 100 if not (test or approximate in [0, 2, 3]) else 5
+        SAMPLE_SIZE = 100 if not (test or approximate in [0, 2, 3]) else 2
 
         handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
                                      SAVE_PATH_RAW, SAVE_PATH_RES)

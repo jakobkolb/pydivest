@@ -532,7 +532,8 @@ class Integrate_Equations:
         sys.stdout.flush()
 
     def dot_rhs(self, values, t):
-        self.progress(t, self.t_max, 'mean approximation running')
+        if self.test:
+            self.progress(t, self.t_max, 'mean approximation running')
         # add to g such that 1 - alpha**2 * (g/G_0)**2 remains positive
         if values[-1] < self.alpha * self.g_0:
             values[-1] = self.alpha * self.g_0
@@ -615,7 +616,8 @@ class Integrate_Equations:
         t_values = self.m_trajectory.index.values
         data = np.zeros((len(t_values), len(columns)))
         for i, t in enumerate(t_values):
-            self.progress(i, len(t_values), 'calculating dependant variables')
+            if self.test:
+                self.progress(i, len(t_values), 'calculating dependant variables')
             Yi = self.m_trajectory.loc[t]
             sbs = {var_symbol: Yi[var_name] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
             try:

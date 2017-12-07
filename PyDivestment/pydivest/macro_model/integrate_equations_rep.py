@@ -315,7 +315,8 @@ class Integrate_Equations:
                 rval[i] = Yd[i] - sp.simplify(rval[i])
             rval = np.array([float(x) for x in rval.evalf()])
 
-            self.progress(t, self.t_max, 'representative agent running')
+            if self.test:
+                self.progress(t, self.t_max, 'representative agent running')
 
             return rval
 
@@ -358,21 +359,21 @@ class Integrate_Equations:
         df = pd.DataFrame(Y, index=t, columns=self.var_names)
         self.m_trajectory = pd.concat([self.m_trajectory, df]).groupby(level=0).mean()
 
-        return
+        return 1
 
     def get_aggregate_trajectory(self):
 
         return self.m_trajectory
 
     def get_unified_trajectory(self):
-        """calcualtes and returns a unified output trajectory in terms of per capita variables.
+        """calculates and returns a unified output trajectory in terms of per capita variables.
         
-        The question is: do I devide by total labor, or by labor employed in the respective sector.
-        For capital, it certainly makes sense, to devide by labor employed in the sector. Same for resource
+        The question is: do I divide by total labor, or by labor employed in the respective sector.
+        For capital, it certainly makes sense, to divide by labor employed in the sector. Same for resource
         use and knowledge. For labor employed in the respective sector, it certainly makes sense to put it in
         terms of total labor. For remaining resource stock, I am not sure.
         
-        Talking to jobst, I figured, it does not really matter, as long as the quantities can be computed from
+        Talking to Jobst, I figured, it does not really matter, as long as the quantities can be computed from
         all of the different models. So I should start from the 'means' description, since it has the most
         restricting form.
         
@@ -398,7 +399,8 @@ class Integrate_Equations:
         t_values = self.m_trajectory.index.values
         data = np.zeros((len(t_values), len(columns)))
         for i, t in enumerate(t_values):
-            self.progress(i, len(t_values), 'calculating dependant variables')
+            if self.test:
+                self.progress(i, len(t_values), 'calculating dependant variables')
             Yi = self.m_trajectory.loc[t]
             sbs = {var_symbol: Yi[var_name] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
             data[i, :] = [var.subs(sbs) for var in var_expressions]

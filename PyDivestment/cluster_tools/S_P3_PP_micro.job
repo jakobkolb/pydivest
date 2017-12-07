@@ -4,7 +4,7 @@
 #SBATCH --job-name=P3_micro_pp
 #SBATCH --output=%A_P3_micro_pp.out
 #SBATCH --error=%A_P3_micro_pp.err
-#SBATCH --nodes=16
+#SBATCH --nodes=8
 #SBATCH --tasks-per-node=16
 
 
