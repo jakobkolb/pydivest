@@ -195,7 +195,7 @@ def RUN_FUNC(b_d, phi, tau, eps, model, test, filename):
     t_start = time.clock()
 
     t_max = 500 if not test else 0
-    exit_status = m.run(t_max=t_max)
+    exit_status = m.run(t_max=t_max, )
 
     res["runtime"] = time.clock() - t_start
 

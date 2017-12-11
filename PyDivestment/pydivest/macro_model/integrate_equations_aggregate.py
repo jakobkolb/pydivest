@@ -602,6 +602,8 @@ class Integrate_Equations:
                 print(data[i-1, :])
                 sbs = {var_symbol: Yi[var_name][0] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
                 data[i, :] = [var.subs(sbs) for var in var_expressions]
+            except TypeError:
+                print(self.tau, self.phi, self.eps, self.b_d)
 
         return pd.DataFrame(index=t_values, columns=columns, data=data)
 
