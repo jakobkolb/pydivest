@@ -39,7 +39,7 @@ from pydivest.macro_model.integrate_equations_mean import Integrate_Equations as
 from pydivest.micro_model.divestmentcore import DivestmentCore as micro
 
 
-def RUN_FUNC(b_d, phi, tau, approximate, test, filename):
+def RUN_FUNC(b_d, phi, tau, eps, model, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -53,6 +53,10 @@ def RUN_FUNC(b_d, phi, tau, approximate, test, filename):
         the solow residual in the dirty sector
     phi : float \in [0,1]
         the rewiring probability for the network update
+    tau : float > 0
+        mean waiting time between household updates
+    eps : float \in [0, 1]
+        fraction of imitation and rewiring events that are random
     model: int
         if 0: run abm
         if 1: run mean approximation
@@ -73,7 +77,7 @@ def RUN_FUNC(b_d, phi, tau, approximate, test, filename):
 
     # Parameters:
 
-    input_parameters = {'i_tau': tau, 'eps': 0.001, 'b_d': b_d,
+    input_parameters = {'i_tau': tau, 'eps': eps, 'b_d': b_d,
                         'b_c': 1., 'i_phi': phi, 'e': 10,
                         'G_0': 10000, 'b_r0': 0.1 ** 2 * 100,
                         'possible_cue_orders': possible_cue_orders,
@@ -107,7 +111,7 @@ def RUN_FUNC(b_d, phi, tau, approximate, test, filename):
                                                                                             / (input_parameters['pi']))
 
     # investment
-    clean_investment = 1. / N * np.ones(N)
+    clean_investment = 3.5 * np.ones(N)
     dirty_investment = Keq / N * np.ones(N)
 
     init_conditions = (adjacency_matrix, opinions,
@@ -122,9 +126,19 @@ def RUN_FUNC(b_d, phi, tau, approximate, test, filename):
 
     # investment_decisions
     nopinions = [int(round((1. - n) * 100.)), int(round(n * 100.))]
+    if nopinions[1] < 1:
+        nopinions[1] += 1
+        nopinions[0] -= 1
+    if nopinions[0] < 1:
+        nopinions[0] += 1
+        nopinions[1] -= 1
     opinions = []
     for i, n in enumerate(nopinions):
-        opinions.append(np.full((n), i, dtype='I'))
+        try:
+            opinions.append(np.full(n, i, dtype='I'))
+        except ValueError:
+            print(i, n)
+            exit(-1)
     opinions = [item for sublist in opinions for item in sublist]
     shuffle(opinions)
 
@@ -142,16 +156,16 @@ def RUN_FUNC(b_d, phi, tau, approximate, test, filename):
                        clean_investment, dirty_investment)
 
     # initializing the model
-    if approximate == 0:
+    if model == 0:
         m = m_rep
-    elif approximate == 1:
+    elif model == 1:
         m = micro(*init_conditions, **input_parameters)
-    elif approximate == 2:
+    elif model == 2:
         m = mean(*init_conditions, **input_parameters)
-    elif approximate == 3:
+    elif model == 3:
         m = agg(*init_conditions, **input_parameters)
     else:
-        raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
+        raise ValueError('model must be in [1, 2, 3] but is {}'.format(model))
 
     # storing initial conditions and parameters
 
@@ -180,23 +194,23 @@ def RUN_FUNC(b_d, phi, tau, approximate, test, filename):
     # run the model
     t_start = time.clock()
 
-    t_max = 500 if not test else 4
+    t_max = 500 if not test else 0
     exit_status = m.run(t_max=t_max)
 
     res["runtime"] = time.clock() - t_start
 
     # store data in case of successful run
     if exit_status in [0, 1]:
-        if approximate == 0:
+        if model == 0:
             res['unified_trajectory'] = m.get_unified_trajectory()
-        elif approximate == 1:
+        elif model == 1:
             res['mean_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
             res['aggregate_macro_trajectory'] = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
             res['unified_trajectory'] = even_time_series_spacing(m.get_unified_trajectory(), 201, 0, t_max)
-        elif approximate == 2:
+        elif model == 2:
             res['mean_macro_trajectory'] = m.get_mean_trajectory()
             res['unified_trajectory'] = m.get_unified_trajectory()
-        elif approximate == 3:
+        elif model == 3:
             res['aggregate_macro_trajectory'] = m.get_aggregate_trajectory()
             res['unified_trajectory'] = m.get_unified_trajectory()
 
@@ -291,16 +305,17 @@ def run_experiment(argv):
     create parameter combinations and index
     """
     taus = [10**x for x in list(np.linspace(-1, 3., 9))]
-    phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 10))]
+    phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 11))]
     b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
-    tau, b_d, phi = [10000.], [1.], [.8]
+    epss = [0.001, 0.005, 0.01, 0.05]
+    tau, b_d, phi, eps = [10000.], b_ds, [.8], [0.05]
 
     if test:
-        PARAM_COMBS = list(it.product(b_d, phi, tau, [approximate], [test]))
+        PARAM_COMBS = list(it.product(b_d, phi, tau, eps, [approximate], [test]))
     else:
-        PARAM_COMBS = list(it.product(b_ds, phis, taus, [approximate], [test]))
+        PARAM_COMBS = list(it.product(b_ds, phis, taus, epss, [approximate], [test]))
 
-    INDEX = {0: "b_d", 1: "phi", 2: "tau"}
+    INDEX = {0: "b_d", 1: "phi", 2: "tau", 3: "eps"}
 
     """
     create names and dicts of callables for post processing
@@ -340,7 +355,6 @@ def run_experiment(argv):
 
     # cluster mode: computation and post processing
     if mode == 0:
-        print('calculating {}: {}'.format(approximate, sub_experiment))
         sys.stdout.flush()
         SAMPLE_SIZE = 100 if not (test or approximate in [0, 2, 3]) else 2
         handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
@@ -358,19 +372,15 @@ def run_experiment(argv):
                                      SAVE_PATH_RAW, SAVE_PATH_RES)
 
         if approximate == 0:
-            print('post processing representative model')
             handle.resave(EVA0, NAME0)
         elif approximate == 1:
-            print('post processing micro model')
             handle.resave(EVA0, NAME0)
             handle.resave(EVA1, NAME1)
             handle.resave(EVA2, NAME2)
         elif approximate == 2:
-            print('post processing mean macro approximation')
             handle.resave(EVA0, NAME0)
             handle.resave(EVA1, NAME1)
         elif approximate == 3:
-            print('post processing aggregate macro approximation')
             handle.resave(EVA0, NAME0)
             handle.resave(EVA2, NAME2)
 
