@@ -66,6 +66,7 @@ target/
 
 #output data
 PyDivestment/output_data/*
+PyDivestment/divestdata/*
 
 #pymofa and cyexploit
 cyexploit
@@ -86,3 +87,4 @@ PyDivestment/pymofa
 
 #pycharm project files
 .idea/
+
