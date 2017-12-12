@@ -27,6 +27,8 @@ import pickle as cp
 import sys
 import time
 from random import shuffle
+import logging
+import traceback
 
 import networkx as nx
 import numpy as np
@@ -201,18 +203,25 @@ def RUN_FUNC(b_d, phi, tau, eps, model, test, filename):
 
     # store data in case of successful run
     if exit_status in [0, 1]:
-        if model == 0:
-            res['unified_trajectory'] = m.get_unified_trajectory()
-        elif model == 1:
-            res['mean_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
-            res['aggregate_macro_trajectory'] = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
-            res['unified_trajectory'] = even_time_series_spacing(m.get_unified_trajectory(), 201, 0, t_max)
-        elif model == 2:
-            res['mean_macro_trajectory'] = m.get_mean_trajectory()
-            res['unified_trajectory'] = m.get_unified_trajectory()
-        elif model == 3:
-            res['aggregate_macro_trajectory'] = m.get_aggregate_trajectory()
-            res['unified_trajectory'] = m.get_unified_trajectory()
+        try:
+            if model == 0:
+                res['unified_trajectory'] = even_time_series_spacing(m.get_unified_trajectory(), t_max + 1, 0, t_max)
+            elif model == 1:
+                res['mean_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), t_max + 1, 0., t_max)
+                res['aggregate_macro_trajectory'] = even_time_series_spacing(m.get_aggregate_trajectory(), t_max + 1, 0., t_max)
+                res['unified_trajectory'] = even_time_series_spacing(m.get_unified_trajectory(), t_max + 1, 0, t_max)
+            elif model == 2:
+                res['mean_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), t_max + 1, 0., t_max)
+                res['unified_trajectory'] = even_time_series_spacing(m.get_unified_trajectory(), t_max + 1, 0, t_max)
+            elif model == 3:
+                res['aggregate_macro_trajectory'] = even_time_series_spacing(m.get_aggregate_trajectory(), t_max + 1, 0., t_max)
+                res['unified_trajectory'] = even_time_series_spacing(m.get_unified_trajectory(), t_max + 1, 0, t_max)
+        except Exception:
+            logging.error(traceback.format_exc())
+            print('encountered {} in processing the following parameters:'
+                  'b_d = {}, phi = {}, tau = {}, eps = {}, model = {}'
+                  .format(sys.exc_info()[0], b_d, phi, tau, eps, model))
+            return -1
 
     # save data
     with open(filename, 'wb') as dumpfile:
