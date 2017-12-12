@@ -403,10 +403,7 @@ class Integrate_Equations:
                 self.progress(i, len(t_values), 'calculating dependant variables')
             Yi = self.m_trajectory.loc[t]
             sbs = {var_symbol: Yi[var_name] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
-            try:
-                data[i, :] = [var.subs(sbs) for var in var_expressions]
-            except TypeError:
-                print(self.tau, self.phi, self.eps, self.b_d)
+            data[i, :] = [var.subs(sbs) for var in var_expressions]
 
         return pd.DataFrame(index=t_values, columns=columns, data=data)
 
