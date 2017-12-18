@@ -201,21 +201,26 @@ def RUN_FUNC(b_d, phi, tau, eps, model, test, filename):
 
     res["runtime"] = time.clock() - t_start
 
+
     # store data in case of successful run
+
     if exit_status in [0, 1]:
+        unified_trajectory = m.get_unified_trajectory()
+        if isinstance(unified_trajectory, pd.DataFrame):
+            res['unified_trajectory'] = even_time_series_spacing(
+                unified_trajectory, t_max + 1, 0, t_max)
+        else:
+            print('run {} failed due to unified trajectory calculation. Should rerun.'.format(filename))
+            return -1
+
         try:
-            if model == 0:
-                res['unified_trajectory'] = even_time_series_spacing(m.get_unified_trajectory(), t_max + 1, 0, t_max)
-            elif model == 1:
+            if model == 1:
                 res['mean_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), t_max + 1, 0., t_max)
                 res['aggregate_macro_trajectory'] = even_time_series_spacing(m.get_aggregate_trajectory(), t_max + 1, 0., t_max)
-                res['unified_trajectory'] = even_time_series_spacing(m.get_unified_trajectory(), t_max + 1, 0, t_max)
             elif model == 2:
                 res['mean_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), t_max + 1, 0., t_max)
-                res['unified_trajectory'] = even_time_series_spacing(m.get_unified_trajectory(), t_max + 1, 0, t_max)
             elif model == 3:
                 res['aggregate_macro_trajectory'] = even_time_series_spacing(m.get_aggregate_trajectory(), t_max + 1, 0., t_max)
-                res['unified_trajectory'] = even_time_series_spacing(m.get_unified_trajectory(), t_max + 1, 0, t_max)
         except Exception:
             print('encountered {} in processing the following parameters:'
                   'b_d = {}, phi = {}, tau = {}, eps = {}, model = {}'
@@ -224,6 +229,8 @@ def RUN_FUNC(b_d, phi, tau, eps, model, test, filename):
             logging.error(traceback.format_exc())
             print('question: am I executed?')
             return -1
+
+
 
     # save data
     with open(filename, 'wb') as dumpfile:
