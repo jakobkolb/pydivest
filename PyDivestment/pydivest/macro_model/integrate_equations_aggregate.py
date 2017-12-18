@@ -593,10 +593,24 @@ class Integrate_Equations:
             if self.test:
                 self.progress(i, len(t_values), 'calculating dependant variables')
             Yi = self.m_trajectory.loc[t]
-            sbs = {var_symbol: Yi[var_name] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
-            data[i, :] = [var.subs(sbs) for var in var_expressions]
+            try:
+                sbs = {var_symbol: Yi[var_name] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
+                data[i, :] = [var.subs(sbs) for var in var_expressions]
+            except TypeError:
+                print('Type Error at t={} in getting unified trajectory '
+                      'for phi={}, tau={}, p_d={}, eps={}'.format(t, self.phi, self.tau, self.b_d, self.eps),
+                      flush=True)
+                print('returning functional part of trajectory', flush=True)
+                return pd.DataFrame(index=t_values, columns=columns, data=data)
+            except ValueError:
+                print('Value Error at t={} in getting unified trajectory '
+                      'for phi={}, tau={}, p_d={}, eps={}'.format(t, self.phi, self.tau, self.b_d, self.eps),
+                      flush=True)
+                print('returning functional part of trajectory', flush=True)
+                return pd.DataFrame(index=t_values, columns=columns, data=data)
 
         return pd.DataFrame(index=t_values, columns=columns, data=data)
+
 
 if __name__ == '__main__':
     """
