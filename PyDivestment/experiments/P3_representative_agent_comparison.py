@@ -196,7 +196,7 @@ def RUN_FUNC(b_d, phi, tau, eps, model, test, filename):
     # run the model
     t_start = time.clock()
 
-    t_max = 500 if not test else 0
+    t_max = 500 if not test else 2
     exit_status = m.run(t_max=t_max, )
 
     res["runtime"] = time.clock() - t_start
@@ -217,10 +217,12 @@ def RUN_FUNC(b_d, phi, tau, eps, model, test, filename):
                 res['aggregate_macro_trajectory'] = even_time_series_spacing(m.get_aggregate_trajectory(), t_max + 1, 0., t_max)
                 res['unified_trajectory'] = even_time_series_spacing(m.get_unified_trajectory(), t_max + 1, 0, t_max)
         except Exception:
-            logging.error(traceback.format_exc())
             print('encountered {} in processing the following parameters:'
                   'b_d = {}, phi = {}, tau = {}, eps = {}, model = {}'
-                  .format(sys.exc_info()[0], b_d, phi, tau, eps, model))
+                  .format(sys.exc_info()[0], b_d, phi, tau, eps, model),
+                  flush=True)
+            logging.error(traceback.format_exc())
+            print('question: am I executed?')
             return -1
 
     # save data
@@ -317,7 +319,7 @@ def run_experiment(argv):
     phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 11))]
     b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
     epss = [0.001, 0.005, 0.01, 0.05]
-    tau, b_d, phi, eps = [10000.], b_ds, [.8], [0.05]
+    tau, b_d, phi, eps = [1000.], b_ds, [.8], [0.05]
 
     if test:
         PARAM_COMBS = list(it.product(b_d, phi, tau, eps, [approximate], [test]))
