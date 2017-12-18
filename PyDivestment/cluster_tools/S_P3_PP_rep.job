@@ -17,4 +17,10 @@ echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
 cd ../experiments
-srun -n $SLURM_NTASKS python P3_representative_agent_comparison.py 0 1 0
+
+if [ ${TEST} = "test" ]; then
+    echo 'testing'
+    srun -n $SLURM_NTASKS python P3_representative_agent_comparison.py 1 1 0
+else
+    srun -n $SLURM_NTASKS python P3_representative_agent_comparison.py 0 1 0
+fi
