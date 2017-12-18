@@ -583,7 +583,8 @@ class Integrate_Equations:
 
         Returns
         -------
-        Dataframe of unified per capita variables
+        Dataframe of unified per capita variables if calculation succeeds,
+        else return -1 for TypeError and -2 for ValueError
         """
 
         L = self.dependent_vars['L']
@@ -627,13 +628,13 @@ class Integrate_Equations:
                       'for phi={}, tau={}, p_d={}, eps={}'.format(t, self.phi, self.tau, self.b_d, self.eps),
                       flush=True)
                 print('returning functional part of trajectory', flush=True)
-                return pd.DataFrame(index=t_values, columns=columns, data=data)
+                return -1
             except ValueError:
                 print('Value Error at t={} in getting unified trajectory '
                       'for phi={}, tau={}, p_d={}, eps={}'.format(t, self.phi, self.tau, self.b_d, self.eps),
                       flush=True)
                 print('returning functional part of trajectory', flush=True)
-                return pd.DataFrame(index=t_values, columns=columns, data=data)
+                return -2
 
         return pd.DataFrame(index=t_values, columns=columns, data=data)
 
