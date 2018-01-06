@@ -19,6 +19,10 @@ we will use it to set the initial conditions for the other models as well.
 # such that I can produce heat map plots for the parameter dependency of the
 # quality of the approximation.
 
+# NOTE: Calculation of aggregate and mean trajectories leads to weird errors on the
+# cluster that I sure as hell don't want to debug. Remove them instead since I don't
+# use them in the paper anyways.
+
 
 import getpass
 import itertools as it
@@ -27,18 +31,15 @@ import pickle as cp
 import sys
 import time
 from random import shuffle
-import logging
-import traceback
 
 import networkx as nx
 import numpy as np
 import pandas as pd
-from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
-
-from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as rep
 from pydivest.macro_model.integrate_equations_aggregate import Integrate_Equations as agg
 from pydivest.macro_model.integrate_equations_mean import Integrate_Equations as mean
+from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as rep
 from pydivest.micro_model.divestmentcore import DivestmentCore as micro
+from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
 
 
 def RUN_FUNC(b_d, phi, tau, eps, model, test, filename):
@@ -212,25 +213,6 @@ def RUN_FUNC(b_d, phi, tau, eps, model, test, filename):
         else:
             print('run {} failed due to unified trajectory calculation. Should rerun.'.format(filename))
             return -1
-
-        try:
-            if model == 1:
-                res['mean_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), t_max + 1, 0., t_max)
-                res['aggregate_macro_trajectory'] = even_time_series_spacing(m.get_aggregate_trajectory(), t_max + 1, 0., t_max)
-            elif model == 2:
-                res['mean_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), t_max + 1, 0., t_max)
-            elif model == 3:
-                res['aggregate_macro_trajectory'] = even_time_series_spacing(m.get_aggregate_trajectory(), t_max + 1, 0., t_max)
-        except Exception:
-            print('encountered {} in processing the following parameters:'
-                  'b_d = {}, phi = {}, tau = {}, eps = {}, model = {}'
-                  .format(sys.exc_info()[0], b_d, phi, tau, eps, model),
-                  flush=True)
-            logging.error(traceback.format_exc())
-            print('question: am I executed?')
-            return -1
-
-
 
     # save data
     with open(filename, 'wb') as dumpfile:
