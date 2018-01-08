@@ -335,7 +335,6 @@ class DivestmentCore:
         #calculate initial variables:
 
         dt = [self.t, self.t + 0.0001]
-        print(dt)
         x0 = np.fromiter(chain.from_iterable([
             list(self.investment_clean),
             list(self.investment_dirty),
