@@ -201,6 +201,7 @@ def RUN_FUNC(b_d, phi, tau, eps, model, test, filename):
     exit_status = m.run(t_max=t_max, )
 
     res["runtime"] = time.clock() - t_start
+    print(res['runtime'], tau)
 
 
     # store data in case of successful run
@@ -304,10 +305,10 @@ def run_experiment(argv):
     """
     create parameter combinations and index
     """
-    taus = [10**x for x in list(np.linspace(-1, 3., 9))]
-    phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 11))]
-    b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
-    epss = [0.001, 0.005, 0.01, 0.05]
+    taus = [round(x, 5) for x in list(np.linspace(0., 5., 51))][1:]
+    phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 51))]
+    b_ds = [1.25]
+    epss = [0.01, 0.05]
     tau, b_d, phi, eps = [1000.], b_ds, [.8], [0.05]
 
     if test:
