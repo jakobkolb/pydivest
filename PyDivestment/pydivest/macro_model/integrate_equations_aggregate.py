@@ -482,12 +482,8 @@ class Integrate_Equations:
                             in zip(param_symbols, param_values)}
         self.rhs = rhs.subs(self.subs_params)
 
-        print(type(C), type(Kdd))
-        for r in self.rhs:
-            print(type(r))
-            rl = lambdify((C, G, x, y, z, Kcc, Kdc, Kcd, Kdd), r)
-            print(rl(1, 1, .5,.5,.5,1,1,1,1))
-            print(type(rl))
+        self.rhs_func = [lambdify((x, y, z, Kcc, Kdc, Kcd, Kdd, C, G), r_i)
+                         for r_i in self.rhs]
 
         self.independent_vars = {'K_c^c': Kcc, 'K_d^c': Kdc,
                                  'K_c^d': Kcd, 'K_d^d': Kdd,
@@ -529,9 +525,8 @@ class Integrate_Equations:
         # evaluate expression by substituting symbol values
         subs1 = {var: val for (var, val) in zip(self.var_symbols, values)}
         #rval = list(self.rhs.subs(subs1).evalf())
-        print(values)
+        
         rval = [rhs_i(*values) for rhs_i in self.rhs_func]
-        print(rval)
 
         if not self.R_depletion:
             rval[-1] = 0
