@@ -5,9 +5,12 @@ from __future__ import print_function
 import pickle as pkl
 import sys
 
+from inspect import signature
+
 import numpy as np
 import pandas as pd
 import sympy as sp
+from sympy import lambdify
 from scipy.integrate import odeint
 from sympy.abc import epsilon, tau, phi
 
@@ -479,6 +482,13 @@ class Integrate_Equations:
                             in zip(param_symbols, param_values)}
         self.rhs = rhs.subs(self.subs_params)
 
+        print(type(C), type(Kdd))
+        for r in self.rhs:
+            print(type(r))
+            rl = lambdify((C, G, x, y, z, Kcc, Kdc, Kcd, Kdd), r)
+            print(rl(1, 1, .5,.5,.5,1,1,1,1))
+            print(type(rl))
+
         self.independent_vars = {'K_c^c': Kcc, 'K_d^c': Kdc,
                                  'K_c^d': Kcd, 'K_d^d': Kdd,
                                  'x': x, 'y': y, 'z': z,
@@ -518,7 +528,10 @@ class Integrate_Equations:
 
         # evaluate expression by substituting symbol values
         subs1 = {var: val for (var, val) in zip(self.var_symbols, values)}
-        rval = list(self.rhs.subs(subs1).evalf())
+        #rval = list(self.rhs.subs(subs1).evalf())
+        print(values)
+        rval = [rhs_i(*values) for rhs_i in self.rhs_func]
+        print(rval)
 
         if not self.R_depletion:
             rval[-1] = 0
@@ -639,7 +652,7 @@ if __name__ == '__main__':
                         'possible_cue_orders': possible_cue_orders,
                         'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
                         'campaign': False, 'learning': True,
-                        'crs': True, 'imitation': 2}
+                        'crs': True, 'imitation': 2, 'test': True}
 
     # investment_decisions
     opinions = []
@@ -667,7 +680,7 @@ if __name__ == '__main__':
 
     model = Integrate_Equations(*init_conditions, **input_parameters)
 
-    model.run(t_max=20)
+    model.run(t_max=2)
 
     trj = model.get_unified_trajectory()
 
