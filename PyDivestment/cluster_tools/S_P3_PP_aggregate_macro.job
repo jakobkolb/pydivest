@@ -4,7 +4,7 @@
 #SBATCH --job-name=P3_agg_pp
 #SBATCH --output=%A_P3_agg_pp.out
 #SBATCH --error=%A_P3_agg_pp.err
-#SBATCH --nodes=8
+#SBATCH --nodes=32
 #SBATCH --tasks-per-node=16
 
 
