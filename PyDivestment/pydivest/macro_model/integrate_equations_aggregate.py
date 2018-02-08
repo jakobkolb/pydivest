@@ -478,13 +478,18 @@ class Integrate_Equations:
                         self.pi, self.kappa_c, self.kappa_d, self.xi, self.G_0, self.L,
                         self.eps, self.phi, self.tau, self.k]
 
+        # Substitute parameter values in rhs expressions
         self.subs_params = {symbol: value for symbol, value
                             in zip(param_symbols, param_values)}
         self.rhs = rhs.subs(self.subs_params)
 
+        # lambdify rhs expressions for faster evaluation in integration
+        if self.test:
+            print('lambdify rhs')
         self.rhs_func = [lambdify((x, y, z, Kcc, Kdc, Kcd, Kdd, C, G), r_i)
                          for r_i in self.rhs]
 
+        # create dicts of independent and dependent variables for output
         self.independent_vars = {'K_c^c': Kcc, 'K_d^c': Kdc,
                                  'K_c^d': Kcd, 'K_d^d': Kdd,
                                  'x': x, 'y': y, 'z': z,
@@ -524,8 +529,12 @@ class Integrate_Equations:
 
         # evaluate expression by substituting symbol values
         subs1 = {var: val for (var, val) in zip(self.var_symbols, values)}
-        #rval = list(self.rhs.subs(subs1).evalf())
-        
+
+        # use original sympy expressions for integration
+        # rval = list(self.rhs.subs(subs1).evalf())
+
+        # Use lambdified expressions for integration               print('upper time limit is smaller than system time', self.t)
+
         rval = [rhs_i(*values) for rhs_i in self.rhs_func]
 
         if not self.R_depletion:
@@ -675,24 +684,24 @@ if __name__ == '__main__':
 
     model = Integrate_Equations(*init_conditions, **input_parameters)
 
-    model.run(t_max=2)
+    model.run(t_max=500)
 
-    trj = model.get_unified_trajectory()
-
-    print(trj)
-
-    fig = plt.figure()
-
-    ax1 = fig.add_subplot(221)
-    trj[['k_c', 'k_d']].plot(ax=ax1)
-
-    ax2 = fig.add_subplot(222)
-    trj[['n_c']].plot(ax=ax2)
-
-    ax3 = fig.add_subplot(223)
-    trj[['c']].plot(ax=ax3)
-
-    ax4 = fig.add_subplot(224)
-    trj[['g']].plot(ax=ax4)
-
-    plt.show()
+    # trj = model.get_unified_trajectory()
+    #
+    # print(trj)
+    #
+    # fig = plt.figure()
+    #
+    # ax1 = fig.add_subplot(221)
+    # trj[['k_c', 'k_d']].plot(ax=ax1)
+    #
+    # ax2 = fig.add_subplot(222)
+    # trj[['n_c']].plot(ax=ax2)
+    #
+    # ax3 = fig.add_subplot(223)
+    # trj[['c']].plot(ax=ax3)
+    #
+    # ax4 = fig.add_subplot(224)
+    # trj[['g']].plot(ax=ax4)
+    #
+    # plt.show()
