@@ -437,41 +437,32 @@ class Integrate_Equations:
                                    0,
                                    0])
 
-        try:
-            rhs = np.load('agg_rhs.pkl')
-            if self.test:
-                print('loading rhs successful')
-        except:
-            # After eliminating N, we can write down the first jump moment:
+        # After eliminating N, we can write down the first jump moment:
 
-            rhsPBP = sp.Matrix(r * sp.Transpose(W))
-            rhsPBP = sp.Matrix(sp.simplify(rhsPBP))
+        rhsPBP = sp.Matrix(r * sp.Transpose(W))
+        rhsPBP = sp.Matrix(sp.simplify(rhsPBP))
 
-            rhsECO_switch = sp.simplify(rhsECO_switch.subs(subs1))
+        rhsECO_switch = sp.simplify(rhsECO_switch.subs(subs1))
 
-            rhsECO = rhsECO + rhsECO_switch
+        rhsECO = rhsECO + rhsECO_switch
 
-            # Next, we have to write the economic system in terms of X, Y, Z and
-            # then in terms of rescaled variables and check the dependency on the system size N:
-            # - 1) substitute primitive variables for dependent variables (subs1)
-            # - 2) substitute dependent variables for system variables (subs4)
+        # Next, we have to write the economic system in terms of X, Y, Z and
+        # then in terms of rescaled variables and check the dependency on the system size N:
+        # - 1) substitute primitive variables for dependent variables (subs1)
+        # - 2) substitute dependent variables for system variables (subs4)
 
-            rhsECO = rhsECO.subs(subs1).subs(subs2).subs(subs3).subs(subs4)
+        rhsECO = rhsECO.subs(subs1).subs(subs2).subs(subs3).subs(subs4)
 
-            # In the PBP rhs substitute economic variables for their proper
-            # expressions ($r_c$, $r_d$ ect.) and then again
-            # substitute lingering 'primitive' variables with rescaled ones
+        # In the PBP rhs substitute economic variables for their proper
+        # expressions ($r_c$, $r_d$ ect.) and then again
+        # substitute lingering 'primitive' variables with rescaled ones
 
-            rhsPBP = rhsPBP.subs(subs2).subs(subs3)
-            rhsPBP = rhsPBP.subs(subs1).subs(subs4).subs({N: 1})
+        rhsPBP = rhsPBP.subs(subs2).subs(subs3)
+        rhsPBP = rhsPBP.subs(subs1).subs(subs4).subs({N: 1})
 
-            # Combine dynamic equations of economic and social subsystem:
-            rhsECO = rhsECO.subs({N: 1})
-            rhs = sp.Matrix([rhsPBP, rhsECO]).subs(subs1)
-            with open('agg_rhs.pkl', 'wb') as outfile:
-                pkl.dump(rhs, outfile)
-                if self.test:
-                    print('saving rhs successful')
+        # Combine dynamic equations of economic and social subsystem:
+        rhsECO = rhsECO.subs({N: 1})
+        rhs = sp.Matrix([rhsPBP, rhsECO]).subs(subs1)
 
         # Define lists of symbols and values for parameters to substitute
         # in rhs expression
@@ -487,8 +478,8 @@ class Integrate_Equations:
         self.rhs = rhs.subs(self.subs_params)
 
         # lambdify rhs expressions for faster evaluation in integration
-        if self.test:
-            print('lambdify rhs')
+        if self.test: print('lambdify rhs')
+
         self.rhs_func = [lambdify((x, y, z, Kcc, Kdc, Kcd, Kdd, C, G), r_i)
                          for r_i in self.rhs]
 
