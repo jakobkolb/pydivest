@@ -340,6 +340,9 @@ class Integrate_Equations:
         p4 = 1. / tau * (1 - phi) * (1 - epsilon) * (Nd / N) * cd / (Nd * kd) * Pdc  # dirty investor imitates d -> c
         p5 = 1. / tau * (1 - phi) * epsilon * (1. / 2) * Nc / N  # c -> d
         p6 = 1. / tau * (1 - phi) * epsilon * (1. / 2) * Nd / N  # d -> c
+
+        # ToDo: Check, if these probs are correct. I suspect them to forget, that also in Noise events
+        # there might be no change. e.g. c-c -> c-c
         p7 = 1. / tau * phi * epsilon * Nc / N * (2 * cc) / (2 * cc + cd) * Nd / N  # c-c -> c-d
         p8 = 1. / tau * phi * epsilon * Nc / N * cd / (2 * cc + cd) * Nc / N  # c-d -> c-c
         p9 = 1. / tau * phi * epsilon * Nd / N * (2 * dd) / (2 * dd + cd) * Nc / N  # d-d -> d-c
