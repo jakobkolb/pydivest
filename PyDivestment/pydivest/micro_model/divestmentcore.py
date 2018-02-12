@@ -890,6 +890,7 @@ class DivestmentCore:
 
             # noise in imitation (exploration of strategies)
             rdn = np.random.uniform()
+            
             if rdn < self.eps * (1 - self.phi) and self.imitation:
                 old_opinion = self.opinions[candidate]
                 new_opinion = np.random.randint(
@@ -899,6 +900,7 @@ class DivestmentCore:
                     self.save_switch(candidate, old_opinion)
                 candidate = -1
                 break
+
             # noise in rewiring (sometimes they make new friends at random..)
             elif rdn > 1. - self.eps * self.phi and len(neighbors) > 0:
                 unconnected = np.zeros(self.n, dtype=int)
