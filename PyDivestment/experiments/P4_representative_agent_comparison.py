@@ -2,14 +2,26 @@
 This experiment is meant to create trajectories of macroscopic variables from
 1) the numeric micro model and
 2) the analytic macro model
+3) the representative agent model
 that can be compared to evaluate the validity and quality of the analytic
 approximation.
 The variable Parameters are b_d and phi.
+
+since the representative agent model ist the most reduced version, 
+the trajectories of the more complex models will have to be reduced to 
+its simplicity.
+
+Also, since the representative agent puts restraints on possible initial conditions, 
+we will use it to set the initial conditions for the other models as well.
 """
 
-# TODO: Find a measure that allows to copmare trajectories in one real number,
+# TODO: Find a measure that allows to compare trajectories in one real number,
 # such that I can produce heat map plots for the parameter dependency of the
 # quality of the approximation.
+
+# NOTE: Calculation of aggregate and mean trajectories leads to weird errors on the
+# cluster that I sure as hell don't want to debug. Remove them instead since I don't
+# use them in the paper anyways.
 
 
 import getpass
@@ -18,18 +30,19 @@ import os
 import pickle as cp
 import sys
 import time
+from random import shuffle
 
 import networkx as nx
 import numpy as np
 import pandas as pd
+from pydivest.macro_model.integrate_equations_aggregate import Integrate_Equations as agg
+from pydivest.macro_model.integrate_equations_mean import Integrate_Equations as mean
+from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as rep
+from pydivest.micro_model.divestmentcore import DivestmentCore as micro
 from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
 
-from pydivest.macro_model import integrate_equations_aggregate as aggregate_macro_model
-from pydivest.macro_model import integrate_equations_mean as mean_macro_model
-from pydivest.micro_model import divestmentcore as micro_model
 
-
-def RUN_FUNC(b_d, phi, approximate, test, filename):
+def RUN_FUNC(b_d, phi, tau, eps, model, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -43,64 +56,124 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
         the solow residual in the dirty sector
     phi : float \in [0,1]
         the rewiring probability for the network update
-    approximate: bool
-        if True: run macroscopic approximation
-        if False: run micro-model
+    tau : float > 0
+        mean waiting time between household updates
+    eps : float \in [0, 1]
+        fraction of imitation and rewiring events that are random
+    model: int
+        if 0: run abm
+        if 1: run mean approximation
+        if 2: run aggregate approximation
+        if 3: run representative agent approximation
     test: int \in [0,1]
-        wheter this is a test run, e.g.
+        whether this is a test run, e.g.
         can be executed with lower runtime
     filename: string
         filename for the results of the run
     """
 
-    # Parameters:
-
-    input_params = {'b_c': 1., 'i_phi': phi, 'i_tau': 1.,
-                    'eps': 0.05, 'b_d': b_d, 'e': 100.,
-                    'b_r0': 0.1 ** 2 * 100.,
-                    'possible_cue_orders': [[0], [1]],
-                    'xi': 1. / 8., 'beta': 0.06,
-                    'L': 100., 'C': 100., 'G_0': 800.,
-                    'campaign': False, 'learning': True,
-                    'interaction': 1}
+    # SET PARAMETERS:
 
     # investment_decisions:
-    nopinions = [100, 100]
+
+    possible_cue_orders = [[0], [1]]
+
+    # Parameters:
+
+    input_parameters = {'i_tau': tau, 'eps': eps, 'b_d': b_d,
+                        'b_c': 1., 'i_phi': phi, 'e': 10,
+                        'G_0': 10000, 'b_r0': 0.1 ** 2 * 100,
+                        'possible_cue_orders': possible_cue_orders,
+                        'C': 100, 'xi': 1. / 8., 'd_c': 0.06, 's': 0.23,
+                        'pi': 1./2., 'L': 100,
+                        'campaign': False, 'learning': True,
+                        'crs': True, 'test': test}
+
+    # investment_decisions
+    nopinions = [90, 10]
+    opinions = []
+    for i, n in enumerate(nopinions):
+        opinions.append(np.full(n, i, dtype='I'))
+    opinions = [item for sublist in opinions for item in sublist]
+    shuffle(opinions)
 
     # network:
     N = sum(nopinions)
-    k = 10
+    p = .2
 
-    # building initial conditions
-    p = float(k) / N
     while True:
         net = nx.erdos_renyi_graph(N, p)
         if len(list(net)) > 1:
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
-    investment_decisions = np.random.randint(low=0, high=2, size=N)
 
-    clean_investment = np.ones(N) * 50. / float(N)
-    dirty_investment = np.ones(N) * 50. / float(N)
+    # use equilibrium value for only dirty investment here.
+    Keq = (input_parameters['s'] * (1 - input_parameters['b_r0']
+                                    / input_parameters['e']) / input_parameters['d_c']
+           * input_parameters['b_d'] * input_parameters['L'] ** input_parameters['pi']) ** (1
+                                                                                            / (input_parameters['pi']))
 
-    init_conditions = (adjacency_matrix, investment_decisions,
+    # investment
+    clean_investment = 3.5 * np.ones(N)
+    dirty_investment = Keq / N * np.ones(N)
+
+    init_conditions = (adjacency_matrix, opinions,
+                       clean_investment, dirty_investment)
+
+    models = {}
+
+    m_rep = rep(*init_conditions, **input_parameters)
+    C, n = m_rep.find_initial_conditions()
+
+    input_parameters['C'] = C
+
+    # investment_decisions
+    nopinions = [int(round((1. - n) * 100.)), int(round(n * 100.))]
+    if nopinions[1] < 1:
+        nopinions[1] += 1
+        nopinions[0] -= 1
+    if nopinions[0] < 1:
+        nopinions[0] += 1
+        nopinions[1] -= 1
+    opinions = []
+    for i, n in enumerate(nopinions):
+        try:
+            opinions.append(np.full(n, i, dtype='I'))
+        except ValueError:
+            print(i, n)
+            exit(-1)
+    opinions = [item for sublist in opinions for item in sublist]
+    shuffle(opinions)
+
+    # network:
+    N = sum(nopinions)
+    p = .2
+
+    while True:
+        net = nx.erdos_renyi_graph(N, p)
+        if len(list(net)) > 1:
+            break
+    adjacency_matrix = nx.adj_matrix(net).toarray()
+
+    init_conditions = (adjacency_matrix, opinions,
                        clean_investment, dirty_investment)
 
     # initializing the model
-    if approximate == 1:
-        m = micro_model.DivestmentCore(*init_conditions, **input_params)
-    elif approximate == 2:
-        m = mean_macro_model.Integrate_Equations(*init_conditions, **input_params)
-    elif approximate == 3:
-        m = aggregate_macro_model.Integrate_Equations(*init_conditions, **input_params)
+    if model == 0:
+        m = m_rep
+    elif model == 1:
+        m = micro(*init_conditions, **input_parameters)
+    elif model == 2:
+        m = mean(*init_conditions, **input_parameters)
+    elif model == 3:
+        m = agg(*init_conditions, **input_parameters)
     else:
-        raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
+        raise ValueError('model must be in [1, 2, 3] but is {}'.format(model))
 
     # storing initial conditions and parameters
 
     res = {
-        "initials": pd.DataFrame({"Investment decisions": investment_decisions,
-                                  "Investment clean": m.investment_clean,
+        "initials": pd.DataFrame({"Investment clean": m.investment_clean,
                                   "Investment dirty": m.investment_dirty}),
         "parameters": pd.Series({"i_tau": m.tau,
                                  "i_phi": m.phi,
@@ -124,25 +197,23 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     # run the model
     t_start = time.clock()
 
-    t_max = 200 if not test else 2
-    m.R_depletion = False
-    m.run(t_max=t_max)
-
-    t_max += 400 if not test else 4
-    m.R_depletion = True
-    exit_status = m.run(t_max=t_max)
+    t_max = 500 if not test else 2
+    exit_status = m.run(t_max=t_max, )
 
     res["runtime"] = time.clock() - t_start
+    print(res['runtime'], tau)
+
 
     # store data in case of successful run
+
     if exit_status in [0, 1]:
-        if approximate == 1:
-            res['mean_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
-            res['aggregate_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
-        elif approximate == 2:
-            res['mean_macro_trajectory'] = m.get_mean_trajectory()
-        elif approximate == 3:
-            res['aggregate_macro_trajectory'] = m.get_aggregate_trajectory()
+        unified_trajectory = m.get_unified_trajectory()
+        if isinstance(unified_trajectory, pd.DataFrame):
+            res['unified_trajectory'] = even_time_series_spacing(
+                unified_trajectory, t_max + 1, 0, t_max)
+        else:
+            print('run {} failed due to unified trajectory calculation. Should rerun.'.format(filename))
+            return -1
 
     # save data
     with open(filename, 'wb') as dumpfile:
@@ -217,8 +288,8 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    sub_experiment = ['micro', 'mean', 'aggregate'][approximate - 1]
-    folder = 'P2'
+    sub_experiment = ['res', 'micro', 'mean', 'aggregate'][approximate]
+    folder = 'P4'
 
     # make sure, testing output goes to its own folder:
 
@@ -234,22 +305,32 @@ def run_experiment(argv):
     """
     create parameter combinations and index
     """
-
-    phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
-    b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
-    b_d, phi = [1.2], [.8]
+    taus = [round(x, 5) for x in list(np.linspace(0., 5., 51))][1:]
+    phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 51))]
+    b_ds = [1.25]
+    epss = [0.01, 0.05]
+    tau, b_d, phi, eps = [1000.], b_ds, [.8], [0.05]
 
     if test:
-        PARAM_COMBS = list(it.product(b_d, phi, [approximate], [test]))
+        PARAM_COMBS = list(it.product(b_d, phi, tau, eps, [approximate], [test]))
     else:
-        PARAM_COMBS = list(it.product(b_ds, phis, [approximate], [test]))
+        PARAM_COMBS = list(it.product(b_ds, phis, taus, epss, [approximate], [test]))
 
-    INDEX = {0: "b_d", 1: "phi"}
+    INDEX = {0: "b_d", 1: "phi", 2: "tau", 3: "eps"}
 
     """
     create names and dicts of callables for post processing
     """
 
+    NAME0 = 'unified_trajectory'
+    EVA0 = {"mean_trajectory":
+                lambda fnames: pd.concat([np.load(f)['unified_trajectory']
+                                          for f in fnames]).groupby(
+                    level=0).mean(),
+            "sem_trajectory":
+                lambda fnames: pd.concat([np.load(f)['unified_trajectory']
+                                          for f in fnames]).groupby(level=0).std(),
+            }
     NAME1 = 'mean_trajectory'
     EVA1 = {"mean_trajectory":
             lambda fnames: pd.concat([np.load(f)["mean_macro_trajectory"]
@@ -275,9 +356,8 @@ def run_experiment(argv):
 
     # cluster mode: computation and post processing
     if mode == 0:
-        print('calculating {}: {}'.format(approximate, sub_experiment))
         sys.stdout.flush()
-        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 20
+        SAMPLE_SIZE = 100 if not (test or approximate in [0, 2, 3]) else 2
         handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
                                      SAVE_PATH_RAW, SAVE_PATH_RES)
         handle.compute(RUN_FUNC)
@@ -287,20 +367,22 @@ def run_experiment(argv):
     # Post processing
     if mode == 1:
         sys.stdout.flush()
-        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 20
+        SAMPLE_SIZE = 100 if not (test or approximate in [0, 2, 3]) else 2
 
         handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
                                      SAVE_PATH_RAW, SAVE_PATH_RES)
 
-        if approximate == 1:
-            print('post processing micro model')
+        if approximate == 0:
+            handle.resave(EVA0, NAME0)
+        elif approximate == 1:
+            handle.resave(EVA0, NAME0)
             handle.resave(EVA1, NAME1)
             handle.resave(EVA2, NAME2)
         elif approximate == 2:
-            print('post processing mean macro approximation')
+            handle.resave(EVA0, NAME0)
             handle.resave(EVA1, NAME1)
         elif approximate == 3:
-            print('post processing aggregate macro approximation')
+            handle.resave(EVA0, NAME0)
             handle.resave(EVA2, NAME2)
 
         return 1

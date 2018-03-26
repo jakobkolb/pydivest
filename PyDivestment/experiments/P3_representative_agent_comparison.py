@@ -86,6 +86,7 @@ def RUN_FUNC(b_d, phi, tau, eps, model, test, filename):
                         'possible_cue_orders': possible_cue_orders,
                         'C': 100, 'xi': 1. / 8., 'd_c': 0.06, 's': 0.23,
                         'pi': 1./2., 'L': 100,
+                        'R_depletion':False,
                         'campaign': False, 'learning': True,
                         'crs': True, 'test': test}
 
@@ -197,8 +198,15 @@ def RUN_FUNC(b_d, phi, tau, eps, model, test, filename):
     # run the model
     t_start = time.clock()
 
-    t_max = 500 if not test else 2
-    exit_status = m.run(t_max=t_max, )
+    t_max = 200 if not test else 2
+    exit_status = m.run(t_max=t_max)
+
+    m.R_depletion = True
+    if model == 0:
+        m.find_initial_conditions()
+    t_max = 700 if not test else 7
+    exit_status = m.run(t_max=t_max)
+
 
     res["runtime"] = time.clock() - t_start
     print(res['runtime'], tau)
@@ -280,7 +288,7 @@ def run_experiment(argv):
     set input/output paths
     """
 
-    respath = os.path.dirname(os.path.realpath(__file__)) + "/../divestdata"
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/../output_data"
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":

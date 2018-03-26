@@ -11,6 +11,7 @@ import sys
 import numpy as np
 import pandas as pd
 import sympy as sp
+from sympy import lambdify
 try:
     from assimulo.problem import Implicit_Problem
     from assimulo.solvers import IDA
@@ -30,15 +31,17 @@ class Integrate_Equations:
                  R_depletion=True,
                  interaction=2, crs=True, test=False, **kwargs):
 
+        # set debug flag
         self.test = test
 
+        # report unnecessary keyword arguments
         if len(kwargs.keys()) > 0 and self.test:
             print('got superfluous keyword arguments')
             print(kwargs.keys())
 
         self.t_max = 0
 
-        # Social parametersprint
+        # Social parameters
 
         # interaction either with 1) tanh(Wi-Wj) or 2) (Wi-Wj)/(Wi+Wj)
         self.interaction = interaction
@@ -77,15 +80,13 @@ class Integrate_Equations:
         # labor elasticity (equal in both sectors)
         self.pi = float(pi)
         # clean and dirty capital elasticity
+        # depending on requirement of constant returns to scale
         if crs:
             self.kappa_c = 1. - self.pi - self.xi
             self.kappa_d = 1. - self.pi
         else:
             self.kappa_c = float(kappa_c)
             self.kappa_d = float(kappa_d)
-        if self.test:
-            print('pi = {}, xi = {}, kappa_c = {}, kappa_d = {}'
-                  .format(self.pi, self.xi, self.kappa_c, self.kappa_d), flush=True)
         # fossil->energy->output conversion efficiency (Leontief)
         self.e = float(e)
         # total labor
@@ -103,6 +104,9 @@ class Integrate_Equations:
         self.G = float(G_0)
         # toggle resource depletion
         self.R_depletion = R_depletion
+
+        # Dummy initial knowledge
+        self.C_0 = 1.
 
         # system time
         self.t = 0
@@ -164,11 +168,12 @@ class Integrate_Equations:
                             L: self.L}
 
         # **Treatment the equations describing economic production and capital accumulation**
-        #
+
         # Substitute solutions to algebraic constraints of economic system
         # (market clearing for labor and expressions for capital rent and resource flow)
 
-        # These are double checked
+        # Solution to algebraic constraints from capital and laber market clearing as well
+        # as efficient resource use in the dirty sector.
         subs2 = {w: pi * L**(pi-1.) * (Xc + Xd*XR)**(1.-pi),
                  rc: kappac/Kc*Xc*L**pi*(Xc + Xd*XR)**(-pi),
                  rd: kappad/Kd*Xd*XR*L**pi*(Xc + Xd*XR)**(-pi),
@@ -176,11 +181,12 @@ class Integrate_Equations:
                  Lc: L*Xc/(Xc + Xd*XR),
                  Ld: L*Xd*XR/(Xc + Xd*XR)}
 
-        # These are double checked
+        # Substitutions to the above expressions
         subs3 = {Xc: (bc*Kc**kappac * C**xi)**(1./(1.-pi)),
                  Xd: (bd*Kd**kappad)**(1./(1.-pi)),
                  XR: (1.-bR/e*(G0/G)**mu)**(1./(1.-pi))}
-        # Those too
+
+        # derivatives of the above substitutions
         subs4 = {dXc: (1./(1.-pi))*(bc*Kc**kappac * C**xi)**(pi/(1.-pi))*bc*(kappac*Kc**(kappac-1)*dKc*C**xi
                                                                              + Kc**kappac*xi*C**(xi-1)*dC),
                  dXd: (1./(1.-pi))*(bd*Kd**kappad)**(pi/(1.-pi))*bd*kappad*Kd**(kappad-1)*dKd,
@@ -194,6 +200,12 @@ class Integrate_Equations:
                  dC: bc*Lc**pi*Kc**kappac * C**xi - delta*C,
                  dG: -R}
 
+        # For the case of infinite fossil resources, we copy the above dynamic equations and
+        # set the resource depletion term to zero.
+        subs5_g_const = subs5.copy()
+        subs5_g_const[dG] = 0
+
+        # To simplify the output functions, we make a list of dependent and independent variables
         self.independent_vars = {'Kc': Kc, 'Kd': Kd, 'G': G, 'C': C, 'n': n}
         self.dependent_vars = {'w': w, 'rc': rc, 'rd': rd, 'R': R, 'Lc': Lc, 'Ld': Ld, 'L': L, 'rs': rs}
         for key in self.dependent_vars.keys():
@@ -204,12 +216,21 @@ class Integrate_Equations:
         # it is sufficient to keep the condition for the time derivatives of the returns.
         # This defines implicit condition for n, the fraction of savings invested in the clean sector.
 
+        # difference of capital return rates (is required to be zero).
+        # Unfortunately, this expression turns out to be independent of n,
+        # such that it is useless as an algebraic constraint.
+        # Consequently, we use it to calculate the initial value of C
+        # and use its time differential to fix the value of n.
         raw_rdiff = (rc - rd).subs(subs2)
         rdiff = raw_rdiff.subs(subs3)
+
+        # difference of capital return rates differentiated with respect to t which depends on n.
         raw_drdiff = L**pi*(-pi)*(Xc + Xd*XR)**(-pi-1)*(dXc + dXd*XR + Xd*dXR)*(kappac/Kc*Xc - kappad/Kd*Xd*XR) + \
             L**pi*(Xc + Xd*XR)**(-pi)*(kappac*(dXc*Kc - Xc*dKc)/(Kc**2.)
                                        - kappad*((dXd*XR + Xd*dXR)*Kd - Xd*XR*dKd)/(Kd**2.))
-        drdiff_g_const = raw_drdiff.subs(subs4).subs(subs5).subs(subs2).subs(subs3)
+
+        # we substitute with different expressions depending on whether the fossil resource is finite or not.
+        drdiff_g_const = raw_drdiff.subs(subs4).subs(subs5_g_const).subs(subs2).subs(subs3)
         drdiff = raw_drdiff.subs(subs4).subs(subs5).subs(subs2).subs(subs3)
 
         # List of dynamic variables and the right hand side of their dynamic equations as well as a list of
@@ -220,13 +241,14 @@ class Integrate_Equations:
         self.m_trajectory = pd.DataFrame(columns=self.var_names)
         self.Y0 = np.zeros(len(self.var_symbols))
         self.Yd0 = np.zeros(len(self.var_symbols))
-        self.t0 = 0
         self.sw0 = [True, False, False]
 
+        # we have to define different versions of the rhs for the
+        # boundaries (where n=1) and below as well as for finite and infinite fossil resources:
         rhs_1 = sp.Matrix([dKc, dKd, dG, dC, drdiff]).subs(subs5).subs(subs2).subs(subs3)
         rhs_2 = sp.Matrix([dKc, dKd, dG, dC, n - 1]).subs(subs5).subs(subs2).subs(subs3)
-        rhs_3 = sp.Matrix([dKc, dKd, 0., dC, drdiff_g_const]).subs(subs5).subs(subs2).subs(subs3)
-        rhs_4 = sp.Matrix([dKc, dKd, 0., dC, n - 1]).subs(subs5).subs(subs2).subs(subs3)
+        rhs_3 = sp.Matrix([dKc, dKd, 0., dC, drdiff_g_const]).subs(subs5_g_const).subs(subs2).subs(subs3)
+        rhs_4 = sp.Matrix([dKc, dKd, 0., dC, n - 1]).subs(subs5_g_const).subs(subs2).subs(subs3)
 
         self.eq_implicit = [False, False, False, False, True]
 
@@ -268,26 +290,26 @@ class Integrate_Equations:
         Y0 = [self.Kc_0, self.Kd_0, self.G_0]
         sym = self.var_symbols[:3]
         subs_ini = {symbol: value for symbol, value in zip(sym, Y0)}
-
+        print(subs_ini)
         C = self.var_symbols[3]
-        F_ini_1 = sp.simplify(self.rdiff.subs(subs_ini))
-        fun1 = lambda x: F_ini_1.subs({C: x}).evalf()
-        r1 = root(fun1, 1.)
+        fun1 = lambdify((C), self.rdiff.subs(subs_ini))
+        print('find C0')
+        r1 = root(fun1, self.C_0)
         subs_ini[C] = r1.x[0]
 
         n = self.var_symbols[4]
         if self.R_depletion:
-            F_ini_2 = sp.simplify(self.drdiff.subs(subs_ini))
+            fun2 = lambdify((n), self.drdiff.subs(subs_ini))
         else:
-            F_ini_2 = sp.simplify(self.drdiff_g_const.subs(subs_ini))
-        fun2 = lambda x: F_ini_2.subs({n: x}).evalf()
+            fun2 = lambdify((n), self.drdiff_g_const.subs(subs_ini))
+        print('find n')
         r2 = root(fun2, .5)
         subs_ini[n] = r2.x[0]
 
         self.Y0 = np.array([subs_ini[var] for var in self.var_symbols])
         self.Yd0 = np.array(list(self.rhs_1.subs(subs_ini)))
-        self.t0 = 0
         self.sw0 = [True, False, False]
+
         if self.test:
             print(subs_ini)
         return r1.x[0], r2.x[0]
@@ -314,6 +336,9 @@ class Integrate_Equations:
             for i in [0, 1, 2, 3]:
                 rval[i] = Yd[i] - sp.simplify(rval[i])
             rval = np.array([float(x) for x in rval.evalf()])
+
+            # ToDo: Make sure, g is not exploited beyond the economic share.
+            print(self.dependent_vars['R'].subs(sbs))
 
             if self.test:
                 self.progress(t, self.t_max, 'representative agent running')
@@ -343,18 +368,25 @@ class Integrate_Equations:
                 solver.sw[2] = True
             pass
 
+        print('starting at t={}'.format(self.t))
+
         mod = Implicit_Problem(prep_rhs,
                                self.Y0,
                                self.Yd0,
-                               self.t0,
+                               self.t,
                                sw0=self.sw0)
         mod.algvar = self.eq_implicit
         mod.state_events = state_events
         mod.handle_event = handle_event
         sim = IDA(mod)
-        sim.rtol = 1.e-8        # Sets the relative tolerance
-        sim.atol = 1.e-6        # Sets the absolute tolerance
+        sim.rtol = 1.e-10        # Sets the relative tolerance
+        sim.atol = 1.e-8        # Sets the absolute tolerance
         t, Y, Yd = sim.simulate(t_max)
+
+        self.t = t[-1]
+        self.Y0 = Y[-1]
+        self.Yd0 = Yd[-1]
+        [self.Kc_0, self.Kd_0, self.G_0, self.C_0] = Y[-1][:4]
 
         df = pd.DataFrame(Y, index=t, columns=self.var_names)
         self.m_trajectory = pd.concat([self.m_trajectory, df]).groupby(level=0).mean()
@@ -425,12 +457,12 @@ if __name__ == "__main__":
     # Parameters:
 
     input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
-                        'b_c': 0.4, 'i_phi': 0.8, 'e': 100,
-                        'G_0': 3, 'b_r0': 0.1 ** 2 * 100,
+                        'b_c': 1., 'i_phi': 0.8, 'e': 100,
+                        'G_0': 100, 'b_r0': 0.1 ** 2 * 100,
                         'possible_cue_orders': possible_cue_orders,
                         'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
                         'campaign': False, 'learning': True,
-                        'crs': True}
+                        'crs': True, 'test': True}
 
     # investment_decisions
     opinions = []
@@ -439,7 +471,7 @@ if __name__ == "__main__":
     opinions = [item for sublist in opinions for item in sublist]
     shuffle(opinions)
 
-    # network:
+    # network:.copy()
     N = sum(nopinions)
     p = .2
 
@@ -457,26 +489,33 @@ if __name__ == "__main__":
                        clean_investment, dirty_investment)
 
     m = Integrate_Equations(*init_conditions, **input_parameters)
+
+    m.R_depletion = False
     m.find_initial_conditions()
+    m.run(t_max=50)
+
     m.R_depletion = True
-    t, Y = m.run(t_max=3)
+    m.find_initial_conditions()
+    m.run(t_max=200)
+
     # Plot the results
 
     trj = m.get_unified_trajectory()
 
     fig = plt.figure()
-    ax1 = fig.add_subplot(141)
+    ax1 = fig.add_subplot(221)
     trj[['n_c']].plot(ax=ax1)
 
-    ax2 = fig.add_subplot(142)
+    ax2 = fig.add_subplot(222)
     trj[['k_c', 'k_d']].plot(ax=ax2)
     ax2b = ax2.twinx()
-    trj[['c']].plot(ax=ax2b)
+    trj[['c']].plot(ax=ax2b, color='g')
 
-    ax3 = fig.add_subplot(143)
+    ax3 = fig.add_subplot(223)
     trj[['r_c', 'r_d']].plot(ax=ax3)
 
-    ax4 = fig.add_subplot(144)
+    ax4 = fig.add_subplot(224)
     trj[['g']].plot(ax=ax4)
 
+    fig.tight_layout()
     plt.show()

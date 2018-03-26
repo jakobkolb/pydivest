@@ -301,7 +301,7 @@ def run_experiment(argv):
     conditions for transition in run function.
     """
 
-    respath = os.path.dirname(os.path.realpath(__file__)) + "/divestdata"
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/output_data"
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":

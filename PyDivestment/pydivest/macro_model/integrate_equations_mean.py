@@ -85,6 +85,8 @@ class Integrate_Equations:
         """
 
         self.test = test
+        if test:
+            print('mean macro approximation')
 
         if not crs:
             print('this approximation requires constant returns to scale.'

@@ -178,16 +178,16 @@ folder = 'X4Noise' if noise else 'X4NoNoise'
 
 # check if cluster or local
 if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW = "/L/tmp/kolb/Divest_Experiments/divestdata/" \
+    SAVE_PATH_RAW = "/L/tmp/kolb/Divest_Experiments/output_data/" \
                     + folder + "/raw_data" + '_' + sub_experiment + '/'
-    SAVE_PATH_RES = "/home/kolb/Divest_Experiments/divestdata/" \
+    SAVE_PATH_RES = "/home/kolb/Divest_Experiments/output_data/" \
                     + folder + "/results" + '_' + sub_experiment + '/'
 elif getpass.getuser() == "jakob":
     SAVE_PATH_RAW = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/" \
+        "/home/jakob/PhD/Project_Divestment/Implementation/output_data/" \
         + folder + "/raw_data" + '_' + sub_experiment + '/'
     SAVE_PATH_RES = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/" \
+        "/home/jakob/PhD/Project_Divestment/Implementation/output_data/" \
         + folder + "/results" + '_' + sub_experiment + '/'
 
 taus = [round(x, 5) for x in list(np.linspace(0.0, 1.0, 11))[1:-1]]

@@ -229,11 +229,11 @@ folder = 'X3Noise' if noise else 'X3NoNoise'
 
 #check if cluster or local
 if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW = '/p/tmp/kolb/Divest_Experiments/divestdata/{}/raw_data_{}/'.format(folder, input_int)
-    SAVE_PATH_RES = '/home/kolb/Divest_Experiments/divestdata/{}/raw_data_{}/'.format(folder, input_int)
+    SAVE_PATH_RAW = '/p/tmp/kolb/Divest_Experiments/output_data/{}/raw_data_{}/'.format(folder, input_int)
+    SAVE_PATH_RES = '/home/kolb/Divest_Experiments/output_data/{}/raw_data_{}/'.format(folder, input_int)
 elif getpass.getuser() == "jakob":
-    SAVE_PATH_RAW = '/home/jakob/PhD/Project_Divestment/Implementation/divestdata/{}/raw_data_{}/'.format(folder, input_int)
-    SAVE_PATH_RES = 'home/jakob/PhD/Project_Divestment/Implementation/divestdata/{}/raw_data_{}/'.format(folder, input_int)
+    SAVE_PATH_RAW = '/home/jakob/PhD/Project_Divestment/Implementation/output_data/{}/raw_data_{}/'.format(folder, input_int)
+    SAVE_PATH_RES = 'home/jakob/PhD/Project_Divestment/Implementation/output_data/{}/raw_data_{}/'.format(folder, input_int)
 
 t_as = [round(x,5) for x in list(10**np.linspace(-2.0, 2.0, 11))]
 phis = [round(x,5) for x in list(np.linspace( 0.0, 1.0, 11))[1:-1]]

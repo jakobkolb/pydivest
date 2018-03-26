@@ -90,6 +90,9 @@ class DivestmentCore:
                     length of running window average that chartes use to predict trends
                 """
 
+        if test:
+            print('micro model')
+
         # Modes:
         #  1: only economy,
         #  2: economy + opinion formation + decision making,
@@ -1161,7 +1164,7 @@ class DivestmentCore:
         pair based proxy.
         :return: None
         """
-        element = ['time', 'x', 'y', 'z', 'mucc', 'mudc', 'mucd', 'mudd', 'c',
+        element = ['time', 'x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c',
                    'g', 'w', 'r_c', 'r_d', 'Wc', 'Wd']
         self.m_trajectory.append(element)
 
@@ -1371,8 +1374,8 @@ class DivestmentCore:
         df['r_c'] = edf['r_c']
         df['r_d'] = edf['r_d']
         df['w'] = edf['wage']
-        df['W_c'] = mdf['mucc'] * edf['r_c'] + mdf['mudc'] * edf['r_d']
-        df['W_d'] = mdf['mucd'] * edf['r_c'] + mdf['mudd'] * edf['r_d']
+        df['W_c'] = mdf['mu_c^c'] * edf['r_c'] + mdf['mu_d^c'] * edf['r_d']
+        df['W_d'] = mdf['mu_c^d'] * edf['r_c'] + mdf['mu_d^d'] * edf['r_d']
 
         return df
 
