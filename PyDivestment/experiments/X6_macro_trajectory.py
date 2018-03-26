@@ -4,7 +4,7 @@ This experiment is meant to create trajectories of macroscopic variables from
 2) the analytic macro model
 that can be compared to evaluate the validity and quality of the analytic
 approximation.
-The variable Parameters are b_d and phi.
+The variable Parameters are b_c and phi.
 """
 
 import getpass
@@ -58,7 +58,7 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
-                    'test': test}
+                    'test': test, 'interaction': 0}
 
     # investment_decisions:
     nopinions = [100, 100]
@@ -241,7 +241,7 @@ def run_experiment(argv):
     create names and dicts of callables for post processing
     """
 
-    NAME = 'b_c_scan_' + sub_experiment + '_trajectory'
+    NAME = 'b_d_scan_' + sub_experiment + '_trajectory'
 
     NAME1 = NAME + '_trajectory'
     EVA1 = {"mean_trajectory":
