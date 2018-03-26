@@ -88,6 +88,9 @@ class Integrate_Equations:
 
         self.test = test
 
+        if test:
+            print('aggregate macro approximation')
+
         if len(kwargs.keys()) > 0 and self.test:
             print('got superfluous keyword arguments')
             print(kwargs.keys())

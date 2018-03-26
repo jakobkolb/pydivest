@@ -211,7 +211,7 @@ def run_experiment(argv):
     """
     set input/output paths
     """
-    respath = os.path.dirname(os.path.realpath(__file__)) + "/divestdata"
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/output_data"
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":

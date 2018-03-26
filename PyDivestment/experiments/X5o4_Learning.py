@@ -320,17 +320,17 @@ set path variables according to local of cluster environment
 """
 if getpass.getuser() == "kolb":
     SAVE_PATH_RAW = \
-        "/L/tmp/kolb/Divest_Experiments/divestdata/" \
+        "/L/tmp/kolb/Divest_Experiments/output_data/" \
         + folder + "/raw_data"
     SAVE_PATH_RES =\
-        "/home/kolb/Divest_Experiments/divestdata/"\
+        "/home/kolb/Divest_Experiments/output_data/"\
         + folder + "/results"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_RAW = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
+        "/home/jakob/PhD/Project_Divestment/Implementation/output_data/"\
         + folder + "/raw_data"
     SAVE_PATH_RES = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
+        "/home/jakob/PhD/Project_Divestment/Implementation/output_data/"\
         + folder + "/results"
 else:
     SAVE_PATH_RAW = \
@@ -343,11 +343,11 @@ set path variable for initial conditions for transition runs
 """
 if getpass.getuser() == "kolb":
     SAVE_PATH_INIT = \
-        "/L/tmp/kolb/Divest_Experiments/divestdata/" \
+        "/L/tmp/kolb/Divest_Experiments/output_data/" \
         + FOLDER_EQUI + "/raw_data"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_INIT = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
+        "/home/jakob/PhD/Project_Divestment/Implementation/output_data/"\
         + FOLDER_EQUI + "/raw_data"
 else:
     SAVE_PATH_INIT = \

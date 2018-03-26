@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 path = '/home/jakob/ownCloud/Documents/PhD/Project_Divestment/Implementation/' \
-       'divestdata/analytic_results/analytic_trajectory.pkl'
+       'output_data/analytic_results/analytic_trajectory.pkl'
 
 data = np.load(path)
 trj = data['e_trajectory']

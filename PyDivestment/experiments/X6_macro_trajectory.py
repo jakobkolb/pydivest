@@ -57,7 +57,8 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
                     'possible_cue_orders': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
-                    'campaign': False, 'learning': True}
+                    'campaign': False, 'learning': True,
+                    'test': test}
 
     # investment_decisions:
     nopinions = [100, 100]
@@ -120,7 +121,7 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     m.R_depletion = False
     m.run(t_max=t_max)
 
-    t_max += 400 if not test else 1
+    t_max += 600 if not test else 1
     m.R_depletion = True
     exit_status = m.run(t_max=t_max)
 
@@ -199,7 +200,7 @@ def run_experiment(argv):
     set input/output paths
     """
 
-    respath = os.path.dirname(os.path.realpath(__file__)) + "/divestdata"
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/../output_data"
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":
@@ -227,7 +228,7 @@ def run_experiment(argv):
 
     phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
     b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
-    b_d, phi, approximate, exact = [1.2], [.8], [True], [False]
+    b_d, phi = [1.2], [.8]
 
     if test:
         PARAM_COMBS = list(it.product(b_d, phi, [bool(approximate)], [test]))
@@ -239,8 +240,6 @@ def run_experiment(argv):
     """
     create names and dicts of callables for post processing
     """
-    def foo(fnames):
-        return 0
 
     NAME = 'b_c_scan_' + sub_experiment + '_trajectory'
 
@@ -251,10 +250,9 @@ def run_experiment(argv):
                     level=0).mean(),
             "sem_trajectory":
             lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
-                                      for f in fnames]).groupby(level=0).std(),
-            "foo_results":
-            foo(fnames)
+                                      for f in fnames]).groupby(level=0).std()
             }
+
     NAME2 = NAME + '_switchlist'
     CF2 = {"switching_capital":
            lambda fnames: pd.concat([np.load(f)["switchlist"]
@@ -274,8 +272,8 @@ def run_experiment(argv):
                                      SAVE_PATH_RAW, SAVE_PATH_RES)
         handle.compute(RUN_FUNC)
         handle.resave(EVA1, NAME1)
-        if approximate == 0:
-            handle.collect(CF2, NAME2)
+        # if approximate == 0:
+        #     handle.collect(CF2, NAME2)
 
         return 1
 

@@ -227,17 +227,17 @@ folder = 'X5.1_Cue_Orders'
 # check if cluster or local
 if getpass.getuser() == "kolb":
     SAVE_PATH_RAW = \
-        "/L/tmp/kolb/Divest_Experiments/divestdata/" \
+        "/L/tmp/kolb/Divest_Experiments/output_data/" \
         + folder + "/raw_data"
     SAVE_PATH_RES =\
-        "/home/kolb/Divest_Experiments/divestdata/"\
+        "/home/kolb/Divest_Experiments/output_data/"\
         + folder + "/results"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_RAW = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
+        "/home/jakob/PhD/Project_Divestment/Implementation/output_data/"\
         + folder + "/raw_data"
     SAVE_PATH_RES = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
+        "/home/jakob/PhD/Project_Divestment/Implementation/output_data/"\
         + folder + "/results"
 
 """
