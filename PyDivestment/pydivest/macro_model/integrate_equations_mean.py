@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import sympy as sp
 from scipy.integrate import odeint
+from sympy import lambdify
 from sympy.abc import epsilon, tau, phi
 
 
@@ -283,12 +284,13 @@ class Integrate_Equations:
         mucc, mucd, mudc, mudd = sp.symbols('mu_c^c mu_c^d mu_d^c mu_d^d', positive=True, real=True)
         # savings rate, capital depreciaten rate, and elasticities of labor, capital and knowledge
         rs, delta, pi, kappac, kappad, xi = sp.symbols('s delta pi kappa_c kappa_d xi', positive=True, real=True)
-        # solow residuals of clean and dirty sector, prefactor for resource cost, energy efficiency, initial resource stock
+        # solow residuals of clean and dirty sector, prefactor for resource cost,
+        # energy efficiency, initial resource stock
         bc, bd, bR, e, G0 = sp.symbols('b_c b_d b_R e G_0', positive=True, real=True)
         # substitutions for resolution on constraints from market clearing.
         Xc, Xd, XR = sp.symbols('X_c X_d X_R', positive=True, real=True)
 
-        # Defination of relations between variables and calculation of
+        # Definition of relations between variables and calculation of
         # substitution of *primitive variables* by *state variables* of the system
 
         eqs = [
@@ -451,76 +453,102 @@ class Integrate_Equations:
                                    0,
                                    0])
 
-        try:
-            rhs = np.load('mean_rhs.pkl')
-            if self.test:
-                print('loading rhs successful')
-        except:
-            # After eliminating N, we can write down the first jump moment:
-            if self.test:
-                print('simplify PBP rhs')
-            rhsPBP = sp.Matrix(r * sp.Transpose(W))
-            rhsPBP = sp.Matrix(sp.simplify(rhsPBP))
-            if self.test:
-                print('simplifying eco switch terms')
-            rhsECO_switch = sp.simplify(rhsECO_switch.subs(subs1))
+        # After eliminating N, we can write down the first jump moment:
+        if self.test:
+            print('simplify PBP rhs')
+        rhsPBP = sp.Matrix(r * sp.Transpose(W))
+        rhsPBP = sp.Matrix(sp.simplify(rhsPBP))
+        if self.test:
+            print('simplifying eco switch terms')
+        rhsECO_switch = sp.simplify(rhsECO_switch.subs(subs1))
 
-            rhsECO = rhsECO + rhsECO_switch
+        rhsECO = rhsECO + rhsECO_switch
 
-            # Next, we have to write the economic system in terms of X, Y, Z and
-            # then in terms of rescaled variables and check the dependency on the system size N:
-            # - 1) substitute primitive variables for dependent variables (subs1)
-            # - 2) substitute dependent variables for system variables (subs4)
+        # Next, we have to write the economic system in terms of X, Y, Z and
+        # then in terms of rescaled variables and check the dependency on the system size N:
+        # - 1) substitute primitive variables for dependent variables (subs1)
+        # - 2) substitute dependent variables for system variables (subs4)
 
-            rhsECO = rhsECO.subs(subs1).subs(subs2).subs(subs3).subs(subs4).subs(subs5)
+        rhsECO = rhsECO.subs(subs1).subs(subs2).subs(subs3).subs(subs4).subs(subs5)
 
-            # In the PBP rhs substitute economic variables for their proper
-            # expressions ($r_c$, $r_d$ ect.) and then again
-            # substitute lingering 'primitive' variables with rescaled ones
+        # In the PBP rhs substitute economic variables for their proper
+        # expressions ($r_c$, $r_d$ ect.) and then again
+        # substitute lingering 'primitive' variables with rescaled ones
 
-            rhsPBP = rhsPBP.subs(subs2).subs(subs3).subs(subs5)
-            rhsPBP = rhsPBP.subs(subs1).subs(subs4).subs({N: 1})
+        rhsPBP = rhsPBP.subs(subs2).subs(subs3).subs(subs5)
+        rhsPBP = rhsPBP.subs(subs1).subs(subs4).subs({N: 1})
 
-            # Combine dynamic equations of economic and social subsystem:
-            rhsECO = rhsECO.subs({N: 1})
-            rhs = sp.Matrix([rhsPBP, rhsECO]).subs(subs1)
-            with open('mean_rhs.pkl', 'wb') as outfile:
-                pkl.dump(rhs, outfile)
-                if self.test:
-                    print('saving rhs successful')
+        # Combine dynamic equations of economic and social subsystem:
+        rhsECO = rhsECO.subs({N: 1})
+        self.rhs_raw = sp.Matrix([rhsPBP, rhsECO]).subs(subs1)
 
-        # Define lists of symbols and values for parameters to substitute
-        # in rhs expression
-        param_symbols = [bc, bd, bR, e, rs, delta, pi, kappac, kappad, xi, g0, l,
-                         epsilon, phi, tau, k]
-        param_values = [self.b_c, self.b_d, self.b_r0, self.e, self.s, self.d_c,
-                        self.pi, self.kappa_c, self.kappa_d, self.xi, float(self.g_0), float(self.l),
-                        self.eps, self.phi, self.tau, self.k]
+        # set empty rhs
+        self.rhs = None
 
-        self.subs_params = {symbol: value for symbol, value
-                            in zip(param_symbols, param_values)}
-        self.rhs = rhs.subs(self.subs_params)
+        # Define lists of symbols for parameters to substitute in rhs expression
+        self.param_symbols = [bc, bd, bR, e, rs, delta, pi, kappac, kappad, xi, g0, l,
+                              epsilon, phi, tau, k]
 
+        # set empty rhs_func to fill in set_parameters:
+        self.rhs_func = []
+
+        # Define list of dependent and independent variables to calculate and save their values.
         self.independent_vars = {'mu_c^c': mucc, 'mu_d^c': mudc,
                                  'mu_c^d': mucd, 'mu_d^d': mudd,
                                  'x': x, 'y': y, 'z': z,
                                  'R': R, 'c': c, 'g': g}
-        self.dependent_vars = {'w': w, 'rc': rc, 'rd': rd, 'R': R, 'Kd': Kd, 'Kc': Kc,
-                               'Lc': Lc, 'Ld': Ld, 'L': L, 'rs': rs,
-                               'W_d': Wd, 'W_c': Wc, 'Pcd': Pcd, 'Pdc': Pdc,
-                               'l': l, 'Nc': Nc, 'Nd': Nd}
+        self.dependent_vars_raw = {'w': w, 'rc': rc, 'rd': rd, 'R': R, 'Kd': Kd, 'Kc': Kc,
+                                   'Lc': Lc, 'Ld': Ld, 'L': L, 'rs': rs,
+                                   'W_d': Wd, 'W_c': Wc, 'Pcd': Pcd, 'Pdc': Pdc,
+                                   'l': l, 'Nc': Nc, 'Nd': Nd}
+        # create empty dependent_vars dictionary
+        self.dependent_vars = {}
 
-        for key in self.dependent_vars.keys():
-            self.dependent_vars[key] = self.dependent_vars[key].subs(subs1).subs(subs2).subs(subs3) \
-                .subs(subs1).subs(subs4).subs({N: 1}).subs(self.subs_params)
+        # Substitute expressions in variables
+        for key in self.dependent_vars_raw.keys():
+            self.dependent_vars_raw[key] = self.dependent_vars_raw[key].subs(subs1).subs(subs2).subs(subs3) \
+                .subs(subs1).subs(subs4).subs({N: 1})
 
         self.var_symbols = [x, y, z, mucc, mudc, mucd, mudd, c, g]
         self.var_names = ['x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c', 'g']
+
+        # Set parameter values in rhs and dependent variables:
+        self.set_parameters()
 
         self.m_trajectory = pd.DataFrame(columns=self.var_names)
 
         # dictionary for final state
         self.final_state = {}
+
+    def set_parameters(self):
+        """(re)set parameter values in rhs and dependent expressions"""
+        if self.test:
+            print('resetting parameter values...')
+
+        # list all parameter values,
+        param_values = [self.b_c, self.b_d, self.b_r0, self.e, self.s, self.d_c,
+                        self.pi, self.kappa_c, self.kappa_d, self.xi, float(self.g_0), float(self.l),
+                        self.eps, self.phi, self.tau, self.k]
+
+        # link parameter symbols to values,
+        subs_params = {symbol: value for symbol, value
+                       in zip(self.param_symbols, param_values)}
+
+        # replace parameter symbols in raw rhs,
+        self.rhs = self.rhs_raw.subs(subs_params)
+
+        # lambdify rhs expressions for faster evaluation in integration
+        if self.test:
+            print('lambdify rhs')
+
+        self.rhs_func = [lambdify(tuple(self.var_symbols), r_i)
+                         for r_i in self.rhs]
+
+        # replace parameter symbols in raw independent variables.
+        for key in self.dependent_vars_raw.keys():
+            self.dependent_vars[key] = self.dependent_vars_raw[key].subs(subs_params)
+        if self.test:
+            print('sucessfull')
 
     @staticmethod
     def progress(count, total, status=''):
@@ -536,13 +564,22 @@ class Integrate_Equations:
     def dot_rhs(self, values, t):
         if self.test:
             self.progress(t, self.t_max, 'mean approximation running')
+
         # add to g such that 1 - alpha**2 * (g/G_0)**2 remains positive
         if values[-1] < self.alpha * self.g_0:
             values[-1] = self.alpha * self.g_0
 
+        # use original sympy expressions for integration
+
         # evaluate expression by substituting symbol values
-        subs1 = {var: val for (var, val) in zip(self.var_symbols, values)}
-        rval = list(self.rhs.subs(subs1).evalf())
+        # subs1 = {var: val for (var, val) in zip(self.var_symbols, values)}
+
+        # rval = list(self.rhs.subs(subs1).evalf())
+
+        # Use lambdified expressions for integration
+        rval = [rhs_i(*values) for rhs_i in self.rhs_func]
+
+        # for consant resource set g_dot to zero
         if not self.R_depletion:
             rval[-1] = 0
         return rval
@@ -569,6 +606,7 @@ class Integrate_Equations:
             self.C = self.c * self.n
             self.G = self.g * self.n
             self.t = t_max
+
         elif t_max <= self.t:
             if self.test:
                 print('upper time limit is smaller than system time', self.t)
@@ -605,9 +643,12 @@ class Integrate_Equations:
                            self.independent_vars['c'] / l,
                            self.dependent_vars['R'] / L,
                            (self.independent_vars['x'] + 1.) / 2.,
-                           (self.dependent_vars['rc'] * self.independent_vars['mu_c^c'] + self.dependent_vars['rd'] * self.independent_vars['mu_d^c'])
-                           / (self.dependent_vars['rc'] * (self.independent_vars['mu_c^c'] + self.independent_vars['mu_c^d'])
-                              + self.dependent_vars['rd'] * (self.independent_vars['mu_d^c'] + self.independent_vars['mu_d^d'])),
+                           (self.dependent_vars['rc'] * self.independent_vars['mu_c^c'] + self.dependent_vars['rd'] *
+                            self.independent_vars['mu_d^c'])
+                           / (self.dependent_vars['rc'] * (
+                                   self.independent_vars['mu_c^c'] + self.independent_vars['mu_c^d'])
+                              + self.dependent_vars['rd'] * (
+                                      self.independent_vars['mu_d^c'] + self.independent_vars['mu_d^d'])),
                            self.dependent_vars['rc'],
                            self.dependent_vars['rd'],
                            self.dependent_vars['w'],
@@ -626,17 +667,26 @@ class Integrate_Equations:
                 sbs = {var_symbol: Yi[var_name] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
                 data[i, :] = [var.subs(sbs) for var in var_expressions]
             except TypeError:
-                print('Type Error at t={} in getting unified trajectory '
-                      'for phi={}, tau={}, p_d={}, eps={}'.format(t, self.phi, self.tau, self.b_d, self.eps),
-                      flush=True)
-                print('returning functional part of trajectory', flush=True)
-                return -1
+                # catching double entries from piecewise runs
+                # resulting in end of one piece and start of
+                # next piece having the same time step
+                try:
+                    Yi = Yi.iloc[0]
+                    sbs = {var_symbol: Yi[var_name] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
+                    data[i, :] = [var.subs(sbs) for var in var_expressions]
+                except TypeError:
+                    print('Type Error at t={} in getting unified trajectory '
+                          'for phi={}, tau={}, p_d={}, eps={}'.format(t, self.phi, self.tau, self.b_d, self.eps),
+                          flush=True)
+                    print(Yi)
+                    print('returning functional part of trajectory', flush=True)
+                    # return -1
             except ValueError:
                 print('Value Error at t={} in getting unified trajectory '
                       'for phi={}, tau={}, p_d={}, eps={}'.format(t, self.phi, self.tau, self.b_d, self.eps),
                       flush=True)
                 print('returning functional part of trajectory', flush=True)
-                return -2
+                # return -2
 
         return pd.DataFrame(index=t_values, columns=columns, data=data)
 
@@ -662,12 +712,12 @@ if __name__ == '__main__':
     # Parameters:
 
     input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
-                        'b_c': 0.4, 'i_phi': 0.8, 'e': 100,
+                        'b_c': 0.4, 'i_phi': 0.9, 'e': 100,
                         'G_0': 30000, 'b_r0': 0.1 ** 2 * 100,
                         'possible_cue_orders': possible_cue_orders,
                         'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
                         'campaign': False, 'learning': True,
-                        'crs': True, 'imitation': 2}
+                        'crs': True, 'imitation': 2, 'test': True}
 
     # investment_decisions
     opinions = []
@@ -695,7 +745,15 @@ if __name__ == '__main__':
 
     model = Integrate_Equations(*init_conditions, **input_parameters)
 
-    model.run(t_max=20)
+    model.R_depletion = False
+    model.tau = 0.1
+    model.run(t_max=2)
+
+    model.R_depletion = True
+    model.tau = 1.
+    model.set_parameters()
+
+    model.run(t_max=4)
 
     trj = model.get_unified_trajectory()
 
@@ -716,3 +774,4 @@ if __name__ == '__main__':
     trj[['g']].plot(ax=ax4)
 
     plt.show()
+    plt.savefig('mean_approximation_test.png')
