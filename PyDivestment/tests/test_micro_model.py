@@ -19,16 +19,16 @@ for FFH in [False, True]:
     if FFH:
         nopinions = [10, 10, 10, 10, 10, 10, 10, 10]
         possible_cue_orders = [[2, 3],  # short term investor
-                             [3, 2],  # long term investor
-                             [4, 2],  # short term herder
-                             [4, 3],  # trending herder
-                             [4, 1],  # green conformer
-                             [4, 0],  # dirty conformer
-                             [1],  # gutmensch
-                             [0]]  # redneck
+                               [3, 2],  # long term investor
+                               [4, 2],  # short term herder
+                               [4, 3],  # trending herder
+                               [4, 1],  # green conformer
+                               [4, 0],  # dirty conformer
+                               [1],  # gutmensch
+                               [0]]  # redneck
         input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
                             'b_c': 1., 'i_phi': 0.8, 'e': 100,
-                            'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
+                            'G_0': 1500, 'b_r0': 0.2 ** 2 * 100,
                             'possible_cue_orders': possible_cue_orders,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
                             'campaign': False, 'learning': True}
@@ -80,3 +80,10 @@ for FFH in [False, True]:
 
     model = dc.DivestmentCore(*init_conditions,
                               **input_parameters)
+
+    model.run()
+
+    trj1 = model.get_aggregate_trajectory()
+    trj2 = model.get_economic_trajectory()
+    trj3 = model.get_mean_trajectory()
+    trj4 = model.get_unified_trajectory()
