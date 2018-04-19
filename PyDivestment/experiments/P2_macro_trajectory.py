@@ -7,7 +7,7 @@ approximation.
 The variable Parameters are b_d and phi.
 """
 
-# TODO: Find a measure that allows to copmare trajectories in one real number,
+# TODO: Find a measure that allows to compare trajectories in one real number,
 # such that I can produce heat map plots for the parameter dependency of the
 # quality of the approximation.
 
@@ -29,7 +29,7 @@ from pydivest.macro_model import integrate_equations_mean as mean_macro_model
 from pydivest.micro_model import divestmentcore as micro_model
 
 
-def RUN_FUNC(b_d, phi, approximate, test, filename):
+def RUN_FUNC(b_d, phi, eps, approximate, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -43,6 +43,8 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
         the solow residual in the dirty sector
     phi : float \in [0,1]
         the rewiring probability for the network update
+    eps : float
+        the fraction of opinion formation events that is random
     approximate: bool
         if True: run macroscopic approximation
         if False: run micro-model
@@ -56,13 +58,13 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     # Parameters:
 
     input_params = {'b_c': 1., 'i_phi': phi, 'i_tau': 1.,
-                    'eps': 0.05, 'b_d': b_d, 'e': 100.,
+                    'eps': eps, 'b_d': b_d, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,
                     'possible_cue_orders': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
-                    'interaction': 1}
+                    'interaction': 1, 'test': test}
 
     # investment_decisions:
     nopinions = [100, 100]
@@ -124,11 +126,11 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     # run the model
     t_start = time.clock()
 
-    t_max = 200 if not test else 2
+    t_max = 400 if not test else 200
     m.R_depletion = False
     m.run(t_max=t_max)
 
-    t_max += 400 if not test else 4
+    t_max += 600 if not test else 400
     m.R_depletion = True
     exit_status = m.run(t_max=t_max)
 
@@ -230,21 +232,22 @@ def run_experiment(argv):
     SAVE_PATH_RES = \
         "{}/{}{}/{}/" \
         .format(respath, test_folder, folder, sub_experiment)
-
+    print(SAVE_PATH_RES)
     """
     create parameter combinations and index
     """
 
     phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
     b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
+    eps = [0.1, 0.05, 0.01]
     b_d, phi = [1.2], [.8]
 
     if test:
-        PARAM_COMBS = list(it.product(b_d, phi, [approximate], [test]))
+        PARAM_COMBS = list(it.product(b_d, phi, eps, [approximate], [test]))
     else:
-        PARAM_COMBS = list(it.product(b_ds, phis, [approximate], [test]))
+        PARAM_COMBS = list(it.product(b_ds, phis, eps, [approximate], [test]))
 
-    INDEX = {0: "b_d", 1: "phi"}
+    INDEX = {0: "b_d", 1: "phi", 2: "eps"}
 
     """
     create names and dicts of callables for post processing
@@ -277,7 +280,7 @@ def run_experiment(argv):
     if mode == 0:
         print('calculating {}: {}'.format(approximate, sub_experiment))
         sys.stdout.flush()
-        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 20
+        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
         handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
                                      SAVE_PATH_RAW, SAVE_PATH_RES)
         handle.compute(RUN_FUNC)
@@ -287,7 +290,7 @@ def run_experiment(argv):
     # Post processing
     if mode == 1:
         sys.stdout.flush()
-        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 20
+        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
 
         handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
                                      SAVE_PATH_RAW, SAVE_PATH_RES)
