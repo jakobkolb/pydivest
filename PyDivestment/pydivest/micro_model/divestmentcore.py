@@ -1417,9 +1417,9 @@ if __name__ == '__main__':
 
         # Parameters:
 
-        input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
+        input_parameters = {'i_tau': 1, 'eps': 0.01, 'b_d': 1.2,
                             'b_c': 1., 'i_phi': 0.8, 'e': 100,
-                            'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
+                            'G_0': 800, 'b_r0': 0.1 ** 2 * 100,
                             'possible_cue_orders': possible_cue_orders,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
                             'campaign': False, 'learning': True}
@@ -1470,9 +1470,9 @@ if __name__ == '__main__':
 
     # Run Model
     model.R_depletion = False
-    model.run(t_max=1)
+    model.run(t_max=100)
     model.R_depletion = True
-    model.run(t_max=6)
+    model.run(t_max=600)
 
     # Print some output
 
@@ -1488,23 +1488,26 @@ if __name__ == '__main__':
 
     colors = [c for c in 'gk']
 
-    df = model.get_economic_trajectory()
+    df = model.get_unified_trajectory()
     print(df.columns)
-
+    columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r', 'n_c', 'i_c',
+               'r_c', 'r_d', 'w', 'W_c', 'W_d']
     fig = mp.figure()
     ax1 = fig.add_subplot(221)
     df[['r_c', 'r_d']].plot(ax=ax1, style=colors)
+    ax1b = ax1.twinx()
+    df[['w']].plot(ax=ax1b)
 
     ax2 = fig.add_subplot(223)
-    df[['wage']].plot(ax=ax2)
+    df[['n_c']].plot(ax=ax2)
 
     ax3 = fig.add_subplot(224)
-    df[['K_c', 'K_d']].plot(ax=ax3, style=colors)
+    df[['k_c', 'k_d']].plot(ax=ax3, style=colors)
 
     ax4 = fig.add_subplot(222)
-    df[['G']].plot(ax=ax4, style=colors[1])
+    df[['g']].plot(ax=ax4, style=colors[1])
     ax5 = ax4.twinx()
-    df[['C']].plot(ax=ax5, style=colors[0])
+    df[['c']].plot(ax=ax5, style=colors[0])
 
     fig.tight_layout()
-    mp.savefig('example_trajectory.png')
+    fig.savefig('example_trajectory.png')
