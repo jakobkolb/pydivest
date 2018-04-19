@@ -2,16 +2,13 @@
 
 from __future__ import print_function
 
-import pickle as pkl
 import sys
-
-from inspect import signature
 
 import numpy as np
 import pandas as pd
 import sympy as sp
-from sympy import lambdify
 from scipy.integrate import odeint
+from sympy import lambdify
 from sympy.abc import epsilon, tau, phi
 
 
@@ -463,48 +460,76 @@ class Integrate_Equations:
         rhsPBP = rhsPBP.subs(subs2).subs(subs3)
         rhsPBP = rhsPBP.subs(subs1).subs(subs4).subs({N: 1})
 
-        # Combine dynamic equations of economic and social subsystem:
+        # Combine dynamic equations of economic and social subsystem in right hand side of the system:
         rhsECO = rhsECO.subs({N: 1})
-        rhs = sp.Matrix([rhsPBP, rhsECO]).subs(subs1)
+        self.rhs_raw = sp.Matrix([rhsPBP, rhsECO]).subs(subs1)
 
-        # Define lists of symbols and values for parameters to substitute
-        # in rhs expression
-        param_symbols = [bc, bd, bR, e, rs, delta, pi, kappac, kappad, xi, G0, L,
-                         epsilon, phi, tau, k]
-        param_values = [self.b_c, self.b_d, self.b_r0, self.e, self.s, self.d_c,
-                        self.pi, self.kappa_c, self.kappa_d, self.xi, self.G_0, self.L,
-                        self.eps, self.phi, self.tau, self.k]
+        # set empty rhs for later
+        self.rhs = None
 
-        # Substitute parameter values in rhs expressions
-        self.subs_params = {symbol: value for symbol, value
-                            in zip(param_symbols, param_values)}
-        self.rhs = rhs.subs(self.subs_params)
+        # Define lists of symbols for parameters to substitute in rhs expression
+        self.param_symbols = [bc, bd, bR, e, rs, delta, pi, kappac, kappad, xi, G0, L,
+                              epsilon, phi, tau, k]
 
-        # lambdify rhs expressions for faster evaluation in integration
-        if self.test: print('lambdify rhs')
+        # set empty rhs_func to fill in set_parameters:
+        self.rhs_func = []
 
-        self.rhs_func = [lambdify((x, y, z, Kcc, Kdc, Kcd, Kdd, C, G), r_i)
-                         for r_i in self.rhs]
-
-        # create dicts of independent and dependent variables for output
+        # create dicts of independent and dependent variables to calculate and save their values
         self.independent_vars = {'K_c^c': Kcc, 'K_d^c': Kdc,
                                  'K_c^d': Kcd, 'K_d^d': Kdd,
                                  'x': x, 'y': y, 'z': z,
                                  'R': R, 'C': C, 'G': G}
-        self.dependent_vars = {'w': w, 'rc': rc, 'rd': rd, 'R': R, 'Kd': Kd, 'Kc': Kc,
-                               'Lc': Lc, 'Ld': Ld, 'L': L, 'rs': rs,
-                               'W_d': Wd, 'W_c': Wc, 'Pcd': Pcd, 'Pdc': Pdc}
-        for key in self.dependent_vars.keys():
-            self.dependent_vars[key] = self.dependent_vars[key].subs(subs1).subs(subs2).subs(subs3) \
-                .subs(subs1).subs(subs4).subs({N: 1}).subs(self.subs_params)
+        self.dependent_vars_raw = {'w': w, 'rc': rc, 'rd': rd, 'R': R, 'Kd': Kd, 'Kc': Kc,
+                                   'Lc': Lc, 'Ld': Ld, 'L': L, 'rs': rs,
+                                   'W_d': Wd, 'W_c': Wc, 'Pcd': Pcd, 'Pdc': Pdc}
+        # create empty dependent_vars dictionary
+        self.dependent_vars = {}
+
+        for key in self.dependent_vars_raw.keys():
+            self.dependent_vars_raw[key] = self.dependent_vars_raw[key].subs(subs1).subs(subs2).subs(subs3) \
+                .subs(subs1).subs(subs4).subs({N: 1})
 
         self.var_symbols = [x, y, z, Kcc, Kdc, Kcd, Kdd, C, G]
         self.var_names = ['x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d', 'C', 'G']
+
+        # Substitute parameter values in rhs expressions
+        self.set_parameters()
 
         self.m_trajectory = pd.DataFrame(columns=self.var_names)
 
         # dictionary for final state
         self.final_state = {}
+
+    def set_parameters(self):
+        """(re)set parameter values in rhs and dependent expressions"""
+
+        if self.test:
+            print('resetting parameter values...')
+
+        # list all parameter values,
+        param_values = [self.b_c, self.b_d, self.b_r0, self.e, self.s, self.d_c,
+                        self.pi, self.kappa_c, self.kappa_d, self.xi, float(self.G_0), float(self.L),
+                        self.eps, self.phi, self.tau, self.k]
+
+        # link parameter symbols to values,
+        subs_params = {symbol: value for symbol, value
+                       in zip(self.param_symbols, param_values)}
+
+        # replace parameter symbols in raw rhs,
+        self.rhs = self.rhs_raw.subs(subs_params)
+
+        # lambdify rhs expressions for faster evaluation in integration
+        if self.test:
+            print('lambdify rhs')
+
+        self.rhs_func = [lambdify(tuple(self.var_symbols), r_i)
+                         for r_i in self.rhs]
+
+        # replace parameter symbols in raw independent variables.
+        for key in self.dependent_vars_raw.keys():
+            self.dependent_vars[key] = self.dependent_vars_raw[key].subs(subs_params)
+        if self.test:
+            print('sucessfull')
 
     @staticmethod
     def progress(count, total, status=''):
@@ -520,20 +545,22 @@ class Integrate_Equations:
     def dot_rhs(self, values, t):
         if self.test:
             self.progress(t, self.t_max, 'aggregate approximation running')
+
         # add to g such that 1 - alpha**2 * (g/G_0)**2 remains positive
         if values[-1] < self.alpha * self.G_0:
             values[-1] = self.alpha * self.G_0
 
-        # evaluate expression by substituting symbol values
-        subs1 = {var: val for (var, val) in zip(self.var_symbols, values)}
-
         # use original sympy expressions for integration
+
+        # evaluate expression by substituting symbol values
+        # subs1 = {var: val for (var, val) in zip(self.var_symbols, values)}
+
         # rval = list(self.rhs.subs(subs1).evalf())
 
-        # Use lambdified expressions for integration               print('upper time limit is smaller than system time', self.t)
-
+        # Use lambdified expressions for integration
         rval = [rhs_i(*values) for rhs_i in self.rhs_func]
 
+        # for constant resource set G_dot to zero
         if not self.R_depletion:
             rval[-1] = 0
         return rval
@@ -555,7 +582,9 @@ class Integrate_Equations:
             (self.x, self.y, self.z,
              self.Kcc, self.Kdc, self.Kcd, self.Kdd,
              self.C, self.G) = trajectory[-1]
+
             self.t = t_max
+
         elif t_max <= self.t:
             if self.test:
                 print('upper time limit is smaller than system time', self.t)
@@ -568,7 +597,7 @@ class Integrate_Equations:
 
     def get_unified_trajectory(self):
         """
-        Calculates unified trajectory in per capita variables
+        Calculate unified trajectory in per capita variables
 
         Returns
         -------
@@ -612,17 +641,26 @@ class Integrate_Equations:
                 sbs = {var_symbol: Yi[var_name] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
                 data[i, :] = [var.subs(sbs) for var in var_expressions]
             except TypeError:
-                print('Type Error at t={} in getting unified trajectory '
-                      'for phi={}, tau={}, p_d={}, eps={}'.format(t, self.phi, self.tau, self.b_d, self.eps),
-                      flush=True)
-                print('returning functional part of trajectory', flush=True)
-                return -1
+                # catching double entries from piecewise runs
+                # resulting in end of one piece and start of
+                # next piece having the same time step
+                try:
+                    Yi = Yi.iloc[0]
+                    sbs = {var_symbol: Yi[var_name] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
+                    data[i, :] = [var.subs(sbs) for var in var_expressions]
+                except TypeError:
+                    print('Type Error at t={} in getting unified trajectory '
+                          'for phi={}, tau={}, p_d={}, eps={}'.format(t, self.phi, self.tau, self.b_d, self.eps),
+                          flush=True)
+                    print(Yi)
+                    print('returning functional part of trajectory', flush=True)
+                    # return -1
             except ValueError:
                 print('Value Error at t={} in getting unified trajectory '
                       'for phi={}, tau={}, p_d={}, eps={}'.format(t, self.phi, self.tau, self.b_d, self.eps),
                       flush=True)
                 print('returning functional part of trajectory', flush=True)
-                return -2
+                # return -2
 
         return pd.DataFrame(index=t_values, columns=columns, data=data)
 
@@ -683,22 +721,23 @@ if __name__ == '__main__':
 
     model.run(t_max=500)
 
-    # trj = model.get_unified_trajectory()
-    #
-    # print(trj)
-    #
-    # fig = plt.figure()
-    #
-    # ax1 = fig.add_subplot(221)
-    # trj[['k_c', 'k_d']].plot(ax=ax1)
-    #
-    # ax2 = fig.add_subplot(222)
-    # trj[['n_c']].plot(ax=ax2)
-    #
-    # ax3 = fig.add_subplot(223)
-    # trj[['c']].plot(ax=ax3)
-    #
-    # ax4 = fig.add_subplot(224)
-    # trj[['g']].plot(ax=ax4)
-    #
-    # plt.show()
+    trj = model.get_unified_trajectory()
+
+    print(trj)
+
+    fig = plt.figure()
+
+    ax1 = fig.add_subplot(221)
+    trj[['k_c', 'k_d']].plot(ax=ax1)
+
+    ax2 = fig.add_subplot(222)
+    trj[['n_c']].plot(ax=ax2)
+
+    ax3 = fig.add_subplot(223)
+    trj[['c']].plot(ax=ax3)
+
+    ax4 = fig.add_subplot(224)
+    trj[['g']].plot(ax=ax4)
+
+    fig.tight_layout()
+    fig.savefig('aggregate_approximation_test.png')
