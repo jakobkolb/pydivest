@@ -1,4 +1,3 @@
-
 # coding: utf-8
 
 # Equations for Representative Household approximation of
@@ -12,11 +11,14 @@ import numpy as np
 import pandas as pd
 import sympy as sp
 from sympy import lambdify
+
 try:
     from assimulo.problem import Implicit_Problem
     from assimulo.solvers import IDA
 except ImportError:
     print('assimulo not available. Running model impossible.')
+    Implicit_Problem = None
+    IDA = None
 from scipy.optimize import root
 
 
@@ -152,20 +154,7 @@ class Integrate_Equations:
         # time derivatives
         dKc, dKd, dC, dG = sp.symbols('\dot{K}_c \dot{K}_d \dot{C} \dot{G}')
 
-        # Values for parameters
-        self.subs_params = {bc: self.b_c,
-                            bd: self.b_d,
-                            bR: self.b_r0,
-                            e: self.e,
-                            rs: self.s,
-                            delta: self.d_c,
-                            pi: self.pi,
-                            kappac: self.kappa_c,
-                            kappad: self.kappa_d,
-                            xi: self.xi,
-                            mu: 2.,
-                            G0: self.G_0,
-                            L: self.L}
+        self.param_symbols = [bc, bd, bR, e, rs, delta, pi, kappac, kappad, xi, mu, G0, L]
 
         # **Treatment the equations describing economic production and capital accumulation**
 
@@ -174,30 +163,40 @@ class Integrate_Equations:
 
         # Solution to algebraic constraints from capital and laber market clearing as well
         # as efficient resource use in the dirty sector.
-        subs2 = {w: pi * L**(pi-1.) * (Xc + Xd*XR)**(1.-pi),
-                 rc: kappac/Kc*Xc*L**pi*(Xc + Xd*XR)**(-pi),
-                 rd: kappad/Kd*Xd*XR*L**pi*(Xc + Xd*XR)**(-pi),
-                 R:  bd/e*Kd**kappad*L**pi*(Xd*XR/(Xc + Xd*XR))**pi,
-                 Lc: L*Xc/(Xc + Xd*XR),
-                 Ld: L*Xd*XR/(Xc + Xd*XR)}
+        subs2 = {w: pi * L ** (pi - 1.) * (Xc + Xd * XR) ** (1. - pi),
+                 rc: kappac / Kc * Xc * L ** pi * (Xc + Xd * XR) ** (-pi),
+                 rd: kappad / Kd * Xd * XR * L ** pi * (Xc + Xd * XR) ** (-pi),
+                 R: bd / e * Kd ** kappad * L ** pi * (Xd * XR / (Xc + Xd * XR)) ** pi,
+                 Lc: L * Xc / (Xc + Xd * XR),
+                 Ld: L * Xd * XR / (Xc + Xd * XR)}
+
+        subs2_empty_G = {w:  bc * pi * L ** (pi - 1.) * Kc ** kappac * C ** xi,
+                         rc: bc * L ** pi * kappac * Kc ** (kappac - 1.) * C ** xi,
+                         rd: 0.,
+                         R: 0.,
+                         Lc: L,
+                         Ld: 0.}
 
         # Substitutions to the above expressions
-        subs3 = {Xc: (bc*Kc**kappac * C**xi)**(1./(1.-pi)),
-                 Xd: (bd*Kd**kappad)**(1./(1.-pi)),
-                 XR: (1.-bR/e*(G0/G)**mu)**(1./(1.-pi))}
+        subs3 = {Xc: (bc * Kc ** kappac * C ** xi) ** (1. / (1. - pi)),
+                 Xd: (bd * Kd ** kappad) ** (1. / (1. - pi)),
+                 XR: (1. - bR / e * (G0 / G) ** mu) ** (1. / (1. - pi))}
 
         # derivatives of the above substitutions
-        subs4 = {dXc: (1./(1.-pi))*(bc*Kc**kappac * C**xi)**(pi/(1.-pi))*bc*(kappac*Kc**(kappac-1)*dKc*C**xi
-                                                                             + Kc**kappac*xi*C**(xi-1)*dC),
-                 dXd: (1./(1.-pi))*(bd*Kd**kappad)**(pi/(1.-pi))*bd*kappad*Kd**(kappad-1)*dKd,
-                 dXR: (1./(1.-pi))*(1.-bR/e*(G0/G)**mu)**(pi/(1.-pi))*(mu*bR/e*(G0**mu/G**(mu+1))*dG)}
+        subs4 = {dXc: (1. / (1. - pi)) * (bc * Kc ** kappac * C ** xi) ** (pi / (1. - pi)) * bc * (
+                kappac * Kc ** (kappac - 1) * dKc * C ** xi
+                + Kc ** kappac * xi * C ** (xi - 1) * dC),
+                 dXd: (1. / (1. - pi)) * (bd * Kd ** kappad) ** (pi / (1. - pi)) * bd * kappad * Kd ** (
+                         kappad - 1) * dKd,
+                 dXR: (1. / (1. - pi)) * (1. - bR / e * (G0 / G) ** mu) ** (pi / (1. - pi)) * (
+                         mu * bR / e * (G0 ** mu / G ** (mu + 1)) * dG)}
 
         # Dynamic equations for the economic variables depending on n,
         # the fraction of savings going into the clean sector
 
-        subs5 = {dKc: n*rs*(rc*Kc + rd*Kd + w*L) - delta*Kc,
-                 dKd: - delta*Kd + (1-n)*rs*(rc*Kc + rd*Kd + w*L),
-                 dC: bc*Lc**pi*Kc**kappac * C**xi - delta*C,
+        subs5 = {dKc: n * rs * (rc * Kc + rd * Kd + w * L) - delta * Kc,
+                 dKd: - delta * Kd + (1 - n) * rs * (rc * Kc + rd * Kd + w * L),
+                 dC: bc * Lc ** pi * Kc ** kappac * C ** xi - delta * C,
                  dG: -R}
 
         # For the case of infinite fossil resources, we copy the above dynamic equations and
@@ -207,9 +206,11 @@ class Integrate_Equations:
 
         # To simplify the output functions, we make a list of dependent and independent variables
         self.independent_vars = {'Kc': Kc, 'Kd': Kd, 'G': G, 'C': C, 'n': n}
-        self.dependent_vars = {'w': w, 'rc': rc, 'rd': rd, 'R': R, 'Lc': Lc, 'Ld': Ld, 'L': L, 'rs': rs}
-        for key in self.dependent_vars.keys():
-            self.dependent_vars[key] = self.dependent_vars[key].subs(subs2).subs(subs3).subs(self.subs_params)
+        self.dependent_vars_raw = {'w': w, 'rc': rc, 'rd': rd, 'R': R, 'Lc': Lc, 'Ld': Ld, 'L': L, 'rs': rs}
+        for key in self.dependent_vars_raw.keys():
+            self.dependent_vars_raw[key] = self.dependent_vars_raw[key].subs(subs2).subs(subs3)
+
+        self.dependent_vars = {}
 
         # We want returns to capital to be equal in the clean and the dirty sector. This means, that for the initial
         # conditions the returns and their derivatives with respect to time have to be equal. Then, for the integration,
@@ -222,46 +223,98 @@ class Integrate_Equations:
         # Consequently, we use it to calculate the initial value of C
         # and use its time differential to fix the value of n.
         raw_rdiff = (rc - rd).subs(subs2)
-        rdiff = raw_rdiff.subs(subs3)
+        self.rdiff_raw = raw_rdiff.subs(subs3)
 
         # difference of capital return rates differentiated with respect to t which depends on n.
-        raw_drdiff = L**pi*(-pi)*(Xc + Xd*XR)**(-pi-1)*(dXc + dXd*XR + Xd*dXR)*(kappac/Kc*Xc - kappad/Kd*Xd*XR) + \
-            L**pi*(Xc + Xd*XR)**(-pi)*(kappac*(dXc*Kc - Xc*dKc)/(Kc**2.)
-                                       - kappad*((dXd*XR + Xd*dXR)*Kd - Xd*XR*dKd)/(Kd**2.))
+        raw_drdiff = L ** pi * (-pi) * (Xc + Xd * XR) ** (-pi - 1) * (dXc + dXd * XR + Xd * dXR) * (
+                kappac / Kc * Xc - kappad / Kd * Xd * XR) + \
+                     L ** pi * (Xc + Xd * XR) ** (-pi) * (kappac * (dXc * Kc - Xc * dKc) / (Kc ** 2.)
+                                                          - kappad * ((dXd * XR + Xd * dXR) * Kd - Xd * XR * dKd)
+                                                          / (Kd ** 2.))
 
         # we substitute with different expressions depending on whether the fossil resource is finite or not.
-        drdiff_g_const = raw_drdiff.subs(subs4).subs(subs5_g_const).subs(subs2).subs(subs3)
-        drdiff = raw_drdiff.subs(subs4).subs(subs5).subs(subs2).subs(subs3)
+        self.drdiff_g_const_raw = raw_drdiff.subs(subs4).subs(subs5_g_const).subs(subs2).subs(subs3)
+        self.drdiff_raw = raw_drdiff.subs(subs4).subs(subs5).subs(subs2).subs(subs3)
+
+        self.drdiff_g_const, self.drdiff, self.rdiff = None, None, None
 
         # List of dynamic variables and the right hand side of their dynamic equations as well as a list of
         # indicators of whether these equations are explicit of implicit
 
         self.var_symbols = [Kc, Kd, G, C, n]
         self.var_names = ['Kc', 'Kd', 'G', 'C', 'n']
-        self.m_trajectory = pd.DataFrame(columns=self.var_names)
-        self.Y0 = np.zeros(len(self.var_symbols))
-        self.Yd0 = np.zeros(len(self.var_symbols))
-        self.sw0 = [True, False, False]
 
         # we have to define different versions of the rhs for the
-        # boundaries (where n=1) and below as well as for finite and infinite fossil resources:
-        rhs_1 = sp.Matrix([dKc, dKd, dG, dC, drdiff]).subs(subs5).subs(subs2).subs(subs3)
-        rhs_2 = sp.Matrix([dKc, dKd, dG, dC, n - 1]).subs(subs5).subs(subs2).subs(subs3)
-        rhs_3 = sp.Matrix([dKc, dKd, 0., dC, drdiff_g_const]).subs(subs5_g_const).subs(subs2).subs(subs3)
-        rhs_4 = sp.Matrix([dKc, dKd, 0., dC, n - 1]).subs(subs5_g_const).subs(subs2).subs(subs3)
+        # boundaries (where n=1 or n=0) and below as well as for finite and infinite fossil resources:
+
+        # n = 0, rc < rd
+        self.rhs_1_raw = sp.Matrix([dKc, dKd, dG, dC, n]).subs(subs5).subs(subs2).subs(subs3)
+        self.rhs_2_raw = sp.Matrix([dKc, dKd, 0., dC, n]).subs(subs5_g_const).subs(subs2).subs(subs3)
+
+        # n is variable, rc == rd
+        self.rhs_3_raw = sp.Matrix([dKc, dKd, dG, dC, self.drdiff_raw]).subs(subs5).subs(subs2).subs(subs3)
+        self.rhs_4_raw = sp.Matrix([dKc, dKd, 0., dC, self.drdiff_g_const_raw]).subs(subs5_g_const).subs(subs2) \
+            .subs(subs3)
+
+        # n is 1, rc > rd
+        self.rhs_5_raw = sp.Matrix([dKc, dKd, dG, dC, n - 1]).subs(subs5).subs(subs2).subs(subs3)
+        self.rhs_6_raw = sp.Matrix([dKc, dKd, 0., dC, n - 1]).subs(subs5_g_const).subs(subs2).subs(subs3)
+
+        # G exhausted => n is 1, rc == 0, dG ==0
+        self.rhs_7_raw = sp.Matrix([dKc, dKd, 0., dC, n - 1]).subs(subs5_g_const).subs(subs2_empty_G).subs(subs3)
+
+        # set dummy rhs for version with parameters replaced generated by set_parameters()
+        self.rhs_1, self.rhs_2, self.rhs_3, self.rhs_4, self.rhs_5, self.rhs_6, self.rhs_7 = \
+            None, None, None, None, None, None, None
 
         self.eq_implicit = [False, False, False, False, True]
 
-        self.rhs_1 = rhs_1.subs(self.subs_params)
-        self.rhs_2 = rhs_2.subs(self.subs_params)
-        self.rhs_3 = rhs_3.subs(self.subs_params)
-        self.rhs_4 = rhs_4.subs(self.subs_params)
-        self.rdiff = rdiff.subs(self.subs_params)
-        self.drdiff = drdiff.subs(self.subs_params)
-        self.drdiff_g_const = drdiff_g_const.subs(self.subs_params)
+        # initialize output trajectory
+        self.m_trajectory = pd.DataFrame(columns=self.var_names)
+
+        # set dummy initial conditions
+        self.Y0 = np.zeros(len(self.var_symbols))
+        self.Yd0 = np.zeros(len(self.var_symbols))
+        self.sw0 = []
+
+        self.sim = None
+        self.set_parameters()
+
+    def set_parameters(self):
+        """(re)set parameters in rhs of system and dependen variable expressions"""
+
+        if self.test:
+            print('resetting parameter values...')
+
+        # list all parameter values,
+        param_values = [self.b_c, self.b_d, self.b_r0, self.e, self.s, self.d_c, self.pi, self.kappa_c,
+                        self.kappa_d, self.xi, 2., self.G_0, self.L]
+
+        # link parameter symbols to values,
+        subs_params = {symbol: value for symbol, value
+                       in zip(self.param_symbols, param_values)}
+
+        self.rhs_1 = self.rhs_1_raw.subs(subs_params)
+        self.rhs_2 = self.rhs_2_raw.subs(subs_params)
+        self.rhs_3 = self.rhs_3_raw.subs(subs_params)
+        self.rhs_4 = self.rhs_4_raw.subs(subs_params)
+        self.rhs_5 = self.rhs_5_raw.subs(subs_params)
+        self.rhs_6 = self.rhs_6_raw.subs(subs_params)
+        self.rhs_7 = self.rhs_7_raw.subs(subs_params)
+        self.rdiff = self.rdiff_raw.subs(subs_params)
+        self.drdiff = self.drdiff_raw.subs(subs_params)
+        self.drdiff_g_const = self.drdiff_g_const_raw.subs(subs_params)
+
+        # replace parameter symbols in raw independent variables.
+        for key in self.dependent_vars_raw.keys():
+            self.dependent_vars[key] = self.dependent_vars_raw[key].subs(subs_params)
+
+        self._setup_model()
+        if self.test:
+            print('successful')
 
     @staticmethod
-    def progress(count, total, status=''):
+    def _progress_report(count, total, status=''):
         bar_len = 60
         filled_len = int(round(bar_len * count / float(total)))
 
@@ -271,117 +324,239 @@ class Integrate_Equations:
         sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
         sys.stdout.flush()
 
-    def find_initial_conditions(self):
+    def _find_n(self, Y):
+        subs_ini = {symbol: value for symbol, value in zip(self.var_symbols[:4], Y[:4])}
+        n = self.var_symbols[4]
+        print(subs_ini)
+        if self.R_depletion:
+            fun2 = lambdify(n, self.drdiff.subs(subs_ini))
+        else:
+            fun2 = lambdify(n, self.drdiff_g_const.subs(subs_ini))
+        return root(fun2, .5).x[0]
+
+    def _setup_model(self, Y=None):
         """
         # Defines sane initial conditions, that solve the residue function (as Frank called it).
         # This means in my case, that rc-rd as well as d/dt (rc-rd) have to be zero.
         
         Returns
         -------
-        C: float
-            the total renewable knowledge stock
+        sw: the switch vector that indicates the regime of the system for the given initial conditions.
+            (rc>rd, rc=rd, rc>rd)
         n: float
             the fraction of investment going into the clean sector
         """
-        if self.test:
-            print('sanitizing initial conditions to')
 
         # define initial values for Kc, Kd, C and G
-        Y0 = [self.Kc_0, self.Kd_0, self.G_0]
-        sym = self.var_symbols[:3]
+        if Y is None:
+            Y0 = [self.Kc_0, self.Kd_0, self.G_0, self.C_0]
+        else:
+            Y0 = Y[:4]
+        sym = self.var_symbols[:4]
         subs_ini = {symbol: value for symbol, value in zip(sym, Y0)}
-        print(subs_ini)
-        C = self.var_symbols[3]
-        fun1 = lambdify((C), self.rdiff.subs(subs_ini))
-        print('find C0')
-        r1 = root(fun1, self.C_0)
-        subs_ini[C] = r1.x[0]
+
+        rc = float(self.dependent_vars['rc'].subs(subs_ini))
+        rd = float(self.dependent_vars['rd'].subs(subs_ini))
+
+        print('rc = {}, rd = {}'.format(rc, rd))
 
         n = self.var_symbols[4]
-        if self.R_depletion:
-            fun2 = lambdify((n), self.drdiff.subs(subs_ini))
+
+        # set n and switches according to capital returns
+        if rc > rd:
+            self.sw0 = [False, False, True, False]
+            n_val = 1.
+        elif rc < rd:
+            self.sw0 = [True, False, False, False]
+            n_val = 0.
         else:
-            fun2 = lambdify((n), self.drdiff_g_const.subs(subs_ini))
-        print('find n')
-        r2 = root(fun2, .5)
-        subs_ini[n] = r2.x[0]
+            self.sw0 = [False, True, False, False]
+            if self.R_depletion:
+                fun2 = lambdify(n, self.drdiff.subs(subs_ini))
+            else:
+                fun2 = lambdify(n, self.drdiff_g_const.subs(subs_ini))
+            n_val = root(fun2, .5).x[0]
 
-        self.Y0 = np.array([subs_ini[var] for var in self.var_symbols])
-        self.Yd0 = np.array(list(self.rhs_1.subs(subs_ini)))
-        self.sw0 = [True, False, False]
+        subs_ini[n] = n_val
 
-        if self.test:
-            print(subs_ini)
-        return r1.x[0], r2.x[0]
+        # calculate Yd0 from rhs according to switches
+        if self.sw0[0]:
+            # calculate dy from the appropriate rhs (1 or 2).
+            if self.R_depletion:
+                Yd0 = np.array([float(x) for x in list(self.rhs_1.subs(subs_ini).evalf())])
+            else:
+                Yd0 = np.array([float(x) for x in list(self.rhs_2.subs(subs_ini).evalf())])
+        elif self.sw0[1]:
+            # calculate dy from the appropriate rhs (3 or 4).
+            if self.R_depletion:
+                Yd0 = np.array([float(x) for x in list(self.rhs_3.subs(subs_ini).evalf())])
+            else:
+                Yd0 = np.array([float(x) for x in list(self.rhs_4.subs(subs_ini).evalf())])
+        elif self.sw0[2]:
+            print('selecting rhs 5 or 6')
+            # calculate dy from the appropriate rhs (5 or 6).
+            if self.R_depletion:
+                Yd0 = np.array([float(x) for x in list(self.rhs_5.subs(subs_ini).evalf())])
+            else:
+                Yd0 = np.array([float(x) for x in list(self.rhs_6.subs(subs_ini).evalf())])
+        else:
+            raise ValueError("one of the entries of sw0 has to be true.")
 
-    def run(self, t_max, **kwargs):
+        # calculate Y0
+        Y0 = [subs_ini[symbol] for symbol in self.var_symbols]
 
-        self.t_max = t_max
-        # Define the problem for assimulo and run the simulation
-
+        # Define the problem for Assimulo with Y0 and Yd0
         def prep_rhs(t, Y, Yd, sw):
 
             sbs = {var: val for (var, val) in zip(self.var_symbols, Y)}
-            if sw[0] or sw[2]:
+            if sw[0]:
                 if self.R_depletion:
                     rval = self.rhs_1.subs(sbs)
                 else:
-                    rval = self.rhs_3.subs(sbs)
-            else:
-                if self.R_depletion:
                     rval = self.rhs_2.subs(sbs)
+            elif sw[1]:
+                if self.R_depletion:
+                    rval = self.rhs_3.subs(sbs)
                 else:
                     rval = self.rhs_4.subs(sbs)
+            elif sw[2]:
+                if self.R_depletion:
+                    rval = self.rhs_5.subs(sbs)
+                else:
+                    rval = self.rhs_6.subs(sbs)
+            elif sw[3]:
+                rval = self.rhs_7.subs(sbs)
+            else:
+                raise ValueError('system state undetermined')
 
             for i in [0, 1, 2, 3]:
                 rval[i] = Yd[i] - sp.simplify(rval[i])
             rval = np.array([float(x) for x in rval.evalf()])
 
-            # ToDo: Make sure, g is not exploited beyond the economic share.
-            print(self.dependent_vars['R'].subs(sbs))
-
             if self.test:
-                self.progress(t, self.t_max, 'representative agent running')
+                # self._progress_report(t, self.t_max, 'representative agent running')
+                pass
 
             return rval
 
         def state_events(t, Y, Yd, sw):
+            """check for events. such as transgression of n across 0 and 1 and crossings or r_c and r_d
 
-            event_1 = Y[-1] - 1
-            event_2 = Y[0]  # This is just a place holder. Originally, this was to check if rc < rd again.
+            events are expressions that change sign from negative to positive in case of the specific event."""
 
-            # print('events', event_1, event_2, sw)
-            return np.array([event_1, event_2, 0])
+            sbs = {var_symbol: Y[var_index] for var_index, var_symbol in enumerate(self.var_symbols)}
+
+            rc = float(self.dependent_vars['rc'].subs(sbs))
+            rd = float(self.dependent_vars['rd'].subs(sbs))
+
+            # since the difference between rc and rd is only zero in the bounds of the solvers accuracy,
+            # we need to subtract some epsilon to make sure that we only detect the relevant zero crossings.
+            eps = 0.0
+
+            event_1 = 1. if sw[2] else Y[-1] - 1  # n crossing 1 from below, exp. positive if n>1
+            event_2 = 1. if sw[0] else - Y[-1]  # n crossing 0 from above exp. positive if n<0
+
+            # check exit from state 2 where rc>rd, hence n = 1 (condition inactive in state 0 and 1).
+            event_3 = 1. if sw[1] or sw[0] else rd - eps - rc  # check if rc < rd again, exp. positive, if rc < rd + eps
+
+            # check exit from state 0 where rd>rc, hence n = 0 (condition inactive in state 1 and 2).
+            event_4 = 1. if sw[1] or sw[2] else rc - eps - rd  # check if rc > rd again, exp. positive, if rd < rc + eps
+
+            # check if resource is exhausted
+            event_5 = self.G_0 - Y[2] * (self.e/self.b_r0) ** (1./2.)
+
+            print(t, event_1, event_2, event_3, event_4, event_5)
+
+            return np.array([event_1, event_2, event_3, event_4, event_5])
 
         def handle_event(solver, event_info):
-            if event_info[0] != 0:
-                solver.sw[0] = False
-                solver.sw[1] = True
-                subs_ini = {symbol: value for symbol, value in zip(self.var_symbols, solver.y)}
-                solver.yd = np.array([float(x) for x in list(self.rhs_2.subs(subs_ini).evalf())])
-                # print('first event, n reaching 1')
-                # print(solver.y)
-                # print(solver.yd)
-                solver.re_init(solver.t, solver.y, solver.yd, sw0=solver.sw)
-            elif event_info[1] != 0:
-                solver.sw[1] = False
-                solver.sw[2] = True
-            pass
 
-        print('starting at t={}'.format(self.t))
+            ev = event_info[0]
+            # event_1, n reaches 1 from below.
+            print('event info is', event_info)
+            subs_ini = {symbol: value for symbol, value in zip(self.var_symbols, solver.y)}
+
+            if ev[2] == 1 or ev[3] == 1:
+                # the system is back in its optimizing (variable n mode).
+                # set the switches,
+                # find the appropriate n,
+                # reinitialize the solver with the right yd.
+                if ev[2] == 1:
+                    print('rc<rd again, n crossed 0 from below')
+                else:
+                    print('rd>rc again, n crossed 1 from above')
+                # find n that solves the residual function
+                solver.y[4] = self._find_n(solver.y)
+                if solver.y[4] < 0:
+                    # n is below New Event0 already. Skip and jump to case 'n crossed 0 from above'
+                    print('back to optimizing range, but n={} already out of bounds'.format(solver.y[4]))
+                    ev[1] = 1  # continue with n < 0
+                elif solver.y[4] > 1:
+                    # n is above 1 already. Skip and jump to case 'n crossed 1 from below'
+                    print('back to optimizing range, but n={} already out of bounds'.format(solver.y[4]))
+                    ev[0] = 1  # continue with n > 1
+                else:
+                    print('back in optimizing range, n={} in bounds'.format(solver.y[4]))
+                    solver.sw = [False, True, False, False]
+                    # put it into the substitution list.
+                    subs_ini = {symbol: value for symbol, value in zip(self.var_symbols, solver.y)}
+                    print(subs_ini)
+                    # calculate dy from the appropriate rhs (3 or 4).
+                    if self.R_depletion:
+                        solver.yd = np.array([float(x) for x in list(self.rhs_3.subs(subs_ini).evalf())])
+                    else:
+                        solver.yd = np.array([float(x) for x in list(self.rhs_4.subs(subs_ini).evalf())])
+
+            if ev[0] == 1:
+                # n crossed 1 from below.
+                print('n crossed 1 from below')
+                solver.y[4] = 1
+                solver.sw = [False, False, True, False]
+                # calculate dy from the appropriate rhs (5 or 6).
+                if self.R_depletion:
+                    solver.yd = np.array([float(x) for x in list(self.rhs_5.subs(subs_ini).evalf())])
+                else:
+                    solver.yd = np.array([float(x) for x in list(self.rhs_6.subs(subs_ini).evalf())])
+            elif ev[1] == 1:
+                # n crossed 0 from above
+                solver.y[4] = 0
+                print('n crossed 0 from above')
+                solver.sw = [True, False, False, False]
+                # calculate dy from the appropriate rhs (1 or 2).
+                if self.R_depletion:
+                    solver.yd = np.array([float(x) for x in list(self.rhs_1.subs(subs_ini).evalf())])
+                else:
+                    solver.yd = np.array([float(x) for x in list(self.rhs_2.subs(subs_ini).evalf())])
+            elif ev[4] == 1:
+                # resource is exhausted
+                print('resource exhausted')
+                solver.sw = [False, False, False, True]
+                solver.yd = np.array([float(x) for x in list(self.rhs_7.subs(subs_ini).evalf())])
+
+            solver.re_init(solver.t, solver.y, solver.yd, sw0=solver.sw)
+            print('switched state to {}'.format(solver.sw))
 
         mod = Implicit_Problem(prep_rhs,
-                               self.Y0,
-                               self.Yd0,
+                               Y0,
+                               Yd0,
                                self.t,
                                sw0=self.sw0)
         mod.algvar = self.eq_implicit
         mod.state_events = state_events
         mod.handle_event = handle_event
-        sim = IDA(mod)
-        sim.rtol = 1.e-10        # Sets the relative tolerance
-        sim.atol = 1.e-8        # Sets the absolute tolerance
-        t, Y, Yd = sim.simulate(t_max)
+        self.sim = IDA(mod)
+        self.sim.rtol = 1.e-12  # Sets the relative tolerance
+        self.sim.atol = 1.e-10  # Sets the absolute tolerance
+
+        if self.test:
+            print(subs_ini)
+        return n_val
+
+    def run(self, t_max, **kwargs):
+
+        self.t_max = t_max
+
+        t, Y, Yd = self.sim.simulate(t_max)
 
         self.t = t[-1]
         self.Y0 = Y[-1]
@@ -423,8 +598,8 @@ class Integrate_Equations:
                            self.independent_vars['n'],
                            self.independent_vars['n']
                            * self.dependent_vars['rs']
-                           * (self.independent_vars['Kc']*self.dependent_vars['rc']
-                              + self.independent_vars['Kd']*self.dependent_vars['rd']) / L,
+                           * (self.independent_vars['Kc'] * self.dependent_vars['rc']
+                              + self.independent_vars['Kd'] * self.dependent_vars['rd']) / L,
                            self.dependent_vars['rc'],
                            self.dependent_vars['rd'],
                            self.dependent_vars['w']]
@@ -432,12 +607,13 @@ class Integrate_Equations:
         data = np.zeros((len(t_values), len(columns)))
         for i, t in enumerate(t_values):
             if self.test:
-                self.progress(i, len(t_values), 'calculating dependant variables')
+                self._progress_report(i, len(t_values), 'calculating dependant variables')
             Yi = self.m_trajectory.loc[t]
             sbs = {var_symbol: Yi[var_name] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
             data[i, :] = [var.subs(sbs) for var in var_expressions]
 
         return pd.DataFrame(index=t_values, columns=columns, data=data)
+
 
 if __name__ == "__main__":
 
@@ -458,11 +634,12 @@ if __name__ == "__main__":
 
     input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
                         'b_c': 1., 'i_phi': 0.8, 'e': 100,
-                        'G_0': 100, 'b_r0': 0.1 ** 2 * 100,
+                        'G_0': 50, 'b_r0': 0.3 ** 2 * 100,
                         'possible_cue_orders': possible_cue_orders,
                         'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
                         'campaign': False, 'learning': True,
-                        'crs': True, 'test': True}
+                        'crs': True, 'test': True,
+                        'R_depletion': False}
 
     # investment_decisions
     opinions = []
@@ -490,13 +667,13 @@ if __name__ == "__main__":
 
     m = Integrate_Equations(*init_conditions, **input_parameters)
 
-    m.R_depletion = False
-    m.find_initial_conditions()
+    # m._setup_model()
+
     m.run(t_max=50)
 
     m.R_depletion = True
-    m.find_initial_conditions()
-    m.run(t_max=200)
+    m.set_parameters()
+    m.run(t_max=100)
 
     # Plot the results
 
@@ -518,4 +695,4 @@ if __name__ == "__main__":
     trj[['g']].plot(ax=ax4)
 
     fig.tight_layout()
-    plt.show()
+    fig.savefig('representative_agent_test.png')
