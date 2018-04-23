@@ -8,6 +8,7 @@ import sys
 import numpy as np
 import pandas as pd
 import sympy as sp
+import dill
 from scipy.integrate import odeint
 from sympy import lambdify
 from sympy.abc import epsilon, tau, phi
@@ -454,15 +455,30 @@ class Integrate_Equations:
                                    0])
 
         # After eliminating N, we can write down the first jump moment:
-        if self.test:
-            print('simplify PBP rhs')
-        rhsPBP = sp.Matrix(r * sp.Transpose(W))
-        rhsPBP = sp.Matrix(sp.simplify(rhsPBP))
-        if self.test:
-            print('simplifying eco switch terms')
-        rhsECO_switch = sp.simplify(rhsECO_switch.subs(subs1))
 
-        rhsECO = rhsECO + rhsECO_switch
+        # ToDo save simplified expressions.
+        try:
+            print('trying to load rhsECO')
+            with open('mean_rhsECO.dump', 'rb') as dmp:
+                rhsECO = dill.load(dmp)
+            with open('mean_rhsPBP.dump', 'rb') as dmp:
+                rhsPBP = dill.load(dmp)
+        except:
+            print('didnt work, recreating it')
+            if test:
+                print('simplify pair based proxy terms')
+            rhsPBP = sp.Matrix(r * sp.Transpose(W))
+            rhsPBP = sp.Matrix(rhsPBP)
+            if test:
+                print('simplify economic switching terms')
+            rhsECO_switch = sp.simplify(rhsECO_switch.subs(subs1))
+            if test:
+                print('done')
+            rhsECO = rhsECO + rhsECO_switch
+            with open('mean_rhsECO.dump', 'wb') as dmp:
+                dill.dump(rhsECO, dmp)
+            with open('mean_rhsPBP.dump', 'wb') as dmp:
+                dill.dump(rhsPBP, dmp)
 
         # Next, we have to write the economic system in terms of X, Y, Z and
         # then in terms of rescaled variables and check the dependency on the system size N:
@@ -692,17 +708,86 @@ class Integrate_Equations:
 
 
 if __name__ == '__main__':
+    # """
+    # Perform test run and plot some output to check
+    # functionality
+    # """
+    # import datetime
+    # import networkx as nx
+    # from random import shuffle
+    # import matplotlib.pyplot as plt
+    #
+    # output_location = 'test_output/' \
+    #                   + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
+    #
+    # # investment_decisions:
+    #
+    # nopinions = [50, 50]
+    # possible_cue_orders = [[0], [1]]
+    #
+    # # Parameters:
+    #
+    # input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
+    #                     'b_c': 1., 'i_phi': 0.8, 'e': 100,
+    #                     'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
+    #                     'possible_cue_orders': possible_cue_orders,
+    #                     'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
+    #                     'campaign': False, 'learning': True,
+    #                     'crs': True, 'imitation': 2, 'test': True,
+    #                     'R_depletion': False}
+    #
+    # # investment_decisions
+    # opinions = []
+    # for i, n in enumerate(nopinions):
+    #     opinions.append(np.full(n, i, dtype='I'))
+    # opinions = [item for sublist in opinions for item in sublist]
+    # shuffle(opinions)
+    #
+    # # network:
+    # N = sum(nopinions)
+    # p = .2
+    #
+    # while True:
+    #     net = nx.erdos_renyi_graph(N, p)
+    #     if len(list(net)) > 1:
+    #         break
+    # adjacency_matrix = nx.adj_matrix(net).toarray()
+    #
+    # # investment
+    # clean_investment = np.ones(N)
+    # dirty_investment = np.ones(N)
+    #
+    # init_conditions = (adjacency_matrix, opinions,
+    #                    clean_investment, dirty_investment)
+    #
+    # model = Integrate_Equations(*init_conditions, **input_parameters)
+    #
+    # model.run(t_max=500)
+    #
+    # trj = model.get_unified_trajectory()
+    #
+    # fig = plt.figure()
+    #
+    # ax1 = fig.add_subplot(221)
+    # trj[['k_c', 'k_d']].plot(ax=ax1)
+    #
+    # ax2 = fig.add_subplot(222)
+    # trj[['n_c']].plot(ax=ax2)
+    #
+    # ax3 = fig.add_subplot(223)
+    # trj[['c']].plot(ax=ax3)
+    #
+    # ax4 = fig.add_subplot(224)
+    # trj[['g']].plot(ax=ax4)
+    #
+    # fig.tight_layout()
     """
     Perform test run and plot some output to check
     functionality
     """
-    import datetime
     import networkx as nx
     from random import shuffle
     import matplotlib.pyplot as plt
-
-    output_location = 'test_output/' \
-                      + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
     # investment_decisions:
 
@@ -712,21 +797,22 @@ if __name__ == '__main__':
     # Parameters:
 
     input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
-                        'b_c': 0.4, 'i_phi': 0.9, 'e': 100,
-                        'G_0': 30000, 'b_r0': 0.1 ** 2 * 100,
+                        'b_c': 1., 'i_phi': 0.8, 'e': 100,
+                        'G_0': 50, 'b_r0': 0.3 ** 2 * 100,
                         'possible_cue_orders': possible_cue_orders,
                         'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
                         'campaign': False, 'learning': True,
-                        'crs': True, 'imitation': 2, 'test': True}
+                        'crs': True, 'test': True,
+                        'R_depletion': False}
 
     # investment_decisions
     opinions = []
     for i, n in enumerate(nopinions):
-        opinions.append(np.full(n, i, dtype='I'))
+        opinions.append(np.full((n), i, dtype='I'))
     opinions = [item for sublist in opinions for item in sublist]
     shuffle(opinions)
 
-    # network:
+    # network:.copy()
     N = sum(nopinions)
     p = .2
 
@@ -743,35 +829,34 @@ if __name__ == '__main__':
     init_conditions = (adjacency_matrix, opinions,
                        clean_investment, dirty_investment)
 
-    model = Integrate_Equations(*init_conditions, **input_parameters)
+    m = Integrate_Equations(*init_conditions, **input_parameters)
 
-    model.R_depletion = False
-    model.tau = 0.1
-    model.run(t_max=2)
+    # m._setup_model()
 
-    model.R_depletion = True
-    model.tau = 1.
-    model.set_parameters()
+    m.run(t_max=50)
 
-    model.run(t_max=4)
+    m.R_depletion = True
+    m.set_parameters()
+    m.run(t_max=150)
 
-    trj = model.get_unified_trajectory()
+    # Plot the results
 
-    print(trj)
+    trj = m.get_unified_trajectory()
 
     fig = plt.figure()
-
     ax1 = fig.add_subplot(221)
-    trj[['k_c', 'k_d']].plot(ax=ax1)
+    trj[['n_c']].plot(ax=ax1)
 
     ax2 = fig.add_subplot(222)
-    trj[['n_c']].plot(ax=ax2)
+    trj[['k_c', 'k_d']].plot(ax=ax2)
+    ax2b = ax2.twinx()
+    trj[['c']].plot(ax=ax2b, color='g')
 
     ax3 = fig.add_subplot(223)
-    trj[['c']].plot(ax=ax3)
+    trj[['r_c', 'r_d']].plot(ax=ax3)
 
     ax4 = fig.add_subplot(224)
     trj[['g']].plot(ax=ax4)
 
-    plt.show()
+    fig.tight_layout()
     plt.savefig('mean_approximation_test.png')

@@ -7,6 +7,7 @@ import sys
 import numpy as np
 import pandas as pd
 import sympy as sp
+import dill
 from scipy.integrate import odeint
 from sympy import lambdify
 from sympy.abc import epsilon, tau, phi
@@ -341,7 +342,6 @@ class Integrate_Equations:
         p5 = 1. / tau * (1 - phi) * epsilon * (1. / 2) * Nc / N  # c -> d
         p6 = 1. / tau * (1 - phi) * epsilon * (1. / 2) * Nd / N  # d -> c
 
-        # ToDo: Check, if these probs are correct. I suspect them to forget, that also in Noise events
         # there might be no change. e.g. c-c -> c-c
         p7 = 1. / tau * phi * epsilon * Nc / N * (2 * cc) / (2 * cc + cd) * Nd / N  # c-c -> c-d
         p8 = 1. / tau * phi * epsilon * Nc / N * cd / (2 * cc + cd) * Nc / N  # c-d -> c-c
@@ -439,12 +439,29 @@ class Integrate_Equations:
 
         # After eliminating N, we can write down the first jump moment:
 
-        rhsPBP = sp.Matrix(r * sp.Transpose(W))
-        rhsPBP = sp.Matrix(sp.simplify(rhsPBP))
-
-        rhsECO_switch = sp.simplify(rhsECO_switch.subs(subs1))
-
-        rhsECO = rhsECO + rhsECO_switch
+        # ToDo save simplified expressions.
+        try:
+            print('trying to load rhsECO')
+            with open('agg_rhsECO.dump', 'rb') as dmp:
+                rhsECO = dill.load(dmp)
+            with open('agg_rhsPBP.dump', 'rb') as dmp:
+                rhsPBP = dill.load(dmp)
+        except:
+            print('didnt work, recreating it')
+            if test:
+                print('simplify pair based proxy terms')
+            rhsPBP = sp.Matrix(r * sp.Transpose(W))
+            rhsPBP = sp.Matrix(rhsPBP)
+            if test:
+                print('simplify economic switching terms')
+            rhsECO_switch = sp.simplify(rhsECO_switch.subs(subs1))
+            if test:
+                print('done')
+            rhsECO = rhsECO + rhsECO_switch
+            with open('agg_rhsECO.dump', 'wb') as dmp:
+                dill.dump(rhsECO, dmp)
+            with open('agg_rhsPBP.dump', 'wb') as dmp:
+                dill.dump(rhsPBP, dmp)
 
         # Next, we have to write the economic system in terms of X, Y, Z and
         # then in terms of rescaled variables and check the dependency on the system size N:
@@ -686,8 +703,8 @@ if __name__ == '__main__':
     # Parameters:
 
     input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
-                        'b_c': 0.4, 'i_phi': 0.8, 'e': 100,
-                        'G_0': 30000, 'b_r0': 0.1 ** 2 * 100,
+                        'b_c': 1., 'i_phi': 0.8, 'e': 100,
+                        'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
                         'possible_cue_orders': possible_cue_orders,
                         'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
                         'campaign': False, 'learning': True,
@@ -722,8 +739,6 @@ if __name__ == '__main__':
     model.run(t_max=500)
 
     trj = model.get_unified_trajectory()
-
-    print(trj)
 
     fig = plt.figure()
 
