@@ -248,7 +248,6 @@ def run_experiment(argv):
     SAVE_PATH_RES = \
         "{}/{}{}/{}/" \
         .format(respath, test_folder, folder, sub_experiment)
-    print(SAVE_PATH_RES)
     """
     create parameter combinations and index
     """
@@ -294,7 +293,6 @@ def run_experiment(argv):
 
     # cluster mode: computation and post processing
     if mode == 0:
-        print('calculating {}: {}'.format(approximate, sub_experiment))
         sys.stdout.flush()
         SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
         handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
@@ -312,14 +310,11 @@ def run_experiment(argv):
                                      SAVE_PATH_RAW, SAVE_PATH_RES)
 
         if approximate == 1:
-            print('post processing micro model')
             handle.resave(EVA1, NAME1)
             handle.resave(EVA2, NAME2)
         elif approximate == 2:
-            print('post processing mean macro approximation')
             handle.resave(EVA1, NAME1)
         elif approximate == 3:
-            print('post processing aggregate macro approximation')
             handle.resave(EVA2, NAME2)
 
         return 1
