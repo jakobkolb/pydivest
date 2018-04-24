@@ -2,13 +2,12 @@
 
 from __future__ import print_function
 
-import pickle as pkl
 import sys
 
+import dill
 import numpy as np
 import pandas as pd
 import sympy as sp
-import dill
 from scipy.integrate import odeint
 from sympy import lambdify
 from sympy.abc import epsilon, tau, phi
@@ -456,7 +455,6 @@ class Integrate_Equations:
 
         # After eliminating N, we can write down the first jump moment:
 
-        # ToDo save simplified expressions.
         try:
             print('trying to load rhsECO')
             with open('mean_rhsECO.dump', 'rb') as dmp:
@@ -549,6 +547,9 @@ class Integrate_Equations:
         # link parameter symbols to values,
         subs_params = {symbol: value for symbol, value
                        in zip(self.param_symbols, param_values)}
+
+        if self.test:
+            print(subs_params)
 
         # replace parameter symbols in raw rhs,
         self.rhs = self.rhs_raw.subs(subs_params)
@@ -675,13 +676,16 @@ class Integrate_Equations:
                            ]
         t_values = self.m_trajectory.index.values
         data = np.zeros((len(t_values), len(columns)))
+        var_expressions_lambdified = [lambdify(tuple(self.var_symbols), expr)
+                                      for expr in var_expressions]
         for i, t in enumerate(t_values):
             if self.test:
                 self.progress(i, len(t_values), 'calculating dependant variables')
             Yi = self.m_trajectory.loc[t]
             try:
                 sbs = {var_symbol: Yi[var_name] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
-                data[i, :] = [var.subs(sbs) for var in var_expressions]
+                # data[i, :] = [var.subs(sbs) for var in var_expressions]
+                data[i, :] = [expr(*Yi) for expr in var_expressions_lambdified]
             except TypeError:
                 # catching double entries from piecewise runs
                 # resulting in end of one piece and start of
@@ -689,7 +693,8 @@ class Integrate_Equations:
                 try:
                     Yi = Yi.iloc[0]
                     sbs = {var_symbol: Yi[var_name] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
-                    data[i, :] = [var.subs(sbs) for var in var_expressions]
+                    # data[i, :] = [var.subs(sbs) for var in var_expressions]
+                    data[i, :] = [expr(*Yi) for expr in var_expressions_lambdified]
                 except TypeError:
                     print('Type Error at t={} in getting unified trajectory '
                           'for phi={}, tau={}, p_d={}, eps={}'.format(t, self.phi, self.tau, self.b_d, self.eps),
@@ -796,67 +801,93 @@ if __name__ == '__main__':
 
     # Parameters:
 
-    input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
-                        'b_c': 1., 'i_phi': 0.8, 'e': 100,
-                        'G_0': 50, 'b_r0': 0.3 ** 2 * 100,
-                        'possible_cue_orders': possible_cue_orders,
-                        'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
-                        'campaign': False, 'learning': True,
-                        'crs': True, 'test': True,
-                        'R_depletion': False}
+    for t_tau in [0.1, 0.5, 1., 2., 5., 10.]:
+        print(t_tau, type(t_tau))
+        input_parameters = {'i_tau': t_tau, 'eps': 0.05, 'b_d': 1.4,
+                            'b_c': 1., 'i_phi': 0.95, 'e': 100,
+                            'G_0': 800, 'b_r0': 0.3 ** 2 * 100,
+                            'possible_cue_orders': possible_cue_orders,
+                            'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
+                            'campaign': False, 'learning': True,
+                            'crs': True, 'test': True,
+                            'R_depletion': False}
 
-    # investment_decisions
-    opinions = []
-    for i, n in enumerate(nopinions):
-        opinions.append(np.full((n), i, dtype='I'))
-    opinions = [item for sublist in opinions for item in sublist]
-    shuffle(opinions)
+        # investment_decisions
+        opinions = []
+        for i, n in enumerate(nopinions):
+            opinions.append(np.full((n), i, dtype='I'))
+        opinions = [item for sublist in opinions for item in sublist]
+        shuffle(opinions)
 
-    # network:.copy()
-    N = sum(nopinions)
-    p = .2
+        # network:.copy()
+        N = sum(nopinions)
+        p = .2
 
-    while True:
-        net = nx.erdos_renyi_graph(N, p)
-        if len(list(net)) > 1:
-            break
-    adjacency_matrix = nx.adj_matrix(net).toarray()
+        while True:
+            net = nx.erdos_renyi_graph(N, p)
+            if len(list(net)) > 1:
+                break
+        adjacency_matrix = nx.adj_matrix(net).toarray()
 
-    # investment
-    clean_investment = np.ones(N)
-    dirty_investment = np.ones(N)
+        # investment
+        clean_investment = np.ones(N)
+        dirty_investment = np.ones(N)
 
-    init_conditions = (adjacency_matrix, opinions,
-                       clean_investment, dirty_investment)
+        init_conditions = (adjacency_matrix, opinions,
+                           clean_investment, dirty_investment)
 
-    m = Integrate_Equations(*init_conditions, **input_parameters)
+        m = Integrate_Equations(*init_conditions, **input_parameters)
 
-    # m._setup_model()
 
-    m.run(t_max=50)
+        t_eq = 10000
+        # equilibration phase
+        t_max = t_eq  # if not test else 2
+        m.R_depletion = False
+        m.run(t_max=t_max)
 
-    m.R_depletion = True
-    m.set_parameters()
-    m.run(t_max=150)
+        # ONLY KEEPING THIS.
+        # intermediate phase with original tau but still no resource depletion
+        # to verify that the equilibrium distribution of investment decisions
+        # is in fact independent from tau
 
-    # Plot the results
+        t_max += 200  # if not test else 2
+        m.R_depletion = False
+        m.tau = t_tau
+        m.set_parameters()
+        m.run(t_max=t_max)
 
-    trj = m.get_unified_trajectory()
+        # transition phase with resource depletion
 
-    fig = plt.figure()
-    ax1 = fig.add_subplot(221)
-    trj[['n_c']].plot(ax=ax1)
+        t_max += 600
+        m.R_depletion = True
+        exit_status = m.run(t_max=t_max)
 
-    ax2 = fig.add_subplot(222)
-    trj[['k_c', 'k_d']].plot(ax=ax2)
-    ax2b = ax2.twinx()
-    trj[['c']].plot(ax=ax2b, color='g')
+        # Plot the results
 
-    ax3 = fig.add_subplot(223)
-    trj[['r_c', 'r_d']].plot(ax=ax3)
+        trj = m.get_unified_trajectory()[t_eq:]
 
-    ax4 = fig.add_subplot(224)
-    trj[['g']].plot(ax=ax4)
+        fig = plt.figure()
 
-    fig.tight_layout()
-    plt.savefig('mean_approximation_test.png')
+        ax1 = fig.add_subplot(221)
+        trj[['n_c']].plot(ax=ax1)
+        ax1.set_ylim([0.1, 1.])
+        ax1.grid()
+        ax1.set_title('tau = {}'.format(t_tau))
+
+        ax2 = fig.add_subplot(222)
+        trj[['k_c', 'k_d']].plot(ax=ax2)
+        ax2.set_ylim([0., 18])
+        ax2b = ax2.twinx()
+        trj[['c']].plot(ax=ax2b, color='g')
+        ax2b.set_ylim([0., 85.])
+
+
+        ax3 = fig.add_subplot(223)
+        trj[['r_c', 'r_d']].plot(ax=ax3)
+        ax3.set_ylim([0., 0.2])
+
+        ax4 = fig.add_subplot(224)
+        trj[['g']].plot(ax=ax4)
+
+        fig.tight_layout()
+        plt.savefig('mean_approximation_test_{0:2.2f}.png'.format(m.tau))

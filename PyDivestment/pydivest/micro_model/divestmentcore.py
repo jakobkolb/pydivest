@@ -786,6 +786,10 @@ class DivestmentCore:
             dtype='float')
         return x1
 
+    def set_parameters(self):
+        """Mock the set_parameters function of approximations but do nothing"""
+        pass
+
     def update_economy(self, update_time):
         """
         Integrates the economic equations of the
@@ -1391,7 +1395,7 @@ if __name__ == '__main__':
         + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
     # Initial conditions:
-    FFH = True
+    FFH = False
 
     if FFH:
         nopinions = [10, 10, 10, 10, 10, 10, 10, 10]
@@ -1412,102 +1416,80 @@ if __name__ == '__main__':
 
     if not FFH:
         # investment_decisions:
-        nopinions = [10, 10]
+
+        nopinions = [50, 50]
         possible_cue_orders = [[0], [1]]
 
         # Parameters:
 
-        input_parameters = {'i_tau': 1, 'eps': 0.01, 'b_d': 1.2,
-                            'b_c': 1., 'i_phi': 0.8, 'e': 100,
-                            'G_0': 800, 'b_r0': 0.1 ** 2 * 100,
-                            'possible_cue_orders': possible_cue_orders,
-                            'C': 1, 'xi': 1. / 8., 'beta': 0.06,
-                            'campaign': False, 'learning': True}
+        for t_tau in [0.1, 0.5, 1., 2., 5., 10.]:
+            print(t_tau, type(t_tau))
+            input_parameters = {'i_tau': t_tau, 'eps': 0.05, 'b_d': 1.4,
+                                'b_c': 1., 'i_phi': 0.95, 'e': 100,
+                                'G_0': 50, 'b_r0': 0.3 ** 2 * 100,
+                                'possible_cue_orders': possible_cue_orders,
+                                'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
+                                'campaign': False, 'learning': True,
+                                'crs': True, 'test': True,
+                                'R_depletion': False}
 
-    cops = ['c' + str(x) for x in possible_cue_orders]
-    dops = ['d' + str(x) for x in possible_cue_orders]
-    colors = [np.random.rand(3, 1) for x in possible_cue_orders]
-    colors = colors + colors
+            # investment_decisions
+            opinions = []
+            for i, n in enumerate(nopinions):
+                opinions.append(np.full((n), i, dtype='I'))
+            opinions = [item for sublist in opinions for item in sublist]
+            shuffle(opinions)
 
-    opinions = []
-    for i, n in enumerate(nopinions):
-        opinions.append(np.full((n), i, dtype='I'))
-    opinions = [item for sublist in opinions for item in sublist]
-    shuffle(opinions)
+            # network:.copy()
+            N = sum(nopinions)
+            p = .2
 
-    # network:
-    N = sum(nopinions)
-    p = 10. / N
+            while True:
+                net = nx.erdos_renyi_graph(N, p)
+                if len(list(net)) > 1:
+                    break
+            adjacency_matrix = nx.adj_matrix(net).toarray()
 
-    while True:
-        net = nx.erdos_renyi_graph(N, p)
-        if len(list(net)) > 1:
-            break
-    adjacency_matrix = nx.adj_matrix(net).toarray()
+            # investment
+            clean_investment = np.ones(N)
+            dirty_investment = np.ones(N)
 
-    (mucc, mucd, mudc, mudd) = (1, 1, 1, 1)
+            init_conditions = (adjacency_matrix, opinions,
+                               clean_investment, dirty_investment)
 
-    op = np.array(opinions)
+            m = DivestmentCore(*init_conditions, **input_parameters)
 
-    clean_investment = mucc * (op) + mudc * (1 - op)
-    dirty_investment = mucd * (op) + mudd * (1 - op)
+            m.run(t_max=15000)
 
-    init_conditions = (adjacency_matrix, opinions,
-                       clean_investment, dirty_investment)
+            m.R_depletion = True
+            m.set_parameters()
+            m.run(t_max=20000)
 
-    # Initialize Model
+            # Plot the results
 
-    model = DivestmentCore(*init_conditions,
-                           **input_parameters)
+            trj = m.get_unified_trajectory()
 
-    print('heuristic decision making', model.heuristic_decision_making)
+            fig = plt.figure()
 
-    # Turn off economic trajectory
-    model.e_trajectory_output = True
+            ax1 = fig.add_subplot(221)
+            trj[['n_c']].plot(ax=ax1)
+            ax1.set_ylim([0.1, 1.])
+            ax1.grid()
+            ax1.set_title('tau = {}'.format(t_tau))
 
-    # Turn on debugging
-    model.debug = True
+            ax2 = fig.add_subplot(222)
+            trj[['k_c', 'k_d']].plot(ax=ax2)
+            ax2.set_ylim([0., 18])
+            ax2b = ax2.twinx()
+            trj[['c']].plot(ax=ax2b, color='g')
+            ax2b.set_ylim([0., 85.])
 
-    # Run Model
-    model.R_depletion = False
-    model.run(t_max=100)
-    model.R_depletion = True
-    model.run(t_max=600)
+            ax3 = fig.add_subplot(223)
+            trj[['r_c', 'r_d']].plot(ax=ax3)
+            ax3.set_ylim([0., 0.2])
 
-    # Print some output
+            ax4 = fig.add_subplot(224)
+            trj[['g']].plot(ax=ax4)
 
-    print(connected_components(model.neighbors, directed=False))
-    print('investment decisions:')
-    print(model.investment_decisions)
-    print('consensus reached?', model.converged)
-    print(model.convergence_state)
-    print('finish time', model.t)
-    print('steps computed', model.steps)
-
-    model.get_unified_trajectory()
-
-    colors = [c for c in 'gk']
-
-    df = model.get_unified_trajectory()
-    print(df.columns)
-    columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r', 'n_c', 'i_c',
-               'r_c', 'r_d', 'w', 'W_c', 'W_d']
-    fig = mp.figure()
-    ax1 = fig.add_subplot(221)
-    df[['r_c', 'r_d']].plot(ax=ax1, style=colors)
-    ax1b = ax1.twinx()
-    df[['w']].plot(ax=ax1b)
-
-    ax2 = fig.add_subplot(223)
-    df[['n_c']].plot(ax=ax2)
-
-    ax3 = fig.add_subplot(224)
-    df[['k_c', 'k_d']].plot(ax=ax3, style=colors)
-
-    ax4 = fig.add_subplot(222)
-    df[['g']].plot(ax=ax4, style=colors[1])
-    ax5 = ax4.twinx()
-    df[['c']].plot(ax=ax5, style=colors[0])
-
-    fig.tight_layout()
-    fig.savefig('example_trajectory.png')
+            fig.tight_layout()
+            plt.savefig('mean_approximation_test_{0:2.2f}.png'.format(m.tau))
