@@ -125,23 +125,25 @@ def RUN_FUNC(tau, phi, eps, approximate, test, filename):
     # run the model
     t_start = time.clock()
 
+    # THIS TURNED OUT TO BE TROUBLE! SINCE THE EQUILIBRIUM STATE APPARENTLY DEPENDS ON TAU
+    # (even though i'm sure it is not supposed to.)
+
     # equilibration phase with small tau
     # to reach equilibrium distribution of
     # investment decisions
-    t_max = 50 #if not test else 2
+    t_max = 10000 #if not test else 2
     m.R_depletion = False
-    m.tau = 0.1
     m.run(t_max=t_max)
 
+    # ONLY KEEPING THIS.
     # intermediate phase with original tau but still no resource depletion
     # to verify that the equilibrium distribution of investment decisions
     # is in fact independent from tau
 
-    t_max += 400 #if not test else 2
+    t_max += 200 #if not test else 2
     m.R_depletion = False
     m.tau = tau
-    if approximate in [2, 3]:
-        m.set_parameters()
+    m.set_parameters()
     m.run(t_max=t_max)
 
     # transition phase with resource depletion
