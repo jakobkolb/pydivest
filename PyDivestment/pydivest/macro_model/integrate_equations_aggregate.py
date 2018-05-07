@@ -454,7 +454,7 @@ class Integrate_Equations:
             rhsPBP = sp.Matrix(rhsPBP)
             if test:
                 print('simplify economic switching terms')
-            rhsECO_switch = sp.simplify(rhsECO_switch.subs(subs1))
+            rhsECO_switch = rhsECO_switch.subs(subs1)
             if test:
                 print('done')
             rhsECO = rhsECO + rhsECO_switch

@@ -702,97 +702,46 @@ class Integrate_Equations:
                     print(Yi)
                     print('returning functional part of trajectory', flush=True)
                     # return -1
+                except IndexError:
+                    print(Yi)
+                except ZeroDivisionError:
+                    print('zero division encountered in calculation of dependent variables at t={}'.format(t))
+                    print(Yi)
+                    pass
+                except OverflowError:
+                    print('overflow encountered in calculation of dependent variables at t={}'.format(t))
+                    print(Yi)
+                    pass
             except ValueError:
                 print('Value Error at t={} in getting unified trajectory '
                       'for phi={}, tau={}, p_d={}, eps={}'.format(t, self.phi, self.tau, self.b_d, self.eps),
                       flush=True)
                 print('returning functional part of trajectory', flush=True)
                 # return -2
+            except ZeroDivisionError:
+                print('zero division encountered in calculation of dependent variables at t={}'.format(t))
+                print(Yi)
+                pass
+            except OverflowError:
+                print('overflow encountered in calculation of dependent variables at t={}'.format(t))
+                print(Yi)
+                pass
 
         return pd.DataFrame(index=t_values, columns=columns, data=data)
 
 
 if __name__ == '__main__':
-    # """
-    # Perform test run and plot some output to check
-    # functionality
-    # """
-    # import datetime
-    # import networkx as nx
-    # from random import shuffle
-    # import matplotlib.pyplot as plt
-    #
-    # output_location = 'test_output/' \
-    #                   + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
-    #
-    # # investment_decisions:
-    #
-    # nopinions = [50, 50]
-    # possible_cue_orders = [[0], [1]]
-    #
-    # # Parameters:
-    #
-    # input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
-    #                     'b_c': 1., 'i_phi': 0.8, 'e': 100,
-    #                     'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
-    #                     'possible_cue_orders': possible_cue_orders,
-    #                     'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
-    #                     'campaign': False, 'learning': True,
-    #                     'crs': True, 'imitation': 2, 'test': True,
-    #                     'R_depletion': False}
-    #
-    # # investment_decisions
-    # opinions = []
-    # for i, n in enumerate(nopinions):
-    #     opinions.append(np.full(n, i, dtype='I'))
-    # opinions = [item for sublist in opinions for item in sublist]
-    # shuffle(opinions)
-    #
-    # # network:
-    # N = sum(nopinions)
-    # p = .2
-    #
-    # while True:
-    #     net = nx.erdos_renyi_graph(N, p)
-    #     if len(list(net)) > 1:
-    #         break
-    # adjacency_matrix = nx.adj_matrix(net).toarray()
-    #
-    # # investment
-    # clean_investment = np.ones(N)
-    # dirty_investment = np.ones(N)
-    #
-    # init_conditions = (adjacency_matrix, opinions,
-    #                    clean_investment, dirty_investment)
-    #
-    # model = Integrate_Equations(*init_conditions, **input_parameters)
-    #
-    # model.run(t_max=500)
-    #
-    # trj = model.get_unified_trajectory()
-    #
-    # fig = plt.figure()
-    #
-    # ax1 = fig.add_subplot(221)
-    # trj[['k_c', 'k_d']].plot(ax=ax1)
-    #
-    # ax2 = fig.add_subplot(222)
-    # trj[['n_c']].plot(ax=ax2)
-    #
-    # ax3 = fig.add_subplot(223)
-    # trj[['c']].plot(ax=ax3)
-    #
-    # ax4 = fig.add_subplot(224)
-    # trj[['g']].plot(ax=ax4)
-    #
-    # fig.tight_layout()
     """
     Perform test run and plot some output to check
     functionality
     """
+    import datetime
     import networkx as nx
     from random import shuffle
     import matplotlib.pyplot as plt
+
+    output_location = 'test_output/' \
+                      + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
     # investment_decisions:
 
@@ -801,93 +750,165 @@ if __name__ == '__main__':
 
     # Parameters:
 
-    for t_tau in [0.1, 0.5, 1., 2., 5., 10.]:
-        print(t_tau, type(t_tau))
-        input_parameters = {'i_tau': t_tau, 'eps': 0.05, 'b_d': 1.4,
-                            'b_c': 1., 'i_phi': 0.95, 'e': 100,
-                            'G_0': 800, 'b_r0': 0.3 ** 2 * 100,
-                            'possible_cue_orders': possible_cue_orders,
-                            'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
-                            'campaign': False, 'learning': True,
-                            'crs': True, 'test': True,
-                            'R_depletion': False}
+    input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
+                        'b_c': 1., 'i_phi': 0.8, 'e': 100,
+                        'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
+                        'possible_cue_orders': possible_cue_orders,
+                        'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
+                        'campaign': False, 'learning': True,
+                        'crs': True, 'imitation': 2, 'test': True}
 
-        # investment_decisions
-        opinions = []
-        for i, n in enumerate(nopinions):
-            opinions.append(np.full((n), i, dtype='I'))
-        opinions = [item for sublist in opinions for item in sublist]
-        shuffle(opinions)
+    # investment_decisions
+    opinions = []
+    for i, n in enumerate(nopinions):
+        opinions.append(np.full(n, i, dtype='I'))
+    opinions = [item for sublist in opinions for item in sublist]
+    shuffle(opinions)
 
-        # network:.copy()
-        N = sum(nopinions)
-        p = .2
+    # network:
+    N = sum(nopinions)
+    p = .2
 
-        while True:
-            net = nx.erdos_renyi_graph(N, p)
-            if len(list(net)) > 1:
-                break
-        adjacency_matrix = nx.adj_matrix(net).toarray()
+    while True:
+        net = nx.erdos_renyi_graph(N, p)
+        if len(list(net)) > 1:
+            break
+    adjacency_matrix = nx.adj_matrix(net).toarray()
 
-        # investment
-        clean_investment = np.ones(N)
-        dirty_investment = np.ones(N)
+    # investment
+    clean_investment = np.ones(N)
+    dirty_investment = np.ones(N)
 
-        init_conditions = (adjacency_matrix, opinions,
-                           clean_investment, dirty_investment)
+    init_conditions = (adjacency_matrix, opinions,
+                       clean_investment, dirty_investment)
 
-        m = Integrate_Equations(*init_conditions, **input_parameters)
+    model = Integrate_Equations(*init_conditions, **input_parameters)
 
+    model.run(t_max=500)
 
-        t_eq = 10000
-        # equilibration phase
-        t_max = t_eq  # if not test else 2
-        m.R_depletion = False
-        m.run(t_max=t_max)
+    trj = model.get_unified_trajectory()
 
-        # ONLY KEEPING THIS.
-        # intermediate phase with original tau but still no resource depletion
-        # to verify that the equilibrium distribution of investment decisions
-        # is in fact independent from tau
+    fig = plt.figure()
 
-        t_max += 200  # if not test else 2
-        m.R_depletion = False
-        m.tau = t_tau
-        m.set_parameters()
-        m.run(t_max=t_max)
+    ax1 = fig.add_subplot(221)
+    trj[['k_c', 'k_d']].plot(ax=ax1)
 
-        # transition phase with resource depletion
+    ax2 = fig.add_subplot(222)
+    trj[['n_c']].plot(ax=ax2)
 
-        t_max += 600
-        m.R_depletion = True
-        exit_status = m.run(t_max=t_max)
+    ax3 = fig.add_subplot(223)
+    trj[['c']].plot(ax=ax3)
 
-        # Plot the results
+    ax4 = fig.add_subplot(224)
+    trj[['g']].plot(ax=ax4)
 
-        trj = m.get_unified_trajectory()[t_eq:]
+    fig.tight_layout()
+    fig.savefig('mean_approximation_test.png')
 
-        fig = plt.figure()
-
-        ax1 = fig.add_subplot(221)
-        trj[['n_c']].plot(ax=ax1)
-        ax1.set_ylim([0.1, 1.])
-        ax1.grid()
-        ax1.set_title('tau = {}'.format(t_tau))
-
-        ax2 = fig.add_subplot(222)
-        trj[['k_c', 'k_d']].plot(ax=ax2)
-        ax2.set_ylim([0., 18])
-        ax2b = ax2.twinx()
-        trj[['c']].plot(ax=ax2b, color='g')
-        ax2b.set_ylim([0., 85.])
-
-
-        ax3 = fig.add_subplot(223)
-        trj[['r_c', 'r_d']].plot(ax=ax3)
-        ax3.set_ylim([0., 0.2])
-
-        ax4 = fig.add_subplot(224)
-        trj[['g']].plot(ax=ax4)
-
-        fig.tight_layout()
-        plt.savefig('mean_approximation_test_{0:2.2f}.png'.format(m.tau))
+    # """
+    # Perform test run and plot some output to check
+    # functionality
+    # """
+    # import networkx as nx
+    # from random import shuffle
+    # import matplotlib.pyplot as plt
+    #
+    # # investment_decisions:
+    #
+    # nopinions = [50, 50]
+    # possible_cue_orders = [[0], [1]]
+    #
+    # # Parameters:
+    #
+    # for t_phi in [0.2, 0.5, 0.7, 0.95]:
+    #     for t_eps in [0.02, 0.05]:
+    #         for t_tau in [0.1, 0.5, 1., 2., 5., 10.]:
+    #             print(t_tau, t_eps, t_phi)
+    #             input_parameters = {'i_tau': t_tau, 'eps': t_eps, 'b_d': 1.4,
+    #                                 'b_c': 1., 'i_phi': t_phi, 'e': 100,
+    #                                 'G_0': 800, 'b_r0': 0.3 ** 2 * 100,
+    #                                 'possible_cue_orders': possible_cue_orders,
+    #                                 'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
+    #                                 'campaign': False, 'learning': True,
+    #                                 'crs': True, 'test': True,
+    #                                 'R_depletion': False}
+    #
+    #             # investment_decisions
+    #             opinions = []
+    #             for i, n in enumerate(nopinions):
+    #                 opinions.append(np.full((n), i, dtype='I'))
+    #             opinions = [item for sublist in opinions for item in sublist]
+    #             shuffle(opinions)
+    #
+    #             # network:.copy()
+    #             N = sum(nopinions)
+    #             p = .2
+    #
+    #             while True:
+    #                 net = nx.erdos_renyi_graph(N, p)
+    #                 if len(list(net)) > 1:
+    #                     break
+    #             adjacency_matrix = nx.adj_matrix(net).toarray()
+    #
+    #             # investment
+    #             clean_investment = np.ones(N)
+    #             dirty_investment = np.ones(N)
+    #
+    #             init_conditions = (adjacency_matrix, opinions,
+    #                                clean_investment, dirty_investment)
+    #
+    #             m = Integrate_Equations(*init_conditions, **input_parameters)
+    #
+    #
+    #             t_eq = 10000
+    #             # equilibration phase
+    #             t_max = t_eq  # if not test else 2
+    #             m.R_depletion = False
+    #             m.run(t_max=t_max)
+    #
+    #             # ONLY KEEPING THIS.
+    #             # intermediate phase with original tau but still no resource depletion
+    #             # to verify that the equilibrium distribution of investment decisions
+    #             # is in fact independent from tau
+    #
+    #             t_max += 200  # if not test else 2
+    #             m.R_depletion = False
+    #             m.tau = t_tau
+    #             m.set_parameters()
+    #             m.run(t_max=t_max)
+    #
+    #             # transition phase with resource depletion
+    #
+    #             t_max += 600
+    #             m.R_depletion = True
+    #             exit_status = m.run(t_max=t_max)
+    #
+    #             # Plot the results
+    #
+    #             trj = m.get_unified_trajectory()[t_eq:]
+    #
+    #             fig = plt.figure()
+    #
+    #             ax1 = fig.add_subplot(221)
+    #             trj[['n_c']].plot(ax=ax1)
+    #             ax1.set_ylim([0., 1.])
+    #             ax1.grid()
+    #             ax1.set_title('tau = {}'.format(t_tau))
+    #
+    #             ax2 = fig.add_subplot(222)
+    #             trj[['k_c', 'k_d']].plot(ax=ax2)
+    #             ax2.set_ylim([0., 20])
+    #             ax2b = ax2.twinx()
+    #             trj[['c']].plot(ax=ax2b, color='g')
+    #             ax2b.set_ylim([0., 85.])
+    #
+    #
+    #             ax3 = fig.add_subplot(223)
+    #             trj[['r_c', 'r_d']].plot(ax=ax3)
+    #             ax3.set_ylim([0., 0.22])
+    #
+    #             ax4 = fig.add_subplot(224)
+    #             trj[['g']].plot(ax=ax4)
+    #
+    #             fig.tight_layout()
+    #             plt.savefig('mean_approximation_test_{0:2.2f}_{2:2.2f}_eps{1:2.2f}.png'.format(m.tau, m.eps, m.phi))
