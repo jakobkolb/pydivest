@@ -197,9 +197,13 @@ class Integrate_Equations:
         # Dynamic equations for the economic variables depending on n,
         # the fraction of savings going into the clean sector
 
-        subs5 = {dKc: n * rs * (rc * Kc + rd * Kd + w * L) - delta * Kc,
-                 dKd: - delta * Kd + (1 - n) * rs * (rc * Kc + rd * Kd + w * L),
-                 dC: bc * Lc ** pi * Kc ** kappac * C ** xi - delta * C,
+        # ToDo: find better fix.
+        # Hacky lower bound for Capital and Knowledge to prevent breakdown of solver in long runs.
+        lb = 1e-9
+
+        subs5 = {dKc: n * rs * (rc * Kc + rd * Kd + w * L) - delta * (Kc - lb),
+                 dKd: - delta * (Kd - lb) + (1 - n) * rs * (rc * Kc + rd * Kd + w * L),
+                 dC: bc * Lc ** pi * Kc ** kappac * C ** xi - delta * (C - lb),
                  dG: -R}
 
         # For the case of infinite fossil resources, we copy the above dynamic equations and
@@ -383,8 +387,6 @@ class Integrate_Equations:
         rc = float(self.dependent_vars['rc'].subs(subs_ini))
         rd = float(self.dependent_vars['rd'].subs(subs_ini))
 
-        print('rc = {}, rd = {}'.format(rc, rd))
-
         n = self.var_symbols[4]
 
         # set n and switches according to capital returns
@@ -455,6 +457,8 @@ class Integrate_Equations:
 
         # Define the problem for Assimulo with Y0 and Yd0
         def prep_rhs(t, Y, Yd, sw):
+
+            print('t = {}, Y = {}'.format(t, Y))
 
             # ToDo: Cleanup
             if self.lambdify:
