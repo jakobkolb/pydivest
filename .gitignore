@@ -88,3 +88,5 @@ PyDivestment/pymofa
 #pycharm project files
 .idea/
 
+#pickle dump files for sympy expressions
+*.dump
