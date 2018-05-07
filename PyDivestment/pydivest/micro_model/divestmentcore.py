@@ -22,7 +22,7 @@ class DivestmentCore:
                  b_c=1., b_d=1.5, s=0.23, d_c=0.06,
                  b_r0=1., e=10,
                  xi=1./8., pi=1./2., kappa_c=1./2., kappa_d=1./2.,
-                 resource_depletion=True, test=False,
+                 R_depletion=True, test=False,
                  beta=0.06, learning=False,
                  campaign=False, interaction=1, crs=True, **kwargs):
         """
@@ -67,7 +67,7 @@ class DivestmentCore:
                     Resource cost factor
                 e: float
                     Resource efficiency in the dirty sector
-                resource_depletion: bool
+                R_depletion: bool
                     Switch to turn resource depreciation on or off
                 test: bool
                     switch for verbose output for debugging
@@ -88,6 +88,12 @@ class DivestmentCore:
                     if 2: (Wi-Wj)/(Wi+Wj) interaction.
                 t_trend: float
                     length of running window average that chartes use to predict trends
+
+                Optional
+                --------
+                trj_output_window: list
+                    list of length two containing the beginning and end time of the trajectory output window.
+                    if none is given, the trajectory contains the entire run.
                 """
 
         if test:
@@ -99,11 +105,19 @@ class DivestmentCore:
 
         self.mode = 2
 
-        # if 0: tanh(Wi-Wj) interaction,
-        # if 1: interaction as in Traulsen, 2010 but with relative differences
-        # if 2: (Wi-Wj)/(Wi+Wj) interaction.
+        # Agent Interactions:
+        #  if 0: tanh(Wi-Wj) interaction,
+        #  if 1: interaction as in Traulsen, 2010 but with relative differences
+        #  if 2: (Wi-Wj)/(Wi+Wj) interaction.
 
         self.interaction = interaction
+
+        # trajectory output time window
+        if 'trj_output_window' in kwargs.keys():
+            print('found trj_output_window')
+            self.trj_output_window = kwargs['trj_output_window']
+        else:
+            self.trj_output_window = [0, np.float('inf')]
 
         if possible_cue_orders is None:
             possible_cue_orders = [[0], [1]]
@@ -127,7 +141,7 @@ class DivestmentCore:
         # toggle whether to run full time or only until consensus
         self.run_full_time = True
         # toggle resource depletion
-        self.R_depletion = resource_depletion
+        self.R_depletion = R_depletion
         # toggle learning by doing
         self.learning = learning
         # toggle campaigning
@@ -580,7 +594,7 @@ class DivestmentCore:
             'C': self.C, 'beta': self.beta, 'xi': self.xi,
             'learning': self.learning,
             'campaign': self.campaign,
-            'test': self.debug, 'R_depletion': False}
+            'test': self.debug, 'R_depletion': self.R_depletion}
 
         if self.converged:
             return 1  # good - consensus reached
@@ -861,12 +875,13 @@ class DivestmentCore:
             * self.K_c ** self.kappa_c * self.P_c ** self.pi
         self.Y_d = self.b_d * self.K_d ** self.kappa_d * self.P_d ** self.pi
 
-        # output economic data
-        if self.e_trajectory_output:
-            self.update_economic_trajectory()
-        if self.m_trajectory_output:
-            self.update_mean_trajectory()
-            self.update_aggregate_trajectory()
+        # output economic data if t is in time window
+        if self.trj_output_window[0] < self.t and self.t < self.trj_output_window[1]:
+            if self.e_trajectory_output:
+                self.update_economic_trajectory()
+            if self.m_trajectory_output:
+                self.update_mean_trajectory()
+                self.update_aggregate_trajectory()
 
     def find_update_candidates(self):
 
@@ -1118,7 +1133,8 @@ class DivestmentCore:
              ['d' + str(x) for x in self.possible_cue_orders]]))
         self.e_trajectory.append(element)
 
-        self.update_economic_trajectory()
+        if self.t > self.trj_output_window[1]:
+            self.update_economic_trajectory()
 
     def update_economic_trajectory(self):
         alpha = (self.b_r0 / self.e) ** (1. / 2.)
@@ -1172,7 +1188,8 @@ class DivestmentCore:
                    'g', 'w', 'r_c', 'r_d', 'Wc', 'Wd']
         self.m_trajectory.append(element)
 
-        self.update_mean_trajectory()
+        if self.t > self.trj_output_window[1]:
+            self.update_mean_trajectory()
 
     def update_mean_trajectory(self):
         """
@@ -1249,7 +1266,8 @@ class DivestmentCore:
                    'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d']
         self.ag_trajectory.append(element)
 
-        self.update_aggregate_trajectory()
+        if self.t > self.trj_output_window[1]:
+            self.update_aggregate_trajectory()
 
     def update_aggregate_trajectory(self):
         """
@@ -1389,7 +1407,7 @@ if __name__ == '__main__':
     functionality
     """
 
-    import matplotlib.pyplot as mp
+    import matplotlib.pyplot as plt
 
     output_location = 'test_output/' \
         + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
@@ -1422,16 +1440,17 @@ if __name__ == '__main__':
 
         # Parameters:
 
-        for t_tau in [0.1, 0.5, 1., 2., 5., 10.]:
+        for t_tau in [2., 5., 10.]:
             print(t_tau, type(t_tau))
             input_parameters = {'i_tau': t_tau, 'eps': 0.05, 'b_d': 1.4,
-                                'b_c': 1., 'i_phi': 0.95, 'e': 100,
-                                'G_0': 50, 'b_r0': 0.3 ** 2 * 100,
+                                'b_c': 1., 'i_phi': 0.9, 'e': 100,
+                                'G_0': 500, 'b_r0': 0.3 ** 2 * 100,
                                 'possible_cue_orders': possible_cue_orders,
                                 'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
                                 'campaign': False, 'learning': True,
                                 'crs': True, 'test': True,
-                                'R_depletion': False}
+                                'R_depletion': False,
+                                'trj_output_window': [1500, 20000]}
 
             # investment_decisions
             opinions = []
@@ -1459,11 +1478,11 @@ if __name__ == '__main__':
 
             m = DivestmentCore(*init_conditions, **input_parameters)
 
-            m.run(t_max=15000)
+            m.run(t_max=1500)
 
             m.R_depletion = True
             m.set_parameters()
-            m.run(t_max=20000)
+            m.run(t_max=2000)
 
             # Plot the results
 
@@ -1492,4 +1511,4 @@ if __name__ == '__main__':
             trj[['g']].plot(ax=ax4)
 
             fig.tight_layout()
-            plt.savefig('mean_approximation_test_{0:2.2f}.png'.format(m.tau))
+            plt.savefig('micro_approximation_test_{0:2.2f}.png'.format(m.tau))
