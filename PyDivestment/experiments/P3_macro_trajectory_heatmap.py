@@ -161,7 +161,7 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
         df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, t_eq, t_max)
 
         for c in df2.columns:
-            if c in df1.colums:
+            if c in df1.columns:
                 df2.drop(c, axis=1, inplace=True)
 
         df_out = pd.concat([df1, df2], axis=1)

@@ -29,23 +29,23 @@ class DivestmentCore:
 
                 Parameters
                 ----------
-                adjacency: ndarray
+                adjacency: np.ndarray
                     Acquaintance matrix between the households. Has to be symmetric unweighted and without self loops.
                 possible_cue_orders: list
                     A list of possible cue orders. Cue orders are integers that have to be implemented in the dict of
                     possible cues with their respective callables in the init.
-                opinions: list
+                opinions: list[int]
                     A list, specifying for each household a cue order of the above
-                investment_clean: list
+                investment_clean: list[float]
                     Initial household endowments in the clean sector
-                investment_dirty: list
+                investment_dirty: list[float]
                     Initial household endowments in the dirty sector
-                investment_decisions: list
+                investment_decisions: list[int]
                     Initial investment decisions of households. Will be updated 
                     from their actual heuristic decision making during initialization
-                tau: float
+                i_tau: float
                     Mean waiting time between household opinion updates
-                phi: float
+                i_phi: float
                     Rewiring probability in the network adaptation process
                 eps: float
                     fraction of exploration events (noise) in the opinion formation process
@@ -876,7 +876,7 @@ class DivestmentCore:
         self.Y_d = self.b_d * self.K_d ** self.kappa_d * self.P_d ** self.pi
 
         # output economic data if t is in time window
-        if self.trj_output_window[0] < self.t and self.t < self.trj_output_window[1]:
+        if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
             if self.e_trajectory_output:
                 self.update_economic_trajectory()
             if self.m_trajectory_output:
@@ -1133,7 +1133,7 @@ class DivestmentCore:
              ['d' + str(x) for x in self.possible_cue_orders]]))
         self.e_trajectory.append(element)
 
-        if self.t > self.trj_output_window[1]:
+        if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
             self.update_economic_trajectory()
 
     def update_economic_trajectory(self):
@@ -1188,7 +1188,7 @@ class DivestmentCore:
                    'g', 'w', 'r_c', 'r_d', 'Wc', 'Wd']
         self.m_trajectory.append(element)
 
-        if self.t > self.trj_output_window[1]:
+        if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
             self.update_mean_trajectory()
 
     def update_mean_trajectory(self):
@@ -1266,7 +1266,7 @@ class DivestmentCore:
                    'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d']
         self.ag_trajectory.append(element)
 
-        if self.t > self.trj_output_window[1]:
+        if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
             self.update_aggregate_trajectory()
 
     def update_aggregate_trajectory(self):
