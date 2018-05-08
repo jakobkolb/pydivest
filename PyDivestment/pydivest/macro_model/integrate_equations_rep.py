@@ -733,6 +733,14 @@ class Integrate_Equations:
 
         return pd.DataFrame(index=t_values, columns=columns, data=data)
 
+    def get_mean_trajectory(self):
+        """return a mock mean trajectory with correct shape but containing zeros"""
+
+        columns = ['x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c', 'g']
+        index = self.m_trajectory.index
+
+        return pd.DataFrame(0, index=index, columns=columns)
+
 
 if __name__ == "__main__":
 
