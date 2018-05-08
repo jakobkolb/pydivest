@@ -10,10 +10,8 @@ The variable Parameters are tau and phi.
 import getpass
 import itertools as it
 import os
-import pickle as cp
 import sys
 import time
-import traceback
 
 import networkx as nx
 import numpy as np
@@ -25,7 +23,7 @@ from pydivest.macro_model import integrate_equations_rep as representative_macro
 from pydivest.micro_model import divestmentcore as micro_model
 
 
-def RUN_FUNC(tau, phi, eps, approximate, test, filename):
+def RUN_FUNC(tau, phi, eps, approximate, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -159,24 +157,18 @@ def RUN_FUNC(tau, phi, eps, approximate, test, filename):
 
     # store data in case of successful run
     if exit_status in [0, 1]:
-        if approximate == 1:
-            res['mean_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), 201, t_eq, t_max)
-            res['unified_trajectory'] = even_time_series_spacing(m.get_unified_trajectory(), 201, t_eq, t_max)
-        elif approximate == 2:
-            res['mean_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), 201, t_eq, t_max)
-            res['unified_trajectory'] = even_time_series_spacing(m.get_unified_trajectory(), 201, t_eq, t_max)
-        elif approximate == 3:
-            res['unified_trajectory'] = even_time_series_spacing(m.get_unified_trajectory(), 201, t_eq, t_max)
+        df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, t_eq, t_max)
+        df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, t_eq, t_max)
 
-    # save data
-    with open(filename, 'wb') as dumpfile:
-        cp.dump(res, dumpfile)
-    try:
-        np.load(filename)
-    except IOError:
-        print("writing results failed for " + filename)
+        for c in df2.columns:
+            if c in df1.colums:
+                df2.drop(c, axis=1, inplace=True)
 
-    return exit_status
+        df_out = pd.concat([df1, df2], axis=1)
+    else:
+        df_out = None
+
+    return exit_status, df_out
 
 
 # get sub experiment and mode from command line
@@ -269,65 +261,22 @@ def run_experiment(argv):
     else:
         PARAM_COMBS = list(it.product(taus, phis, eps, [approximate], [test]))
 
-    INDEX = {0: "tau", 1: "phi", 2: "eps"}
+    # Create dummy runfunc output to pass its shape to experiment handle
+    params = list(PARAM_COMBS[0])
+    params[-1] = True
+    run_func_output = RUN_FUNC(*params)[1]
 
-    """
-    create names and dicts of callables for post processing
-    """
-
-    def cleanup_function(fnames):
-        i = 0
-        for f in fnames:
-            try:
-                dt1 = np.load(f)['unified_trajectory']
-                dt2 = np.load(f)['mean_macro_trajectory']
-            except:
-                i += 1
-                os.remove(f)
-                traceback.print_exc(file=sys.stderr)
-                print(f, flush=True, file=sys.stderr)
-        return i
-
-    def process(fnames, key, mode='mean'):
-        lst = []
-        for f in fnames:
-
-            try:
-                lst.append(np.load(f)[key])
-            except:
-                traceback.print_exc()
-                print(f, flush=True)
-
-        if mode == 'mean':
-            return pd.concat(lst).groupby(level=0).mean()
-        elif mode == 'std':
-            return pd.concat(lst).groupby(level=0).std()
-        else:
-            raise ValueError('mode must be one of ["mean", "std"] but is {}'.format(mode))
-
-    NAME3 = 'cleanup'
-    EVA3 = {'cleaned_list':
-            lambda fnames: cleanup_function(fnames)}
-
-    NAME1 = 'mean_trajectory'
-    EVA1 = {"mean_trajectory": lambda fnames: process(fnames, "mean_macro_trajectory", mode='mean'),
-            "sem_trajectory": lambda fnames: process(fnames, "mean_macro_trajectory", mode='std')
-            }
-    NAME2 = 'unified_trajectory'
-    EVA2 = {"mean_trajectory": lambda fnames: process(fnames, "unified_trajectory", mode='mean'),
-            "sem_trajectory": lambda fnames: process(fnames, "unified_trajectory", mode='std'),
-            }
-
-    """
-    run computation and/or post processing and/or plotting
-    """
+    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
 
     # cluster mode: computation and post processing
     if mode == 0:
-        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
-        handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
-                                     SAVE_PATH_RAW, SAVE_PATH_RES)
-        handle.compute(RUN_FUNC)
+        handle = experiment_handling(run_func=RUN_FUNC,
+                                     runfunc_output=run_func_output,
+                                     sample_size=SAMPLE_SIZE,
+                                     parameter_combinations=PARAM_COMBS,
+                                     path_raw=SAVE_PATH_RAW
+                                     )
+        handle.compute()
 
         return 1
 
@@ -335,27 +284,14 @@ def run_experiment(argv):
     if mode == 1:
         SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
 
-        handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
-                                     SAVE_PATH_RAW, SAVE_PATH_RES)
-
-        if approximate == 1:
-            handle.resave(EVA1, NAME1)
-            handle.resave(EVA2, NAME2)
-        elif approximate == 2:
-            handle.resave(EVA1, NAME1)
-            handle.resave(EVA2, NAME2)
-        elif approximate == 3:
-            handle.resave(EVA2, NAME2)
+        handle = experiment_handling(run_func=RUN_FUNC,
+                                     runfunc_output=run_func_output,
+                                     sample_size=SAMPLE_SIZE,
+                                     parameter_combinations=PARAM_COMBS,
+                                     path_raw=SAVE_PATH_RAW
+                                     )
 
         return 1
-
-    # cleanup broken data
-    if mode == 2:
-        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
-
-        handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
-                                     SAVE_PATH_RAW, SAVE_PATH_RES)
-        handle.resave(EVA3, NAME3)
 
     # in case nothing happened:
     return 0
