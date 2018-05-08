@@ -6,7 +6,6 @@ From these trajectories, I will calculate the distance
 The variable Parameters are tau and phi.
 """
 
-
 import getpass
 import itertools as it
 import os
@@ -165,6 +164,7 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
                 df2.drop(c, axis=1, inplace=True)
 
         df_out = pd.concat([df1, df2], axis=1)
+        df_out.index.name = 'tstep'
     else:
         df_out = None
 
@@ -268,33 +268,61 @@ def run_experiment(argv):
 
     SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
 
-    # cluster mode: computation and post processing
+    # initialize computation handle
+    compute_handle = experiment_handling(run_func=RUN_FUNC,
+                                         runfunc_output=run_func_output,
+                                         sample_size=SAMPLE_SIZE,
+                                         parameter_combinations=PARAM_COMBS,
+                                         path_raw=SAVE_PATH_RAW
+                                         )
+
+    # define eva functions
+
+    def mean(tau, phi, eps, approximate, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = 'tau={} & phi={} & eps={} & approximate={} & test={}'.format(tau, phi, eps, approximate, test)
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat", where=query)
+
+        return -1, trj.groupby(level='tstep').mean()
+
+    def std(tau, phi, eps, approximate, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = 'tau={} & phi={} & eps={} & approximate={} & test={}'.format(tau, phi, eps, approximate, test)
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat", where=query)
+
+        return -1, trj.groupby(level='tstep').std()
+
+    eva_1_handle = experiment_handling(run_func=mean,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=PARAM_COMBS,
+                                       path_raw=SAVE_PATH_RES + '/mean.h5'
+                                       )
+    eva_2_handle = experiment_handling(run_func=std,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=PARAM_COMBS,
+                                       path_raw=SAVE_PATH_RES + '/std.h5'
+                                       )
+
     if mode == 0:
-        handle = experiment_handling(run_func=RUN_FUNC,
-                                     runfunc_output=run_func_output,
-                                     sample_size=SAMPLE_SIZE,
-                                     parameter_combinations=PARAM_COMBS,
-                                     path_raw=SAVE_PATH_RAW
-                                     )
-        handle.compute()
-
+        compute_handle.compute()
         return 1
-
-    # Post processing
-    if mode == 1:
-        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
-
-        handle = experiment_handling(run_func=RUN_FUNC,
-                                     runfunc_output=run_func_output,
-                                     sample_size=SAMPLE_SIZE,
-                                     parameter_combinations=PARAM_COMBS,
-                                     path_raw=SAVE_PATH_RAW
-                                     )
-
+    elif mode == 1:
+        eva_1_handle.compute()
+        eva_2_handle.compute()
         return 1
-
-    # in case nothing happened:
-    return 0
+    else:
+        # in case nothing happened:
+        return 0
 
 
 if __name__ == "__main__":
