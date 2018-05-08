@@ -4,10 +4,10 @@ from __future__ import print_function
 
 import sys
 
+import dill
 import numpy as np
 import pandas as pd
 import sympy as sp
-import dill
 from scipy.integrate import odeint
 from sympy import lambdify
 from sympy.abc import epsilon, tau, phi
@@ -608,10 +608,6 @@ class Integrate_Equations:
 
         return 1
 
-    def get_aggregate_trajectory(self):
-
-        return self.m_trajectory
-
     def get_unified_trajectory(self):
         """
         Calculate unified trajectory in per capita variables
@@ -681,6 +677,17 @@ class Integrate_Equations:
 
         return pd.DataFrame(index=t_values, columns=columns, data=data)
 
+    def get_aggregate_trajectory(self):
+
+        return self.m_trajectory
+
+    def get_mean_trajectory(self):
+        """return a mock mean trajectory with correct shape but containing zeros"""
+
+        columns = ['x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c', 'g']
+        index = self.m_trajectory.index
+
+        return pd.DataFrame(0, index=index, columns=columns)
 
 if __name__ == '__main__':
     """

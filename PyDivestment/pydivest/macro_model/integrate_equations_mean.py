@@ -630,10 +630,6 @@ class Integrate_Equations:
 
         return 1
 
-    def get_mean_trajectory(self):
-
-        return self.m_trajectory
-
     def get_unified_trajectory(self):
         """
         Calculates unified trajectory in per capita variables
@@ -729,6 +725,17 @@ class Integrate_Equations:
 
         return pd.DataFrame(index=t_values, columns=columns, data=data)
 
+    def get_mean_trajectory(self):
+
+        return self.m_trajectory
+
+    def get_aggregate_trajectory(self):
+        """return a mock aggregate trajectory with correct shape but containing zeros"""
+
+        columns = ['x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d', 'C', 'G']
+        index = self.m_trajectory.index
+
+        return pd.DataFrame(0, index=index, columns=columns)
 
 if __name__ == '__main__':
     """
