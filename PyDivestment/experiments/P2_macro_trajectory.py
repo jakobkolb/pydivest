@@ -15,7 +15,6 @@ The variable Parameters are b_d and phi.
 import getpass
 import itertools as it
 import os
-import pickle as cp
 import sys
 import time
 
@@ -29,7 +28,7 @@ from pydivest.macro_model import integrate_equations_mean as mean_macro_model
 from pydivest.micro_model import divestmentcore as micro_model
 
 
-def RUN_FUNC(b_d, phi, eps, approximate, test, filename):
+def RUN_FUNC(b_d, phi, eps, approximate, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -126,11 +125,11 @@ def RUN_FUNC(b_d, phi, eps, approximate, test, filename):
     # run the model
     t_start = time.clock()
 
-    t_max = 400 if not test else 200
+    t_max = 400 if not test else 20
     m.R_depletion = False
     m.run(t_max=t_max)
 
-    t_max += 600 if not test else 400
+    t_max += 600 if not test else 40
     m.R_depletion = True
     exit_status = m.run(t_max=t_max)
 
@@ -139,22 +138,27 @@ def RUN_FUNC(b_d, phi, eps, approximate, test, filename):
     # store data in case of successful run
     if exit_status in [0, 1]:
         if approximate == 1:
-            res['mean_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
-            res['aggregate_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+            df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+            df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
         elif approximate == 2:
-            res['mean_macro_trajectory'] = m.get_mean_trajectory()
+            df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+            df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
         elif approximate == 3:
-            res['aggregate_macro_trajectory'] = m.get_aggregate_trajectory()
+            df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
+            df2 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+        else:
+            raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
 
-    # save data
-    with open(filename, 'wb') as dumpfile:
-        cp.dump(res, dumpfile)
-    try:
-        np.load(filename)
-    except IOError:
-        print("writing results failed for " + filename)
+        for c in df1.columns:
+            if c in df2.columns:
+                df2.drop(c, axis=1, inplace=True)
 
-    return exit_status
+        df_out = pd.concat([df1, df2], axis=1)
+        df_out.index.name = 'tstep'
+    else:
+        df_out = None
+
+    return exit_status, df_out
 
 # get sub experiment and mode from command line
 
@@ -247,71 +251,75 @@ def run_experiment(argv):
     else:
         PARAM_COMBS = list(it.product(b_ds, phis, eps, [approximate], [test]))
 
-    INDEX = {0: "b_d", 1: "phi", 2: "eps"}
-
-    """
-    create names and dicts of callables for post processing
-    """
-
-    NAME1 = 'mean_trajectory'
-    EVA1 = {"mean_trajectory":
-            lambda fnames: pd.concat([np.load(f)["mean_macro_trajectory"]
-                                      for f in fnames]).groupby(
-                    level=0).mean(),
-            "sem_trajectory":
-            lambda fnames: pd.concat([np.load(f)["mean_macro_trajectory"]
-                                      for f in fnames]).groupby(level=0).std(),
-            }
-    NAME2 = 'aggregate_trajectory'
-    EVA2 = {"mean_trajectory":
-            lambda fnames: pd.concat([np.load(f)["aggregate_macro_trajectory"]
-                                      for f in fnames]).groupby(
-                    level=0).mean(),
-            "sem_trajectory":
-            lambda fnames: pd.concat([np.load(f)["aggregate_macro_trajectory"]
-                                      for f in fnames]).groupby(level=0).std(),
-            }
-
     """
     run computation and/or post processing and/or plotting
     """
 
-    # cluster mode: computation and post processing
+    # Create dummy runfunc output to pass its shape to experiment handle
+    params = list(PARAM_COMBS[0])
+    params[-1] = True
+    run_func_output = RUN_FUNC(*params)[1]
+
+    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
+
+    # initialize computation handle
+    compute_handle = experiment_handling(run_func=RUN_FUNC,
+                                         runfunc_output=run_func_output,
+                                         sample_size=SAMPLE_SIZE,
+                                         parameter_combinations=PARAM_COMBS,
+                                         path_raw=SAVE_PATH_RAW
+                                         )
+
+    # define eva functions
+
+    def mean(b_d, phi, eps, approximate, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = 'b_d={} & phi={} & eps={} & approximate={} & test={}'.format(b_d, phi, eps, approximate, test)
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat", where=query)
+
+        return -1, trj.groupby(level='tstep').mean()
+
+    def std(b_d, phi, eps, approximate, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = 'b_d={} & phi={} & eps={} & approximate={} & test={}'.format(b_d, phi, eps, approximate, test)
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat", where=query)
+
+        return -1, trj.groupby(level='tstep').std()
+
+    eva_1_handle = experiment_handling(run_func=mean,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=PARAM_COMBS,
+                                       path_raw=SAVE_PATH_RES + '/mean.h5'
+                                       )
+    eva_2_handle = experiment_handling(run_func=std,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=PARAM_COMBS,
+                                       path_raw=SAVE_PATH_RES + '/std.h5'
+                                       )
+
     if mode == 0:
-        print('calculating {}: {}'.format(approximate, sub_experiment))
-        sys.stdout.flush()
-        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
-        handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
-                                     SAVE_PATH_RAW, SAVE_PATH_RES)
-        handle.compute(RUN_FUNC)
-
+        compute_handle.compute()
         return 1
-
-    # Post processing
-    if mode == 1:
-        sys.stdout.flush()
-        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
-
-        handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
-                                     SAVE_PATH_RAW, SAVE_PATH_RES)
-
-        if approximate == 1:
-            print('post processing micro model')
-            handle.resave(EVA1, NAME1)
-            handle.resave(EVA2, NAME2)
-        elif approximate == 2:
-            print('post processing mean macro approximation')
-            handle.resave(EVA1, NAME1)
-        elif approximate == 3:
-            print('post processing aggregate macro approximation')
-            handle.resave(EVA2, NAME2)
-
+    elif mode == 1:
+        eva_1_handle.compute()
+        eva_2_handle.compute()
         return 1
-
-    # in case nothing happened:
-    return 0
+    else:
+        # in case nothing happened:
+        return 0
 
 
 if __name__ == "__main__":
     cmdline_arguments = sys.argv
     run_experiment(cmdline_arguments)
+
