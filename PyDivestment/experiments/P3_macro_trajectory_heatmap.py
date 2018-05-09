@@ -261,6 +261,10 @@ def run_experiment(argv):
     else:
         PARAM_COMBS = list(it.product(taus, phis, eps, [approximate], [test]))
 
+    """
+    run computation and/or post processing and/or plotting
+    """
+
     # Create dummy runfunc output to pass its shape to experiment handle
     params = list(PARAM_COMBS[0])
     params[-1] = True
