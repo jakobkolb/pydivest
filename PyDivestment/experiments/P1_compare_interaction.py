@@ -5,7 +5,6 @@ Compare Trajectory from micro simulation for new and old interaction between hou
 import getpass
 import itertools as it
 import os
-import pickle as cp
 import sys
 import time
 
@@ -17,10 +16,8 @@ from pymofa.experiment_handling import experiment_handling, \
 
 from pydivest.micro_model import divestmentcore as micro_model
 
-test = False
 
-
-def RUN_FUNC(b_d, phi, interaction, filename):
+def RUN_FUNC(interaction, phi, b_d, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -53,7 +50,7 @@ def RUN_FUNC(b_d, phi, interaction, filename):
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
-                    'interaction': interaction}
+                    'interaction': interaction, 'test': False}
 
     # investment_decisions:
     nopinions = [100, 100]
@@ -120,18 +117,12 @@ def RUN_FUNC(b_d, phi, interaction, filename):
     # store data in case of successful run
     if exit_status in [0, 1]:
         # interpolate m_trajectory to get evenly spaced time series.
-        res["macro_trajectory"] = \
-            even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+        df_out = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+        df_out.index.name = 'tstep'
+    else:
+        df_out = None
 
-    # save data
-    with open(filename, 'wb') as dumpfile:
-        cp.dump(res, dumpfile)
-    try:
-        np.load(filename)
-    except IOError:
-        print("writing results failed for " + filename)
-
-    return exit_status
+    return exit_status, df_out
 
 
 # get sub experiment and mode from command line
@@ -168,8 +159,6 @@ def run_experiment(argv):
     [test, mode, micro/macro]
     """
 
-    global test
-
     # switch testing mode
     if len(argv) > 1:
         test = bool(int(argv[1]))
@@ -201,7 +190,6 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-
     folder = 'P1_compare_interaction'
 
     # make sure, testing output goes to its own folder:
@@ -210,90 +198,106 @@ def run_experiment(argv):
 
     save_path_raw = \
         "{}/{}{}/" \
-        .format(tmppath, test_folder, folder)
+            .format(tmppath, test_folder, folder)
     save_path_res = \
         "{}/{}{}/" \
-        .format(respath, test_folder, folder)
+            .format(respath, test_folder, folder)
 
     """
     create parameter combinations and index
     """
 
-    phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
-    b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
+    phis = [round(x, 2) for x in list(np.linspace(0.0, 0.9, 20))]
+    b_ds = [round(x, 2) for x in list(np.linspace(1., 1.5, 5))]
     interactions = [0, 1, 2]
     b_d, phi, interaction = [1.2, 1.4], [.5, .8], [0, 1, 2]
 
     if test:
-        param_combs = list(it.product(interaction, phi, b_d))
+        param_combs = list(it.product(interaction, phi, b_d, [test]))
     else:
-        param_combs = list(it.product(interactions, phis, b_ds))
-
-    index = {0: "interaction", 1: "phi", 2: "b_d"}
-
-    """
-    create names and dicts of callables for post processing
-    """
-
-    name = 'interaction_trajectory'
-
-    name1 = name + '_trajectory'
-    eva1 = {"mean_trajectory":
-            lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
-                                      for f in fnames]).groupby(
-                    level=0).mean(),
-            "sem_trajectory":
-            lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
-                                      for f in fnames]).groupby(level=0).std(),
-            }
+        param_combs = list(it.product(interactions, phis, b_ds, [test]))
 
     """
     run computation and/or post processing and/or plotting
     """
 
     # calculate (splitting parameter combinations between threads)
+    print('cluster mode')
+    sys.stdout.flush()
+
+    if len(param_combs) % max_id != 0:
+        print('number of jobs ({}) has to be multiple of max_id ({})!!'.format(len(param_combs), max_id))
+        exit(-1)
+
+    # devide parameter combination into equally sized chunks.
+    cl = int(len(param_combs) / max_id)
+    i = (job_id - 1) * cl
+    j = job_id * cl
+
+    # Create dummy runfunc output to pass its shape to experiment handle
+    params = list(param_combs[0])
+    params[-1] = True
+    run_func_output = RUN_FUNC(*params)[1]
+
+    sample_size = 100 if not test else 3
+
+    # initialize computation handle
+    compute_handle = experiment_handling(run_func=RUN_FUNC,
+                                         runfunc_output=run_func_output,
+                                         sample_size=sample_size,
+                                         parameter_combinations=param_combs[i:j],
+                                         path_raw=save_path_raw
+                                         )
+
+    # define eva functions
+
+    def mean(b_d, phi, interaction, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = 'b_d={} & phi={} & interaction={} & test={}'.format(b_d, phi, interaction, test)
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat", where=query)
+
+        return -1, trj.groupby(level='tstep').mean()
+
+    def std(b_d, phi, interaction, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = 'b_d={} & phi={} & interaction={} & test={}'.format(b_d, phi, interaction, test)
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat", where=query)
+
+        return -1, trj.groupby(level='tstep').std()
+
+    eva_1_handle = experiment_handling(run_func=mean,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=param_combs,
+                                       path_raw=save_path_res + '/mean.h5'
+                                       )
+    eva_2_handle = experiment_handling(run_func=std,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=param_combs,
+                                       path_raw=save_path_res + '/std.h5'
+                                       )
+
     if mode == 0:
-        print('cluster mode')
-        sys.stdout.flush()
-
-        if len(param_combs) % max_id != 0:
-            print('number of jobs ({}) has to be multiple of max_id ({})!!'.format(len(param_combs), max_id))
-            exit(-1)
-
-        # devide parameter combination into equally sized chunks.
-        cl = int(len(param_combs) / max_id)
-        i = (job_id - 1) * cl
-        j = job_id * cl
-
-        sample_size = 100 if not test else 3
-
-        handle = experiment_handling(sample_size=sample_size,
-                                     parameter_combinations=param_combs[i:j],
-                                     index=index,
-                                     path_raw=save_path_raw,
-                                     path_res=save_path_res,
-                                     use_kwargs=True)
-        handle.compute(RUN_FUNC)
-
+        # computation, parameters split between threads
+        compute_handle.compute()
         return 1
-
-    # post processing (all parameter combinations on one thread)
-    if mode == 1:
-        sample_size = 100 if not test else 3
-
-        handle = experiment_handling(sample_size=sample_size,
-                                     parameter_combinations=param_combs,
-                                     index=index,
-                                     path_raw=save_path_raw,
-                                     path_res=save_path_res,
-                                     use_kwargs=True)
-        handle.resave(eva1, name1)
-
-
+    elif mode == 1:
+        # post processing (all parameter combinations on one thread)
+        eva_1_handle.compute()
+        eva_2_handle.compute()
         return 1
-
-    # in case nothing happened:
-    return 0
+    else:
+        # in case nothing happened:
+        return 0
 
 
 if __name__ == "__main__":
