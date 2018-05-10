@@ -238,7 +238,7 @@ def run_experiment(argv):
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
 
-        return -1, trj.groupby(level='tstep').mean()
+        return 1, trj.groupby(level='tstep').mean()
 
     def std(b_d, phi, interaction, test):
 
@@ -249,7 +249,7 @@ def run_experiment(argv):
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
 
-        return -1, trj.groupby(level='tstep').std()
+        return 1, trj.groupby(level='tstep').std()
 
     eva_1_handle = experiment_handling(run_func=mean,
                                        runfunc_output=run_func_output,
