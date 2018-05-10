@@ -457,8 +457,8 @@ class Integrate_Equations:
 
         # Define the problem for Assimulo with Y0 and Yd0
         def prep_rhs(t, Y, Yd, sw):
-
-            print('t = {}, Y = {}'.format(t, Y))
+            if self.test:
+                print('t = {}, Y = {}'.format(t, Y))
 
             # ToDo: Cleanup
             if self.lambdify:

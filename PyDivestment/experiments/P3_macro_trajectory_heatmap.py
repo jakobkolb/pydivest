@@ -57,7 +57,7 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
-                    'interaction': 1, 'test': test}
+                    'interaction': 1, 'test': False}
 
     # investment_decisions:
     nopinions = [100, 100]
