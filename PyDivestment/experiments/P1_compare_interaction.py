@@ -169,14 +169,6 @@ def run_experiment(argv):
         mode = int(argv[2])
     else:
         mode = 0
-    if len(argv) > 3:
-        job_id = int(argv[3])
-    else:
-        job_id = 1
-    if len(argv) > 4:
-        max_id = int(argv[4])
-    else:
-        max_id = 1
 
     """
     set input/output paths
@@ -220,20 +212,6 @@ def run_experiment(argv):
     """
     run computation and/or post processing and/or plotting
     """
-
-    # calculate (splitting parameter combinations between threads)
-    print('cluster mode')
-    sys.stdout.flush()
-
-    if len(param_combs) % max_id != 0:
-        print('number of jobs ({}) has to be multiple of max_id ({})!!'.format(len(param_combs), max_id))
-        exit(-1)
-
-    # devide parameter combination into equally sized chunks.
-    cl = int(len(param_combs) / max_id)
-    i = (job_id - 1) * cl
-    j = job_id * cl
-
     # Create dummy runfunc output to pass its shape to experiment handle
     params = list(param_combs[0])
     params[-1] = True
@@ -245,7 +223,7 @@ def run_experiment(argv):
     compute_handle = experiment_handling(run_func=RUN_FUNC,
                                          runfunc_output=run_func_output,
                                          sample_size=sample_size,
-                                         parameter_combinations=param_combs[i:j],
+                                         parameter_combinations=param_combs,
                                          path_raw=save_path_raw
                                          )
 

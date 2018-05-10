@@ -1,13 +1,12 @@
 #!/bin/bash
 #SBATCH --qos=short
 #SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --account=copan
 #SBATCH --job-name=Divest_P1
 #SBATCH --output=P1_compute_%j.out
 #SBATCH --error=P1_compute_%j.err
-#SBATCH --account=copan
-#SBATCH --nodes=1
-#SBATCH --tasks-per-node=6
-#SBATCH --array=1-90
+#SBATCH --nodes=8
+#SBATCH --tasks-per-node=16
 
 module load compiler/intel/16.0.0
 module load hpc/2015 anaconda/2.3.0
@@ -21,4 +20,4 @@ echo "$SLURM_NTASKS tasks"
 echo "------------------------------------------------------------"
 
 cd ../experiments/
-srun -n $SLURM_NTASKS python P1_compare_interaction.py 0 0 $SLURM_ARRAY_TASK_ID $SLURM_ARRAY_TASK_MAX
+srun -n $SLURM_NTASKS python P1_compare_interaction.py 0 0
