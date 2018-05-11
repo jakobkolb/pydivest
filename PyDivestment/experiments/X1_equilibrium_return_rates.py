@@ -110,55 +110,19 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     # initializing the model
     m = model.DivestmentCore(*init_conditions, **input_params)
 
-    # storing initial conditions and parameters
-    res = {
-        "initials": pd.DataFrame({"opinions": opinions,
-                                  "Investment clean": m.investment_clean,
-                                  "Investment dirty": m.investment_dirty}),
-        "parameters": pd.Series({"tau": m.tau,
-                                 "phi": m.phi,
-                                 "n": m.n,
-                                 "L": m.L,
-                                 "savings rate": m.s,
-                                 "clean capital depreciation rate": m.d_c,
-                                 "dirty capital depreciation rate": m.d_d,
-                                 "resource extraction efficiency": m.b_r0,
-                                 "Solov residual clean": m.b_c,
-                                 "Solov residual dirty": m.b_d,
-                                 "pi": m.pi,
-                                 "kappa_c": m.kappa_c,
-                                 "kappa_d": m.kappa_d,
-                                 "xi": m.xi,
-                                 "resource efficiency": m.e,
-                                 "epsilon": m.eps,
-                                 "initial resource stock": m.G_0})}
-
-    # start timer
-    t_start = time.clock()
-
     # run model with abundant resource
     t_max = t_1 if not test else 1
     m.R_depletion = False
     exit_status = m.run(t_max=t_max)
 
-    res["runtime"] = time.clock() - t_start
-
     # store data in case of successful run
     if exit_status in [0, 1] or test:
-        res["micro_trajectory"] = \
-            even_time_series_spacing(m.get_economic_trajectory(), 401, 0., t_max)
-        res["convergence_state"] = m.convergence_state
-        res["convergence_time"] = m.convergence_time
+        df_out = even_time_series_spacing(m.get_economic_trajectory(), 401, 0., t_max)
+        df_out.index.name = 'tstep'
+    else:
+        df_out = None
 
-    # save data
-    with open(filename, 'wb') as dumpfile:
-        cp.dump(res, dumpfile)
-    try:
-        np.load(filename)
-    except IOError:
-        print("writing results failed for " + filename)
-
-    return exit_status
+    return exit_status, df_out
 
 
 def run_experiment(argv):
@@ -220,7 +184,7 @@ def run_experiment(argv):
         tmppath = "./"
 
     sub_experiment = ['imitation', 'ffh'][int(ffh)]
-    folder = 'X7'
+    folder = 'X1'
 
     # make sure, testing output goes to its own folder:
 
@@ -246,97 +210,77 @@ def run_experiment(argv):
     phis = [round(x, 5) for x in list(np.linspace(0., 1., 11))]
     eps, phi = [0., 0.5], [.7, .9]
 
-    if ffh:
-        possible_cue_orders = [[2, 3],  # short term investor
-                             [3, 2],  # long term investor
-                             [4, 2],  # short term herder
-                             [4, 3],  # trending herder
-                             [4, 1],  # green conformer
-                             [4, 0],  # dirty conformer
-                             [1],  # gutmensch
-                             [0]]  # redneck
-    else:
-        possible_cue_orders = [[1], [0]]
-
-    cue_list = [str(o) for o in possible_cue_orders]
-
     if test:
         param_combs = list(it.product(eps, phi, [ffh], [test]))
     else:
         param_combs = list(it.product(epss, phis, [ffh], [test]))
 
-    index = {0: "eps", 1: "phi"}
-
-    """
-    create names and dicts of callables for post processing
-    """
-
-    name = 'b_c_scan_' + sub_experiment + '_trajectory'
-
-    name1 = name + '_trajectory'
-    eva1 = {"mean_trajectory":
-            lambda fnames: pd.concat([np.load(f)["micro_trajectory"]
-                                      for f in fnames]).groupby(
-                    level=0).mean(),
-            "sem_trajectory":
-            lambda fnames: pd.concat([np.load(f)["micro_trajectory"]
-                                      for f in fnames]).groupby(
-                    level=0).std()
-            }
-    name2 = name + '_convergence'
-    eva2 = {'times_mean':
-            lambda fnames: np.nanmean([np.load(f)["convergence_time"]
-                                       for f in fnames]),
-            'states_mean':
-            lambda fnames: np.nanmean([np.load(f)["convergence_state"]
-                                       for f in fnames]),
-            'times_std':
-            lambda fnames: np.std([np.load(f)["convergence_time"]
-                                   for f in fnames]),
-            'states_std':
-            lambda fnames: np.std([np.load(f)["convergence_state"]
-                                   for f in fnames])
-            }
-    name3 = name + '_convergence_times'
-    cf3 = {'times':
-           lambda fnames: pd.DataFrame(data=[np.load(f)["convergence_time"]
-                                             for f in fnames]).sortlevel(
-                   level=0),
-           'states':
-           lambda fnames: pd.DataFrame(
-                   data=[np.load(f)["convergence_state"]
-                         for f in fnames]).sortlevel(level=0)
-           }
-
     """
     run computation and/or post processing and/or plotting
     """
 
-    # cluster mode: computation and post processing
+    # Create dummy runfunc output to pass its shape to experiment handle
+    params = list(param_combs[0])
+    params[-1] = True
+    run_func_output = RUN_FUNC(*params)[1]
+
+    sample_size = 100 if not test else 3
+
+    # initialize computation handle
+    compute_handle = experiment_handling(run_func=RUN_FUNC,
+                                         runfunc_output=run_func_output,
+                                         sample_size=sample_size,
+                                         parameter_combinations=param_combs,
+                                         path_raw=save_path_raw
+                                         )
+
+    # define eva functions
+
+    def mean(eps, phi, ffh, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = 'eps={} & phi={} & ffh={} & test={}'.format(eps, phi, ffh, test)
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat", where=query)
+
+        return 1, trj.groupby(level='tstep').mean()
+
+    def std(eps, phi, ffh, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = 'eps={} & phi={} & ffh={} & test={}'.format(eps, phi, ffh, test)
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat", where=query)
+
+        return 1, trj.groupby(level='tstep').std()
+
+    eva_1_handle = experiment_handling(run_func=mean,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=param_combs,
+                                       path_raw=save_path_res + '/mean.h5'
+                                       )
+    eva_2_handle = experiment_handling(run_func=std,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=param_combs,
+                                       path_raw=save_path_res + '/std.h5'
+                                       )
+
     if mode == 0:
-        print('cluster mode')
-        sys.stdout.flush()
-
-        sample_size = 100 if not test else 2
-
-        handle = experiment_handling(sample_size, param_combs, index,
-                                     save_path_raw, save_path_res)
-        handle.compute(RUN_FUNC)
-        handle.resave(eva1, name1)
-        handle.resave(eva2, name2)
-        handle.collect(cf3, name3)
-
+        compute_handle.compute()
         return 1
-
-    # local mode: plotting only
-    if mode == 1:
-        print('plot mode')
-        sys.stdout.flush()
-
-        plot_amsterdam(save_path_res, name1, cues=cue_list)
-        plot_trajectories(save_path_res, name1, None, None)
-
+    elif mode == 1:
+        eva_1_handle.compute()
+        eva_2_handle.compute()
         return 1
+    else:
+        # in case nothing happened:
+        return 0
 
 
 if __name__ == "__main__":
