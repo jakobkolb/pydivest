@@ -128,8 +128,6 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
     t_eq = 10000 if not test else 10
     t_max = t_eq
     if hasattr(m, 'trj_output_window'):
-        if test:
-            print('setting trj window')
         m.trj_output_window = [t_eq, np.float('inf')]
     m.R_depletion = False
     m.set_parameters()

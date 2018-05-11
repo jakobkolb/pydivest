@@ -439,29 +439,16 @@ class Integrate_Equations:
 
         # After eliminating N, we can write down the first jump moment:
 
-        # ToDo save simplified expressions.
-        try:
-            print('trying to load rhsECO')
-            with open('agg_rhsECO.dump', 'rb') as dmp:
-                rhsECO = dill.load(dmp)
-            with open('agg_rhsPBP.dump', 'rb') as dmp:
-                rhsPBP = dill.load(dmp)
-        except:
-            print('didnt work, recreating it')
-            if test:
-                print('simplify pair based proxy terms')
-            rhsPBP = sp.Matrix(r * sp.Transpose(W))
-            rhsPBP = sp.Matrix(rhsPBP)
-            if test:
-                print('simplify economic switching terms')
-            rhsECO_switch = rhsECO_switch.subs(subs1)
-            if test:
-                print('done')
-            rhsECO = rhsECO + rhsECO_switch
-            with open('agg_rhsECO.dump', 'wb') as dmp:
-                dill.dump(rhsECO, dmp)
-            with open('agg_rhsPBP.dump', 'wb') as dmp:
-                dill.dump(rhsPBP, dmp)
+        if test:
+            print('simplify pair based proxy terms')
+        rhsPBP = sp.Matrix(r * sp.Transpose(W))
+        rhsPBP = sp.Matrix(rhsPBP)
+        if test:
+            print('simplify economic switching terms')
+        rhsECO_switch = rhsECO_switch.subs(subs1)
+        if test:
+            print('done')
+        rhsECO = rhsECO + rhsECO_switch
 
         # Next, we have to write the economic system in terms of X, Y, Z and
         # then in terms of rescaled variables and check the dependency on the system size N:
