@@ -305,8 +305,8 @@ class Integrate_Equations:
             raise ValueError('only interactions depending on relative differences of agent properties are'
                              'possible with a macroscopic approximation in aggregate quantities')
         elif interaction == 1:
-            subs1[Pcd] = (1. / (1 + sp.exp(8. * (Wd - Wc) / (Wc + Wd)))).subs(subs1)
-            subs1[Pdc] = (1. / (1 + sp.exp(8. * (Wc - Wd) / (Wc + Wd)))).subs(subs1)
+            subs1[Pcd] = (1. / (1 + sp.exp(- 8. * (Wd - Wc) / (Wc + Wd)))).subs(subs1)
+            subs1[Pdc] = (1. / (1 + sp.exp(- 8. * (Wc - Wd) / (Wc + Wd)))).subs(subs1)
         elif interaction == 2:
             subs1[Pcd] = ((1. / 2.) * ((Wd - Wc) / (Wd + Wc) + 1.)).subs(subs1)
             subs1[Pdc] = ((1. / 2.) * ((Wc - Wd) / (Wd + Wc) + 1.)).subs(subs1)

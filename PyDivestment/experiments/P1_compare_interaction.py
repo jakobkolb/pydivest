@@ -202,7 +202,7 @@ def run_experiment(argv):
     phis = [round(x, 2) for x in list(np.linspace(0.0, 0.9, 20))]
     b_ds = [round(x, 2) for x in list(np.linspace(1., 1.5, 5))]
     interactions = [0, 1, 2]
-    b_d, phi, interaction = [1.2, 1.4], [.5, .8], [0, 1, 2]
+    b_d, phi, interaction = [1.2], [.5], [0, 1, 2]
 
     if test:
         param_combs = list(it.product(interaction, phi, b_d, [test]))

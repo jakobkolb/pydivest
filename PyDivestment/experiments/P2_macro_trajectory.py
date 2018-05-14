@@ -63,7 +63,7 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
-                    'interaction': 1, 'test': False}
+                    'interaction': 1, 'test': test}
 
     # investment_decisions:
     nopinions = [100, 100]
@@ -125,11 +125,11 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
     # run the model
     t_start = time.clock()
 
-    t_max = 400 if not test else 20
+    t_max = 400 if not test else 200
     m.R_depletion = False
     m.run(t_max=t_max)
 
-    t_max += 600 if not test else 40
+    t_max += 600 if not test else 1
     m.R_depletion = True
     exit_status = m.run(t_max=t_max)
 
@@ -140,12 +140,15 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
         if approximate == 1:
             df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
             df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
+            df3 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
         elif approximate == 2:
             df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
             df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
+            df3 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
         elif approximate == 3:
             df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
             df2 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+            df3 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
         else:
             raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
 
@@ -153,7 +156,14 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
             if c in df2.columns:
                 df2.drop(c, axis=1, inplace=True)
 
-        df_out = pd.concat([df1, df2], axis=1)
+        df_tmp = pd.concat([df1, df2], axis=1)
+
+        for c in df_tmp.columns:
+            if c in df3.columns:
+                df_tmp.drop(c, axis=1, inplace=True)
+
+        df_out = pd.concat([df3, df_tmp], axis=1)
+
         df_out.index.name = 'tstep'
     else:
         df_out = None
@@ -244,7 +254,7 @@ def run_experiment(argv):
     phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
     b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
     eps = [0.1, 0.05, 0.01]
-    b_d, phi = [1.2], [.8]
+    b_d, phi = [1.25], [.4]
 
     if test:
         PARAM_COMBS = list(it.product(b_d, phi, eps, [approximate], [test]))
@@ -260,7 +270,7 @@ def run_experiment(argv):
     params[-1] = True
     run_func_output = RUN_FUNC(*params)[1]
 
-    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
+    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 10
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,

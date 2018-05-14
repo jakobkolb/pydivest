@@ -317,8 +317,8 @@ class Integrate_Equations:
             subs1[Pcd] = (Wd - Wc).subs(subs1)
             subs1[Pdc] = (Wc - Wd).subs(subs1)
         elif interaction == 1:
-            subs1[Pcd] = (1. / (1 + sp.exp(8. * (Wd - Wc) / (Wc + Wd)))).subs(subs1)
-            subs1[Pdc] = (1. / (1 + sp.exp(8. * (Wc - Wd) / (Wc + Wd)))).subs(subs1)
+            subs1[Pcd] = (1. / (1 + sp.exp(- 8. * (Wd - Wc) / (Wc + Wd)))).subs(subs1)
+            subs1[Pdc] = (1. / (1 + sp.exp(- 8. * (Wc - Wd) / (Wc + Wd)))).subs(subs1)
         elif interaction == 2:
             subs1[Pcd] = ((1. / 2.) * ((Wd - Wc) / (Wd + Wc) + 1.)).subs(subs1)
             subs1[Pdc] = ((1. / 2.) * ((Wc - Wd) / (Wd + Wc) + 1.)).subs(subs1)
@@ -461,7 +461,7 @@ class Integrate_Equations:
         rhsPBP = sp.Matrix(rhsPBP)
         if test:
             print('simplify economic switching terms')
-        rhsECO_switch = sp.simplify(rhsECO_switch.subs(subs1))
+        rhsECO_switch = rhsECO_switch.subs(subs1)
         if test:
             print('done')
         rhsECO = rhsECO + rhsECO_switch
