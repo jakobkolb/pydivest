@@ -12,12 +12,13 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 from pymofa.experiment_handling import experiment_handling, \
-    even_time_series_spacing
+even_time_series_spacing
 
-from pydivest.micro_model import divestmentcore as micro_model
+from pydivest.micro_model.divestmentcore import DivestmentCore
+from pydivest.macro_model.integrate_equations_mean import Integrate_Equations
 
 
-def RUN_FUNC(interaction, phi, b_d, test):
+def RUN_FUNC(interaction, phi, b_d, model, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -50,10 +51,10 @@ def RUN_FUNC(interaction, phi, b_d, test):
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
-                    'interaction': interaction, 'test': False}
+                    'interaction': interaction, 'test': test}
 
     # investment_decisions:
-    nopinions = [100, 100]
+    nopinions = [50, 50]
 
     # network:
     N = sum(nopinions)
@@ -74,50 +75,32 @@ def RUN_FUNC(interaction, phi, b_d, test):
     init_conditions = (adjacency_matrix, investment_decisions,
                        clean_investment, dirty_investment)
 
-    m = micro_model.DivestmentCore(*init_conditions, **input_params)
-    m.init_switchlist()
+    if model == 1:
+        m = DivestmentCore(*init_conditions, **input_params)
+    elif model == 2:
+        m = Integrate_Equations(*init_conditions, **input_params)
 
-    # storing initial conditions and parameters
-
-    res = {
-        "initials": pd.DataFrame({"Investment decisions": investment_decisions,
-                                  "Investment clean": m.investment_clean,
-                                  "Investment dirty": m.investment_dirty}),
-        "parameters": pd.Series({"tau": m.tau,
-                                 "phi": m.phi,
-                                 "N": m.n,
-                                 "L": m.L,
-                                 "savings rate": m.s,
-                                 "clean capital depreciation rate": m.d_c,
-                                 "dirty capital depreciation rate": m.d_d,
-                                 "resource extraction efficiency": m.b_r0,
-                                 "Solov residual clean": m.b_c,
-                                 "Solov residual dirty": m.b_d,
-                                 "pi": m.pi,
-                                 "kappa_c": m.kappa_c,
-                                 "kappa_d": m.kappa_d,
-                                 "xi": m.xi,
-                                 "resource efficiency": m.e,
-                                 "epsilon": m.eps,
-                                 "initial resource stock": m.G_0})}
-
-    # run the model
-    t_start = time.clock()
-
-    t_max = 300 if not test else 100
+    t_max = 300 if not test else 20
     m.R_depletion = False
     m.run(t_max=t_max)
 
-    t_max += 600 if not test else 0
+    t_max += 600 if not test else 1
     m.R_depletion = True
+    m.set_parameters()
     exit_status = m.run(t_max=t_max)
-
-    res["runtime"] = time.clock() - t_start
 
     # store data in case of successful run
     if exit_status in [0, 1]:
         # interpolate m_trajectory to get evenly spaced time series.
-        df_out = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+        df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+        df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
+
+        for c in df1.columns:
+            if c in df2.columns:
+                df2.drop(c, axis=1, inplace=True)
+
+        df_out = pd.concat([df1, df2], axis=1)
+
         df_out.index.name = 'tstep'
     else:
         df_out = None
@@ -202,20 +185,26 @@ def run_experiment(argv):
     phis = [round(x, 2) for x in list(np.linspace(0.0, 0.9, 20))]
     b_ds = [round(x, 2) for x in list(np.linspace(1., 1.5, 5))]
     interactions = [0, 1, 2]
-    b_d, phi, interaction = [1.2], [.5], [0, 1, 2]
+    model = [1, 2]
+    b_d, phi, interaction = [1.25], [.5], [0, 1, 2]
 
     if test:
-        param_combs = list(it.product(interaction, phi, b_d, [test]))
+        param_combs = list(it.product(interaction, phi, b_d, model, [test]))
     else:
-        param_combs = list(it.product(interactions, phis, b_ds, [test]))
+        param_combs = list(it.product(interactions, phis, b_ds, model, [test]))
 
     """
     run computation and/or post processing and/or plotting
     """
     # Create dummy runfunc output to pass its shape to experiment handle
-    params = list(param_combs[0])
-    params[-1] = True
-    run_func_output = RUN_FUNC(*params)[1]
+    try:
+        run_func_output = pd.read_pickle(save_path_raw+'rfof.pkl')
+    except:
+        params = list(param_combs[0])
+        params[-1] = True
+        run_func_output = RUN_FUNC(*params)[1]
+        with open(save_path_raw+'rfof.pkl', 'wb') as dmp:
+            pd.to_pickle(run_func_output, dmp)
 
     sample_size = 100 if not test else 3
 
@@ -229,22 +218,22 @@ def run_experiment(argv):
 
     # define eva functions
 
-    def mean(b_d, phi, interaction, test):
+    def mean(interaction, phi, b_d, model, test):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = 'b_d={} & phi={} & interaction={} & test={}'.format(b_d, phi, interaction, test)
+        query = 'b_d={} & phi={} & interaction={} & model={} & test={}'.format(b_d, phi, interaction, model, test)
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
 
         return 1, trj.groupby(level='tstep').mean()
 
-    def std(b_d, phi, interaction, test):
+    def std(interaction, phi, b_d, model, test):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = 'b_d={} & phi={} & interaction={} & test={}'.format(b_d, phi, interaction, test)
+        query = 'b_d={} & phi={} & interaction={} & model={} & test={}'.format(b_d, phi, interaction, model, test)
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
@@ -270,6 +259,7 @@ def run_experiment(argv):
         return 1
     elif mode == 1:
         # post processing (all parameter combinations on one thread)
+        print('post processing')
         eva_1_handle.compute()
         eva_2_handle.compute()
         return 1
