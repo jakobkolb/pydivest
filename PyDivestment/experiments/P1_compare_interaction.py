@@ -104,11 +104,11 @@ def RUN_FUNC(interaction, phi, b_d, test):
     # run the model
     t_start = time.clock()
 
-    t_max = 300 if not test else 3
+    t_max = 300 if not test else 100
     m.R_depletion = False
     m.run(t_max=t_max)
 
-    t_max += 600 if not test else 6
+    t_max += 600 if not test else 0
     m.R_depletion = True
     exit_status = m.run(t_max=t_max)
 
