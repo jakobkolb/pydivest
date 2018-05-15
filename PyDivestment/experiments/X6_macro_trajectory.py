@@ -116,7 +116,7 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     # run the model
     t_start = time.clock()
 
-    t_max = 200 if not test else 1
+    t_max = 200 if not test else 50
     m.R_depletion = False
     m.run(t_max=t_max)
 
