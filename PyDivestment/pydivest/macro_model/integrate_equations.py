@@ -6,6 +6,8 @@ from scipy.integrate import odeint
 import numpy as np
 import pandas as pd
 import sympy as sp
+import pickle as pkl
+from pydivest.macro_model.PBP_and_MC_analytics import calc_rhs
 
 
 class Integrate_Equations:
@@ -158,8 +160,6 @@ class Integrate_Equations:
 
         # Define lists of symbols and values for parameters to substitute
         # in rhs expression
-        param_symbols = [bc, bd, bR, e, delta, rs, xi,
-                         epsilon, phi, tau, pi, kappac, kappad, N, g0, k, p]
         param_values = [self.b_c, self.b_d, self.b_r0, self.e, self.d_c,
                         self.s, self.xi, self.eps, self.phi, self.tau, self.pi,
                         self.kappa_c, self.kappa_d,
@@ -168,14 +168,21 @@ class Integrate_Equations:
                         float(self.p)]
 
         # Load right hand side of ode system
-        rhs = np.load(__file__.rsplit('/', 1)[0] + '/res_raw.pkl')
-        pcl = np.load(__file__.rsplit('/', 1)[0] + '/pcl.pkl')
+        # rhs = np.load(__file__.rsplit('/', 1)[0] + '/res_raw.pkl')
+        # pcl = np.load(__file__.rsplit('/', 1)[0] + '/pcl.pkl')
+        rhs, var_symbols, param_symbols = calc_rhs()
 
         # substitute parameters into rhs and simplify once.
         self.rhs = rhs.subs({symbol: value for symbol, value
                              in zip(param_symbols, param_values)})
-        self.pcl = pcl.subs({symbol: value for symbol, value
-                             in zip(param_symbols, param_values)})
+
+        # self.pcl = pcl.subs({symbol: value for symbol, value
+        #                      in zip(param_symbols, param_values)})
+
+        # var_symbols = [self.s_x, self.s_y, self.s_z, self.s_mucc,
+        #                self.s_mucd, self.s_mudc, self.s_mudd,
+        #                self.s_c, self.s_g]
+        self.rhs_l = [sp.lambdify(tuple(var_symbols), r_i) for r_i in self.rhs]
 
         # list to save macroscopic quantities to compare with
         # moment closure / pair based proxy approach
@@ -191,16 +198,10 @@ class Integrate_Equations:
         return self.m_trajectory
 
     def dot_rhs(self, values, t):
-        var_symbols = [self.s_x, self.s_y, self.s_z, self.s_mucc,
-                       self.s_mucd, self.s_mudc, self.s_mudd,
-                       self.s_c, self.s_g]
         if values[-1] < self.alpha * self.g_0:
             values[-1] = self.alpha * self.g_0
         # add to g such that 1 - alpha**2 * (g/G_0)**2 remains positive
-        subs1 = {var: val for (var, val) in zip(var_symbols, values)}
-        rval = list(self.rhs.subs(subs1).evalf())
-        # print [rc, rd, Kc, Kd, Pc, Pd, R] for debugging
-        # print list(self.pcl.subs(subs1).evalf())
+        rval = [r_i(*values) for r_i in self.rhs_l]
         if not self.R_depletion:
             rval[-1] = 0
         return rval
@@ -261,7 +262,7 @@ if __name__ == '__main__':
                         'b_c': 0.4, 'phi': 0.8, 'e': 100,
                         'G_0': 30000, 'b_r0': 0.1 ** 2 * 100,
                         'possible_opinions': possible_opinions,
-                        'c': 100, 'xi': 1. / 8., 'beta': 0.06,
+                        'C': 100, 'xi': 1. / 8., 'beta': 0.06,
                         'campaign': False, 'learning': True}
 
     # investment_decisions
