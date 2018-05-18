@@ -67,8 +67,8 @@ class IntegrateEquationsMean(IntegrateEquations):
         # self.subs1[self.Wd] = self.rc * mucd + self.rd * mudd
 
         # Define clean and dirty capital as weighted sums over average endowments
-        self.subs4[self.Kc] = (self.N / 2. * (1 + self.x) * mucc + self.N / 2. * (1 - self.x) * mudc)
-        self.subs4[self.Kd] = (self.N / 2. * (1 + self.x) * mucd + self.N / 2. * (1 - self.x) * mudd)
+        self.subs4[self.Kc] = (self.N / 2. * (1 + self.x) * mucc + self.N / 2. * (1 - self.x) * mucd)
+        self.subs4[self.Kd] = (self.N / 2. * (1 + self.x) * mudc + self.N / 2. * (1 - self.x) * mudd)
 
         # ensure constant returns to scale by eliminating kappa
         self.subs5 = {self.kappac: 1. - self.pi - self.xi,
@@ -78,20 +78,20 @@ class IntegrateEquationsMean(IntegrateEquations):
         # for clean and dirty households
 
         self.rhsECO_1 = sp.Matrix(
-            [(self.rs * self.rc - self.delta) * mucc + self.rs * self.rd * mucd + self.rs * self.w * self.P / self.N,
+            [(self.rs * self.rc - self.delta) * mucc + self.rs * self.rd * mudc + self.rs * self.w * self.P / self.N,
              -self.delta * mucd,
              -self.delta * mudc,
-             self.rs * self.rc * mudc + (self.rs * self.rd - self.delta) * mudd + self.rs * self.w * self.P / self.N,
+             self.rs * self.rc * mucd + (self.rs * self.rd - self.delta) * mudd + self.rs * self.w * self.P / self.N,
              self.bc * self.Pc ** self.pi * (
-                     self.Nc * mucc + self.Nd * mudc) ** self.kappac * self.C ** self.xi - self.delta * self.C,
+                     self.Nc * mucc + self.Nd * mucd) ** self.kappac * self.C ** self.xi - self.delta * self.C,
              -self.R])
 
-        self.rhsECO_switch_1 = sp.Matrix([(mudc - mucc) * self.dtNdc / self.Nc,
-                                   (mudd - mucd) * self.dtNdc / self.Nc,
-                                   (mucc - mudc) * self.dtNcd / self.Nd,
-                                   (mucd - mudd) * self.dtNcd / self.Nd,
-                                   0,
-                                   0])
+        self.rhsECO_switch_1 = sp.Matrix([(mucd - mucc) * self.dtNdc / self.Nc,
+                                          (mucc - mucd) * self.dtNcd / self.Nd,
+                                          (mudd - mudc) * self.dtNdc / self.Nc,
+                                          (mudc - mudd) * self.dtNcd / self.Nd,
+                                          0,
+                                          0])
 
         self.rhsECO_switch_2 = self.rhsECO_switch_1.subs(self.subs1)
 
