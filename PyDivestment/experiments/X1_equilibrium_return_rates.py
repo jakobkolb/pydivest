@@ -78,7 +78,7 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
                     'b_r0': 0.1 ** 2 * 100.,  # alpha^2 * e
                     'possible_opinions': possible_opinions,
                     'xi': 1. / 8., 'beta': 0.06,
-                    'P': 100., 'C': 100., 'G_0': 1600.,
+                    'L': 100., 'C': 100., 'G_0': 1600.,
                     'campaign': False, 'learning': True,
                     'test': test, 'R_depletion': False}
 
@@ -121,7 +121,7 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
         "parameters": pd.Series({"tau": m.tau,
                                  "phi": m.phi,
                                  "n": m.n,
-                                 "P": m.P,
+                                 "L": m.P,
                                  "savings rate": m.s,
                                  "clean capital depreciation rate": m.d_c,
                                  "dirty capital depreciation rate": m.d_d,

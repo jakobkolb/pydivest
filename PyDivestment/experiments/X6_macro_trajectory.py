@@ -19,8 +19,8 @@ import numpy as np
 import pandas as pd
 
 from pydivest.divestvisuals.data_visualization import plot_trajectories
-from pydivest.macro_model import integrate_equations as macro_model
-from pydivest.micro_model import divestmentcore as micro_model
+from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean
+from pydivest.micro_model.divestmentcore import DivestmentCore
 from pymofa.experiment_handling import experiment_handling, \
     even_time_series_spacing
 
@@ -56,7 +56,7 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
                     'b_r0': 0.1 ** 2 * 100.,
                     'possible_opinions': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
-                    'P': 100., 'C': 100., 'G_0': 800.,
+                    'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True}
 
     # investment_decisions:
@@ -84,9 +84,9 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     # initializing the model
     print('approximate', approximate)
     if approximate:
-        m = macro_model.Integrate_Equations(*init_conditions, **input_params)
+        m = IntegrateEquationsMean(*init_conditions, **input_params)
     else:
-        m = micro_model.DivestmentCore(*init_conditions, **input_params)
+        m = DivestmentCore(*init_conditions, **input_params)
         m.init_switchlist()
 
     # storing initial conditions and parameters
@@ -98,7 +98,7 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
         "parameters": pd.Series({"tau": m.tau,
                                  "phi": m.phi,
                                  "N": m.n,
-                                 "P": m.P,
+                                 "L": m.P,
                                  "savings rate": m.s,
                                  "clean capital depreciation rate": m.d_c,
                                  "dirty capital depreciation rate": m.d_d,
