@@ -63,7 +63,7 @@ class IntegrateEquations:
     bc, bd, bR, e, G0 = sp.symbols('b_c b_d b_R e G_0', positive=True, real=True)
     Xc, Xd, XR = sp.symbols('X_c X_d X_R', positive=True, real=True)
 
-    mucc, mucd, mudc, mudd = sp.symbols('mu_c^c mu_c^d mu_d^c mu_d^d', positive=True, real=True)
+    # mucc, mucd, mudc, mudd = sp.symbols('mu_c^c mu_c^d mu_d^c mu_d^d', positive=True, real=True)
 
     # Defination of relations between variables and calculation of substitution of
     # *primitive variables* by *state variables* of the system
@@ -82,8 +82,8 @@ class IntegrateEquations:
     subs1 = sp.solve(eqs, vars1, dict=True)[0]
 
     # define expected wealth as expected income
-    subs1[sp.tanh(Wd - Wc)] = rc * (mucd - mucc) + rd * (mudd - mudc)
-    subs1[sp.tanh(Wc - Wd)] = rc * (mucc - mucd) + rd * (mudc - mudd)
+    # subs1[sp.tanh(Wd - Wc)] = rc * (mucd - mucc) + rd * (mudd - mudc)
+    # subs1[sp.tanh(Wc - Wd)] = rc * (mucc - mucd) + rd * (mudc - mudd)
 
     # Effect of events on state vector S = (X, Y, Z)
 
@@ -104,18 +104,18 @@ class IntegrateEquations:
     # Probabilities for events to occur:
 
     # Regular Events
-    p1 = (1 - epsilon) * phi * (Nc / N) * cd / (Nc * kc)  # clean investor rewires
-    p2 = (1 - epsilon) * phi * (Nd / N) * cd / (Nd * kd)  # dirty investor rewires
-    p3 = (1 - epsilon) * (1 - phi) * (Nc / N) * cd / (Nc * kc) * (1. / 2) * (
-            sp.tanh(Wd - Wc) + 1)  # clean investor imitates c -> d
-    p4 = (1 - epsilon) * (1 - phi) * (Nd / N) * cd / (Nd * kd) * (1. / 2) * (
-            sp.tanh(Wc - Wd) + 1)  # dirty investor imitates d -> c
-
-    # Regular Events
     # p1 = (1 - epsilon) * phi * (Nc / N) * cd / (Nc * kc)  # clean investor rewires
     # p2 = (1 - epsilon) * phi * (Nd / N) * cd / (Nd * kd)  # dirty investor rewires
-    # p3 = (1 - epsilon) * (1 - phi) * (Nc / N) * cd / (Nc * kc) * Pcd  # clean investor imitates c -> d
-    # p4 = (1 - epsilon) * (1 - phi) * (Nd / N) * cd / (Nd * kd) * Pdc  # dirty investor imitates d -> c
+    # p3 = (1 - epsilon) * (1 - phi) * (Nc / N) * cd / (Nc * kc) * (1. / 2) * (
+    #         sp.tanh(Wd - Wc) + 1)  # clean investor imitates c -> d
+    # p4 = (1 - epsilon) * (1 - phi) * (Nd / N) * cd / (Nd * kd) * (1. / 2) * (
+    #         sp.tanh(Wc - Wd) + 1)  # dirty investor imitates d -> c
+
+    # Regular Events
+    p1 = (1 - epsilon) * phi * (Nc / N) * cd / (Nc * kc)  # clean investor rewires
+    p2 = (1 - epsilon) * phi * (Nd / N) * cd / (Nd * kd)  # dirty investor rewires
+    p3 = (1 - epsilon) * (1 - phi) * (Nc / N) * cd / (Nc * kc) * Pcd  # clean investor imitates c -> d
+    p4 = (1 - epsilon) * (1 - phi) * (Nd / N) * cd / (Nd * kd) * Pdc  # dirty investor imitates d -> c
 
     # Noise Events
     p5 = epsilon * phi * (1. / 2) * Nc / N  # c -> d
@@ -126,13 +126,13 @@ class IntegrateEquations:
     p10 = epsilon * (1 - phi) * Nd / N * cd / (2 * dd + cd) * Nd / N  # d-c -> d-d
 
     # Switching terms for economic subsystem
-    # dtNcd = 1. / tau * Nc * (Nc / N * cd / (2 * cc + cd) * (1 - phi) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
-    # dtNdc = 1. / tau * Nd * (Nd / N * cd / (2 * dd + cd) * (1 - phi) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
+    dtNcd = 1. / tau * Nc * (Nc / N * cd / (2 * cc + cd) * (1 - phi) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
+    dtNdc = 1. / tau * Nd * (Nd / N * cd / (2 * dd + cd) * (1 - phi) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
 
-    dtNcd = 1. / tau * Nc * (Nc / N * cd / (2 * cc + cd) * (1 - phi) * (1 - epsilon) * 1. / 2 * (
-                sp.tanh(Wd - Wc) + 1) + epsilon * 1. / 2 * Nc / N)
-    dtNdc = 1. / tau * Nd * (Nd / N * cd / (2 * dd + cd) * (1 - phi) * (1 - epsilon) * 1. / 2 * (
-                sp.tanh(Wc - Wd) + 1) + epsilon * 1. / 2 * Nd / N)
+    # dtNcd = 1. / tau * Nc * (Nc / N * cd / (2 * cc + cd) * (1 - phi) * (1 - epsilon) * 1. / 2 * (
+    #             sp.tanh(Wd - Wc) + 1) + epsilon * 1. / 2 * Nc / N)
+    # dtNdc = 1. / tau * Nd * (Nd / N * cd / (2 * dd + cd) * (1 - phi) * (1 - epsilon) * 1. / 2 * (
+    #             sp.tanh(Wc - Wd) + 1) + epsilon * 1. / 2 * Nd / N)
 
     # Create S and r matrices to write down rhs markov jump process for pair based proxy:
 
@@ -158,17 +158,19 @@ class IntegrateEquations:
              R: bd / e * Kd ** kappad * P ** pi * (Xd * XR / (Xc + Xd * XR)) ** pi,
              Pc: P * Xc / (Xc + Xd * XR),
              Pd: P * Xd * XR / (Xc + Xd * XR),
-             sp.tanh(Wd - Wc): rc * (mucd - mucc) + rd * (mudd - mudc),
-             sp.tanh(Wc - Wd): rc * (mucc - mucd) + rd * (mudc - mudd)}
+             # sp.tanh(Wd - Wc): rc * (mucd - mucc) + rd * (mudd - mudc),
+             # sp.tanh(Wc - Wd): rc * (mucc - mucd) + rd * (mudc - mudd)
+             }
 
     subs3 = {Xc: (bc * Kc ** kappac * C ** xi) ** (1. / (1 - pi)),
              Xd: (bd * Kd ** kappad) ** (1. / (1 - pi)),
              XR: (1. - bR / e * (G0 / G) ** 2) ** (1. / (1 - pi))}
 
-    subs4 = {Kc: (N / 2. * (1 + x) * mucc + N / 2. * (1 - x) * mucd),
-             Kd: (N / 2. * (1 + x) * mudc + N / 2. * (1 - x) * mudd),
-             # Kc: 'I am a placeholder',
-             # Kd: 'I am a placeholder',
+    subs4 = {
+             # Kc: (N / 2. * (1 + x) * mucc + N / 2. * (1 - x) * mucd),
+             # Kd: (N / 2. * (1 + x) * mudc + N / 2. * (1 - x) * mudd),
+             Kc: 'I am a placeholder',
+             Kd: 'I am a placeholder',
              C: N * c,
              P: N * p,
              G: N * g,
@@ -392,19 +394,19 @@ class IntegrateEquations:
 
         # Define interaction terms depending on value of interaction
 
-        # if interaction == 0:
-        #     self.subs1[self.Pcd] = (self.Wd - self.Wc).subs(self.subs1)
-        #     self.subs1[self.Pdc] = (self.Wc - self.Wd).subs(self.subs1)
-        # elif interaction == 1:
-        #     self.subs1[self.Pcd] = (1. / (1 + sp.exp(- 8. * (self.Wd - self.Wc) / (self.Wc + self.Wd)))).subs(
-        #         self.subs1)
-        #     self.subs1[self.Pdc] = (1. / (1 + sp.exp(- 8. * (self.Wc - self.Wd) / (self.Wc + self.Wd)))).subs(
-        #         self.subs1)
-        # elif interaction == 2:
-        #     self.subs1[self.Pcd] = ((1. / 2.) * ((self.Wd - self.Wc) / (self.Wd + self.Wc) + 1.)).subs(self.subs1)
-        #     self.subs1[self.Pdc] = ((1. / 2.) * ((self.Wc - self.Wd) / (self.Wd + self.Wc) + 1.)).subs(self.subs1)
-        # else:
-        #     raise ValueError('interaction must be in [0, 1, 2] but is {}'.format(interaction))
+        if interaction == 0:
+            self.subs1[self.Pcd] = (1./2.*(self.Wd - self.Wc + 1)).subs(self.subs1)
+            self.subs1[self.Pdc] = (1./2.*(self.Wc - self.Wd + 1)).subs(self.subs1)
+        elif interaction == 1:
+            self.subs1[self.Pcd] = (1. / (1 + sp.exp(- 8. * (self.Wd - self.Wc) / (self.Wc + self.Wd)))).subs(
+                self.subs1)
+            self.subs1[self.Pdc] = (1. / (1 + sp.exp(- 8. * (self.Wc - self.Wd) / (self.Wc + self.Wd)))).subs(
+                self.subs1)
+        elif interaction == 2:
+            self.subs1[self.Pcd] = ((1. / 2.) * ((self.Wd - self.Wc) / (self.Wd + self.Wc) + 1.)).subs(self.subs1)
+            self.subs1[self.Pdc] = ((1. / 2.) * ((self.Wc - self.Wd) / (self.Wd + self.Wc) + 1.)).subs(self.subs1)
+        else:
+            raise ValueError('interaction must be in [0, 1, 2] but is {}'.format(interaction))
 
         # Some dummy attributes to be specified by child classes.
         self.rhs_raw = None
