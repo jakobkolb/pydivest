@@ -82,8 +82,8 @@ class IntegrateEquations:
     subs1 = sp.solve(eqs, vars1, dict=True)[0]
 
     # define expected wealth as expected income
-    subs1[sp.tanh(Wd - Wc)] = rc * (mudc - mucc) + rd * (mudd - mucd)
-    subs1[sp.tanh(Wc - Wd)] = rc * (mucc - mudc) + rd * (mucd - mudd)
+    subs1[sp.tanh(Wd - Wc)] = rc * (mucd - mucc) + rd * (mudd - mudc)
+    subs1[sp.tanh(Wc - Wd)] = rc * (mucc - mucd) + rd * (mudc - mudd)
 
     # Effect of events on state vector S = (X, Y, Z)
 
@@ -158,15 +158,15 @@ class IntegrateEquations:
              R: bd / e * Kd ** kappad * P ** pi * (Xd * XR / (Xc + Xd * XR)) ** pi,
              Pc: P * Xc / (Xc + Xd * XR),
              Pd: P * Xd * XR / (Xc + Xd * XR),
-             sp.tanh(Wd - Wc): rc * (mudc - mucc) + rd * (mudd - mucd),
-             sp.tanh(Wc - Wd): rc * (mucc - mudc) + rd * (mucd - mudd)}
+             sp.tanh(Wd - Wc): rc * (mucd - mucc) + rd * (mudd - mudc),
+             sp.tanh(Wc - Wd): rc * (mucc - mucd) + rd * (mudc - mudd)}
 
     subs3 = {Xc: (bc * Kc ** kappac * C ** xi) ** (1. / (1 - pi)),
              Xd: (bd * Kd ** kappad) ** (1. / (1 - pi)),
              XR: (1. - bR / e * (G0 / G) ** 2) ** (1. / (1 - pi))}
 
-    subs4 = {Kc: (N / 2. * (1 + x) * mucc + N / 2. * (1 - x) * mudc),
-             Kd: (N / 2. * (1 + x) * mucd + N / 2. * (1 - x) * mudd),
+    subs4 = {Kc: (N / 2. * (1 + x) * mucc + N / 2. * (1 - x) * mucd),
+             Kd: (N / 2. * (1 + x) * mudc + N / 2. * (1 - x) * mudd),
              # Kc: 'I am a placeholder',
              # Kd: 'I am a placeholder',
              C: N * c,
