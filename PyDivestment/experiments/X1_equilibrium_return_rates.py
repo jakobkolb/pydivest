@@ -76,7 +76,7 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
                     'eps': eps, 'b_d': 1.5, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,  # alpha^2 * e
-                    'possible_opinions': possible_opinions,
+                    'possible_que_orders': possible_opinions,
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 1600.,
                     'campaign': False, 'learning': True,

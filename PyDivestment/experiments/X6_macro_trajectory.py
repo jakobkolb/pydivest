@@ -54,7 +54,7 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
                     'eps': 0.05, 'b_d': b_d, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,
-                    'possible_opinions': [[0], [1]],
+                    'possible_que_orders': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True}
@@ -87,34 +87,6 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
         m = IntegrateEquationsMean(*init_conditions, **input_params)
     else:
         m = DivestmentCore(*init_conditions, **input_params)
-        m.init_switchlist()
-
-    # storing initial conditions and parameters
-
-    res = {
-        "initials": pd.DataFrame({"Investment decisions": investment_decisions,
-                                  "Investment clean": m.investment_clean,
-                                  "Investment dirty": m.investment_dirty}),
-        "parameters": pd.Series({"tau": m.tau,
-                                 "phi": m.phi,
-                                 "N": m.n,
-                                 "L": m.P,
-                                 "savings rate": m.s,
-                                 "clean capital depreciation rate": m.d_c,
-                                 "dirty capital depreciation rate": m.d_d,
-                                 "resource extraction efficiency": m.b_r0,
-                                 "Solov residual clean": m.b_c,
-                                 "Solov residual dirty": m.b_d,
-                                 "pi": m.pi,
-                                 "kappa_c": m.kappa_c,
-                                 "kappa_d": m.kappa_d,
-                                 "xi": m.xi,
-                                 "resource efficiency": m.e,
-                                 "epsilon": m.eps,
-                                 "initial resource stock": m.G_0})}
-
-    # run the model
-    t_start = time.clock()
 
     t_max = 200 if not test else 50
     m.R_depletion = False
@@ -124,15 +96,13 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     m.R_depletion = True
     exit_status = m.run(t_max=t_max)
 
-    res["runtime"] = time.clock() - t_start
+    res = {}
 
     # store data in case of successful run
     if exit_status in [0, 1]:
         # interpolate m_trajectory to get evenly spaced time series.
         res["macro_trajectory"] = \
             even_time_series_spacing(m.get_m_trajectory(), 201, 0., t_max)
-        if not approximate:
-            res["switchlist"] = m.get_switch_list()
 
     # save data
     with open(filename, 'wb') as dumpfile:
@@ -199,7 +169,7 @@ def run_experiment(argv):
     set input/output paths
     """
 
-    respath = os.path.dirname(os.path.realpath(__file__)) + "/divestdata"
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/output_data"
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":
@@ -227,7 +197,7 @@ def run_experiment(argv):
 
     phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
     b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
-    b_d, phi, approximate, exact = [1.2], [.8], [True], [False]
+    b_d, phi, exact = [1.2], [.8], [False]
 
     if test:
         PARAM_COMBS = list(it.product(b_d, phi, [bool(approximate)], [test]))
@@ -251,11 +221,6 @@ def run_experiment(argv):
             lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
                                       for f in fnames]).groupby(level=0).std()
             }
-    NAME2 = NAME + '_switchlist'
-    CF2 = {"switching_capital":
-           lambda fnames: pd.concat([np.load(f)["switchlist"]
-                                     for f in fnames]).sortlevel(level=0)
-           }
 
     """
     run computation and/or post processing and/or plotting
@@ -270,8 +235,6 @@ def run_experiment(argv):
                                      SAVE_PATH_RAW, SAVE_PATH_RES)
         handle.compute(RUN_FUNC)
         handle.resave(EVA1, NAME1)
-        if approximate == 0:
-            handle.collect(CF2, NAME2)
 
         return 1
 
