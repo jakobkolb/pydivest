@@ -135,20 +135,26 @@ class IntegrateEquationsMean(IntegrateEquations):
         # for clean and dirty households
 
         self.rhsECO_1 = sp.Matrix(
-            [(self.rs * self.rc - self.delta) * mucc + self.rs * self.rd * mudc + self.rs * self.w * self.P / self.N,
+            [(self.rs * self.rc - self.delta) * mucc + self.rs * self.rd * mudc
+             + self.rs * self.w * self.P / self.N,
              -self.delta * mucd,
              -self.delta * mudc,
-             self.rs * self.rc * mucd + (self.rs * self.rd - self.delta) * mudd + self.rs * self.w * self.P / self.N,
-             self.bc * self.Pc ** self.pi * (
-                     self.Nc * mucc + self.Nd * mucd) ** self.kappac * self.C ** self.xi - self.delta * self.C,
+             self.rs * self.rc * mucd + (self.rs * self.rd - self.delta) * mudd
+             + self.rs * self.w * self.P / self.N,
+             self.bc * self.Pc ** self.pi * self.Kc ** self.kappac * self.C ** self.xi - self.delta * self.C,
              -self.R])
 
-        self.rhsECO_switch_1 = sp.Matrix([(mucd - mucc) * self.dtNdc / self.Nc,
-                                          (mucc - mucd) * self.dtNcd / self.Nd,
-                                          (mudd - mudc) * self.dtNdc / self.Nc,
-                                          (mudc - mudd) * self.dtNcd / self.Nd,
-                                          0,
-                                          0])
+        self.rhsECO_switch_1 = sp.Matrix([
+            # change of clean capital owned by clean investors
+            (mucd - mucc) * self.dtNdc / self.Nc,
+            # change of clean capital owned by dirty investors
+            (mucc - mucd) * self.dtNcd / self.Nd,
+            # change in dirty capital owned by clean investors
+            (mudd - mudc) * self.dtNdc / self.Nc,
+            # change in dirty capital owned by dirty investors
+            (mudc - mudd) * self.dtNcd / self.Nd,
+            0,
+            0])
 
         self.rhsECO_switch_2 = self.rhsECO_switch_1.subs(self.subs1)
 
@@ -163,10 +169,12 @@ class IntegrateEquationsMean(IntegrateEquations):
 
         # In the PBP rhs substitute:
         # dependent variables for system variables
+        # NOTE TO SELF: DO NOT WRITE TO PARENT CLASS VARIABLES. THIS WILL BACKFIRE, IF OTHER
+        # CLASSES INHERIT FROM THE SAME PARENT!
 
-        self.rhsPBP = self.rhsPBP.subs(self.subs1)
+        self.rhsPBP_1 = self.rhsPBP.subs(self.subs1)
 
-        self.rhsPBP_2 = self.rhsPBP.subs(self.subs1).subs(self.subs2).subs(self.subs3)\
+        self.rhsPBP_2 = self.rhsPBP_1.subs(self.subs1).subs(self.subs2).subs(self.subs3)\
             .subs(self.subs4).subs(self.subs5)
 
         # Combine dynamic equations of economic and social subsystem:
