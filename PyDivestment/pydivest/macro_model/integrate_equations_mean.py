@@ -63,8 +63,8 @@ class IntegrateEquationsMean(IntegrateEquations):
         self.var_names = ['x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c', 'g']
 
         # define expected wealth as expected income.
-        # self.subs1[self.Wc] = self.rc * mucc + self.rd * mudc
-        # self.subs1[self.Wd] = self.rc * mucd + self.rd * mudd
+        self.subs1[self.Wc] = self.rc * mucc + self.rd * mudc
+        self.subs1[self.Wd] = self.rc * mucd + self.rd * mudd
 
         # Define clean and dirty capital as weighted sums over average endowments
         self.subs4[self.Kc] = (self.N / 2. * (1 + self.x) * mucc + self.N / 2. * (1 - self.x) * mucd)
@@ -105,6 +105,8 @@ class IntegrateEquationsMean(IntegrateEquations):
 
         # In the PBP rhs substitute:
         # dependent variables for system variables
+
+        self.rhsPBP = self.rhsPBP.subs(self.subs1)
 
         self.rhsPBP_2 = self.rhsPBP.subs(self.subs1).subs(self.subs2).subs(self.subs3).subs(self.subs4).subs(self.subs5)
 
