@@ -80,8 +80,8 @@ class calc_rhs():
     subs1 = s.solve(eqs, vars1, dict=True)[0]
 
     # define expected wealth as expected income
-    subs1[s.tanh(Wd - Wc)] = rc * (mudc - mucc) + rd * (mudd - mucd)
-    subs1[s.tanh(Wc - Wd)] = rc * (mucc - mudc) + rd * (mucd - mudd)
+    subs1[s.tanh(Wd - Wc)] = rc * (mucd - mucc) + rd * (mudd - mudc)
+    subs1[s.tanh(Wc - Wd)] = rc * (mucc - mucd) + rd * (mudc - mudd)
 
     # Effect of events on state vector S = (X, Y, Z)
 
@@ -146,8 +146,8 @@ class calc_rhs():
 
     x, y, z, k = s.symbols('x y z k')
     c, g, p, g0 = s.symbols('c, g, p, g_0')
-    subs4 = {Kc: (N / 2. * (1 + x) * mucc + N / 2. * (1 - x) * mudc),
-             Kd: (N / 2. * (1 + x) * mucd + N / 2. * (1 - x) * mudd),
+    subs4 = {Kc: (N / 2. * (1 + x) * mucc + N / 2. * (1 - x) * mucd),
+             Kd: (N / 2. * (1 + x) * mudc + N / 2. * (1 - x) * mudd),
              C: N * c,
              P: N * p,
              G: N * g,
@@ -169,8 +169,8 @@ class calc_rhs():
              R: bd / e * Kd ** kappad * P ** pi * (Xd * XR / (Xc + Xd * XR)) ** pi,
              Pc: P * Xc / (Xc + Xd * XR),
              Pd: P * Xd * XR / (Xc + Xd * XR),
-             s.tanh(Wd - Wc): rc * (mudc - mucc) + rd * (mudd - mucd),
-             s.tanh(Wc - Wd): rc * (mucc - mudc) + rd * (mucd - mudd)}
+             s.tanh(Wd - Wc): rc * (mucd - mucc) + rd * (mudd - mudc),
+             s.tanh(Wc - Wd): rc * (mucc - mucd) + rd * (mudc - mudd)}
 
     # Substitutions to ensure constant returns to scale:
 
@@ -183,12 +183,12 @@ class calc_rhs():
 
     # In[81]:
 
-    rhsECO_1 = s.Matrix([(rs * rc - delta) * mucc + rs * rd * mucd + rs * w * P / N,
-                       -delta * mucd,
-                       -delta * mudc,
-                       rs * rc * mudc + (rs * rd - delta) * mudd + rs * w * P / N,
-                       bc * Pc ** pi * (Nc * mucc + Nd * mudc) ** kappac * C ** xi - delta * C,
-                       -R])
+    rhsECO_1 = s.Matrix([(rs * rc - delta) * mucc + rs * rd * mudc + rs * w * P / N,
+                        -delta * mucd,
+                        -delta * mudc,
+                        rs * rc * mucd + (rs * rd - delta) * mudd + rs * w * P / N,
+                        bc * Pc ** pi * (Nc * mucc + Nd * mucd) ** kappac * C ** xi - delta * C,
+                        -R])
 
     # Write down changes in means of capital stocks through agents' switching of opinions
 
@@ -199,12 +199,12 @@ class calc_rhs():
     dtNdc = 1. / tau * Nd * (Nd / N * cd / (2 * dd + cd) * (1 - phi) * (1 - epsilon) * 1. / 2 * (
                 s.tanh(Wc - Wd) + 1) + epsilon * 1. / 2 * Nd / N)
 
-    rhsECO_switch_1 = s.Matrix([(mudc - mucc) * dtNdc / Nc,
-                              (mudd - mucd) * dtNdc / Nc,
-                              (mucc - mudc) * dtNcd / Nd,
-                              (mucd - mudd) * dtNcd / Nd,
-                              0,
-                              0])
+    rhsECO_switch_1 = s.Matrix([(mucd - mucc) * dtNdc / Nc,
+                                (mucc - mucd) * dtNcd / Nd,
+                                (mudd - mudc) * dtNdc / Nc,
+                                (mudc - mudd) * dtNcd / Nd,
+                                0,
+                                0])
     rhsECO_switch_2 = rhsECO_switch_1.subs(subs1)
 
     # In[83]:
