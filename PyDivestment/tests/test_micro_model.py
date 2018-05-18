@@ -6,7 +6,7 @@ from random import shuffle
 import networkx as nx
 import numpy as np
 
-from PyDivestment.pydivest.micro_model import divestment_core as dc
+from pydivest.micro_model.divestmentcore import DivestmentCore
 
 output_location = \
     'test_output/' \
@@ -29,7 +29,7 @@ for FFH in [False, True]:
         input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
                             'b_c': 1., 'phi': 0.8, 'e': 100,
                             'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
-                            'possible_opinions': possible_opinions,
+                            'possible_que_orders': possible_opinions,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
                             'campaign': False, 'learning': True}
 
@@ -43,7 +43,7 @@ for FFH in [False, True]:
         input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
                             'b_c': 1., 'phi': 0.8, 'e': 100,
                             'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
-                            'possible_opinions': possible_opinions,
+                            'possible_que_orders': possible_opinions,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
                             'campaign': False, 'learning': True}
 
@@ -78,5 +78,5 @@ for FFH in [False, True]:
 
     # Initialize Model
 
-    model = dc.Divestment_Core(*init_conditions,
-                               **input_parameters)
+    model = DivestmentCore(*init_conditions,
+                           **input_parameters)
