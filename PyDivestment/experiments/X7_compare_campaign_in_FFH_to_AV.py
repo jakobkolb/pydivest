@@ -78,7 +78,7 @@ def run_func(b_d, phi, ffh, test, transition, filename):
     input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
                     'eps': 0.05, 'b_d': b_d, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,  # alpha^2 * e
-                    'possible_opinions': possible_opinions,
+                    'possible_que_orders': possible_opinions,
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 1600.,
                     'campaign': False, 'learning': True,
@@ -136,8 +136,8 @@ def run_func(b_d, phi, ffh, test, transition, filename):
 
         # update input parameters where necessary
         input_params['campaign'] = True
-        input_params['possible_opinions'].append([5])
-        campaigner = len(input_params['possible_opinions']) - 1
+        input_params['possible_que_orders'].append([5])
+        campaigner = len(input_params['possible_que_orders']) - 1
 
         # make fraction of ccount households campaigners
         opinions = input_params['opinions']

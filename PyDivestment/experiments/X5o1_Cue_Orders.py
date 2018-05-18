@@ -77,7 +77,7 @@ def RUN_FUNC(t_G, nopinions, alpha,
         that sets the share of the initial
         resource G_0 that can be harvested
         economically.
-    possible_opinions : list of list of integers
+    possible_que_orders : list of list of integers
         the set of cue orders that are allowed in the
         model. investment_decisions determine the individual cue
         order, that a household uses.
@@ -117,7 +117,7 @@ def RUN_FUNC(t_G, nopinions, alpha,
     # input parameters
 
     input_params = {
-            'possible_opinions': possible_opinions,
+            'possible_que_orders': possible_opinions,
             'tau': tau, 'phi': phi, 'eps': eps,
         'L': P, 'b_d': b_d, 'b_r0': b_R0, 'G_0': G_0,
             'e': e, 'd_c': d_c, 'test': bool(test)}

@@ -110,7 +110,7 @@ def RUN_FUNC(t_a, phi, alpha,
     t_d : float
         the capital accumulation timescale
         t_d = 1/(d_c(1-kappa_d))
-    possible_opinions : list of list of integers
+    possible_que_orders : list of list of integers
         the set of cue orders that are allowed in the
         model. investment_decisions determine the individual cue
         order, that a household uses.
@@ -178,7 +178,7 @@ def RUN_FUNC(t_a, phi, alpha,
                         'investment_decisions': opinions,
                         'investment_clean': investment_clean,
                         'investment_dirty': investment_dirty,
-                        'possible_opinions': possible_opinions,
+                        'possible_que_orders': possible_opinions,
                         'tau': tau, 'phi': phi, 'eps': eps,
                         'L': p, 'b_d': b_d, 'b_r0': b_r0, 'G_0': g_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),

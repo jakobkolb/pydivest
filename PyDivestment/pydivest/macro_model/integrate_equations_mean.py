@@ -20,7 +20,7 @@ class IntegrateEquationsMean(IntegrateEquations):
                  pi=0.5, kappa_c=0.4, kappa_d=0.5, xi=1. / 8.,
                  L=100., G_0=3000, C=1,
                  R_depletion=True,
-                 interaction=0, crs=True, test=False,
+                 interaction=1, crs=True, test=False,
                  **kwargs):
 
         super().__init__(adjacency=adjacency, investment_decisions=investment_decisions,
@@ -154,8 +154,6 @@ class IntegrateEquationsMean(IntegrateEquations):
                                   self.v_mudc, self.v_mudd,
                                   self.v_c, self.v_g]
 
-            print(initial_conditions)
-
             trajectory = odeint(self.dot_rhs, initial_conditions, t)
 
             df = pd.DataFrame(trajectory, index=t, columns=self.var_names)
@@ -166,8 +164,6 @@ class IntegrateEquationsMean(IntegrateEquations):
              self.v_mucc, self.v_mucd,
              self.v_mudc, self.v_mudd,
              self.v_c, self.v_g) = trajectory[-1]
-
-            print(trajectory[-1])
 
             self.v_C = self.c * self.p_n
             self.v_G = self.g * self.p_n
@@ -206,7 +202,7 @@ if __name__ == '__main__':
     input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
                         'b_c': 0.4, 'phi': 0.8, 'e': 100,
                         'G_0': 30000, 'b_r0': 0.1 ** 2 * 100,
-                        'possible_opinions': possible_opinions,
+                        'possible_que_orders': possible_opinions,
                         'C': 100, 'xi': 1. / 8., 'beta': 0.06,
                         'campaign': False, 'learning': True}
 

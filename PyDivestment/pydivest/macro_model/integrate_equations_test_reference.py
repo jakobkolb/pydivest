@@ -19,7 +19,11 @@ class Integrate_Equations:
                  b_r0=1., e=10, G_0=3000,
                  R_depletion=True, test=False,
                  C=1, beta=0.06, xi=1. / 8., learning=False,
-                 campaign=False):
+                 campaign=False, **kwargs):
+
+        if len(kwargs.items()) > 0:
+            print('got superfluous keyword arguments')
+            print(kwargs.keys())
 
         # Social parameters
 
@@ -34,7 +38,7 @@ class Integrate_Equations:
         self.n = float(adjacency.shape[0])
         # edges/nodes
         self.k = float(sum(sum(adjacency))) / self.n
-        # investment_decisions as indices of possible_opinions
+        # investment_decisions as indices of possible_que_orders
         self.investment_decisions = np.array(investment_decisions)
 
         # Sector parameters
@@ -274,7 +278,7 @@ if __name__ == '__main__':
     input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
                         'b_c': 0.4, 'phi': 0.8, 'e': 100,
                         'G_0': 30000, 'b_r0': 0.1 ** 2 * 100,
-                        'possible_opinions': possible_opinions,
+                        'possible_que_orders': possible_opinions,
                         'C': 100, 'xi': 1. / 8., 'beta': 0.06,
                         'campaign': False, 'learning': True}
 

@@ -260,7 +260,7 @@ class IntegrateEquations:
         self.p_n = float(adjacency.shape[0])
         # mean degree
         self.p_k = float(sum(sum(adjacency))) / self.p_n / 2.
-        # investment_decisions as indices of possible_opinions
+        # investment_decisions as indices of possible_que_orders
         self.investment_decisions = np.array(investment_decisions)
 
         # Sector parameters
@@ -417,8 +417,6 @@ class IntegrateEquations:
         self.rhs_func = [sp.lambdify(tuple(self.var_symbols), r_i) for r_i in self.rhs]
 
         # replace parameter symbols in raw independent variables.
-        print(self.dependent_vars)
-        print(self.dependent_vars_raw)
         for key in self.dependent_vars_raw.keys():
             self.dependent_vars[key] = self.dependent_vars_raw[key].subs(self.subs_params)
         if self.p_test:
