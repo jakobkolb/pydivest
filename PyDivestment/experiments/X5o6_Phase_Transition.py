@@ -107,7 +107,7 @@ def RUN_FUNC(phi, N, alpha,
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
     # CHOCES OF PARAMETERS:
-    # P = 0.125  # question: SHOULDN'T THE MEAN DEGREE STAY CONSTANT?? Yes!
+    # L = 0.125  # question: SHOULDN'T THE MEAN DEGREE STAY CONSTANT?? Yes!
     p = 10. / N
     tau = 1.
     P = float(N) * 10
@@ -121,7 +121,7 @@ def RUN_FUNC(phi, N, alpha,
     # ROUND ONE: FIND EQUILIBRIUM DISTRIBUTIONS:
     if not transition:
         # set G_0 according to resource depletion time:
-        # t_g = G_0*e*d_c/(P*s*b_d**2)
+        # t_g = G_0*e*d_c/(L*s*b_d**2)
         G_0 = t_g * P * s * b_d ** 2 / (e * d_c)
 
         # set b_r0 according to alpha and e:
@@ -158,7 +158,7 @@ def RUN_FUNC(phi, N, alpha,
                         'investment_dirty': investment_dirty,
                         'possible_opinions': possible_opinions,
                         'tau': tau, 'phi': phi, 'eps': eps,
-                        'P': P, 'b_d': b_d, 'b_c': b_c,
+                        'L': P, 'b_d': b_d, 'b_c': b_c,
                         'b_r0': b_R0, 'G_0': G_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
                         'R_depletion': transition, 'learning': True}
@@ -196,7 +196,7 @@ def RUN_FUNC(phi, N, alpha,
     res = {"parameters": pd.Series({"tau": m.tau,
                                     "phi": m.phi,
                                     "n": m.n,
-                                    "P": P,
+                                    "L": P,
                                     "p": p,
                                     "birth rate": m.r_b,
                                     "savings rate": m.s,

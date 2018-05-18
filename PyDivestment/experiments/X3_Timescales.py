@@ -4,7 +4,7 @@ model againts each other. Nameley the timescales for
 1) capital accumulation in the dirty sector,
     t_d = 1/(d_c*(1-kappa_c))
 2) depletion of the fossil resource and
-    t_G = G_0*e*d_c/(P*s*b_d**2)
+    t_G = G_0*e*d_c/(L*s*b_d**2)
 3) opinion spreading in the adaptive voter model
    given one opinion dominates the other.
     t_a = tau*(1-phi)
@@ -108,7 +108,7 @@ def RUN_FUNC(t_a, phi, eps, t_G, alpha, test, filename):
     tau = t_a/(1-phi)
 
     # set G_0 according to resource depletion time:
-    # t_G = G_0*e*d_c/(P*s*b_d**2)
+    # t_G = G_0*e*d_c/(L*s*b_d**2)
     G_0 = t_G*P*s*b_d**2/(e*d_c)
 
     # set b_R0 according to alpha and e:
@@ -118,7 +118,7 @@ def RUN_FUNC(t_a, phi, eps, t_G, alpha, test, filename):
     #input parameters
 
     input_params = {'tau':tau, 'phi':phi, 'eps':eps, \
-            'P':P, 'b_d':b_d, 'b_R0':b_R0, 'G_0':G_0, \
+            'L':P, 'b_d':b_d, 'b_R0':b_R0, 'G_0':G_0, \
             'e':e, 'd_c':d_c, 'test':bool(test)}
 
 
@@ -150,7 +150,7 @@ def RUN_FUNC(t_a, phi, eps, t_G, alpha, test, filename):
                         "phi": m.phi,
                         "N": m.N,
                         "p": p,
-                        "P": m.P,
+                        "L": m.P,
                         "birth rate": m.r_b,
                         "savings rate": m.s,
                         "clean capital depreciation rate":m.d_c,

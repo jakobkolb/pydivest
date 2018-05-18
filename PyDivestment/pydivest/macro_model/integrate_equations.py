@@ -15,7 +15,7 @@ class Integrate_Equations:
                  investment_clean=None, investment_dirty=None,
                  possible_opinions=None,
                  tau=0.8, phi=.7, eps=0.05,
-                 P=100., r_b=0, b_c=1., b_d=1.5, s=0.23, d_c=0.06,
+                 L=100., r_b=0, b_c=1., b_d=1.5, s=0.23, d_c=0.06,
                  b_r0=1., e=10, G_0=3000,
                  R_depletion=True, test=False,
                  C=1, beta=0.06, xi=1. / 8., learning=False,
@@ -64,9 +64,9 @@ class Integrate_Equations:
         # fossil->energy->output conversion efficiency (Leontief)
         self.e = float(e)
         # total labor
-        self.P = float(P)
+        self.P = float(L)
         # labor per household
-        self.p = float(P) / self.n
+        self.p = float(L) / self.n
         # total knowledge stock
         self.C = float(C)
         # unprofitable fraction of fossil reserve
@@ -137,8 +137,8 @@ class Integrate_Equations:
         self.z = float(cd) / k
 
         self.mucc = sum(investment_clean * c) / nc
-        self.mucd = sum(investment_dirty * c) / nc
-        self.mudc = sum(investment_clean * d) / nd
+        self.mucd = sum(investment_clean * d) / nd
+        self.mudc = sum(investment_dirty * c) / nc
         self.mudd = sum(investment_dirty * d) / nd
         self.c = float(self.C) / n
         self.g = self.g_0
@@ -163,18 +163,26 @@ class Integrate_Equations:
         param_values = [self.b_c, self.b_d, self.b_r0, self.e, self.d_c,
                         self.s, self.xi, self.eps, self.phi, self.tau, self.pi,
                         self.kappa_c, self.kappa_d,
-                        self.n,
+                        1.,
                         float(self.g_0), self.k,
                         float(self.p)]
 
         # Load right hand side of ode system
         # rhs = np.load(__file__.rsplit('/', 1)[0] + '/res_raw.pkl')
         # pcl = np.load(__file__.rsplit('/', 1)[0] + '/pcl.pkl')
-        rhs, var_symbols, param_symbols = calc_rhs()
+        calc = calc_rhs()
+        rhs, var_symbols, param_symbols, r, S, rhsECO, rhsECO_s, rhsPBP = calc()
+
+        self.r = r
+        self.S = S
+        self.rhsECO = rhsECO
+        self.rhsPBP = rhsPBP
+        self.rhsECO_s = rhsECO_s
 
         # substitute parameters into rhs and simplify once.
-        self.rhs = rhs.subs({symbol: value for symbol, value
-                             in zip(param_symbols, param_values)})
+        self.subs_params = {symbol: value for symbol, value in zip(param_symbols, param_values)}
+        self.rhs = rhs.subs(self.subs_params)
+        self.rhs_raw = rhs
 
         # self.pcl = pcl.subs({symbol: value for symbol, value
         #                      in zip(param_symbols, param_values)})
@@ -206,13 +214,18 @@ class Integrate_Equations:
             rval[-1] = 0
         return rval
 
-    def run(self, t_max):
+    def run(self, t_max, t_steps=500):
         if t_max > self.t:
-            t = np.linspace(self.t, t_max, 50)
-            initial_conditions = [self.x, self.y, self.z, self.mucc,
-                                  self.mucd, self.mudc, self.mudd,
+
+            t = np.linspace(self.t, t_max, t_steps)
+
+            initial_conditions = [self.x, self.y, self.z,
+                                  self.mucc, self.mucd,
+                                  self.mudc, self.mudd,
                                   self.c, self.g]
+
             trajectory = odeint(self.dot_rhs, initial_conditions, t)
+
             df = pd.DataFrame(trajectory, index=t, columns=self.columns)
             self.m_trajectory = pd.concat([self.m_trajectory, df])
 
@@ -225,7 +238,7 @@ class Integrate_Equations:
             self.mudc = trajectory[-1, 5]
             self.mudd = trajectory[-1, 6]
             self.c = trajectory[-1, 7]
-            self.g_0 = trajectory[-1, 8]
+            self.g = trajectory[-1, 8]
             self.C = self.c * self.n
             self.G = self.g * self.n
             self.t = t_max
