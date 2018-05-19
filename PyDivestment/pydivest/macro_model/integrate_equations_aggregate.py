@@ -110,8 +110,8 @@ class IntegrateEquationsAggregate(IntegrateEquations):
             self.independent_vars[key] = val
 
         # create list of symbols and names of all independent variables
-        self.var_symbols = [self.x, self.y, self.z, Kcc, Kcd, Kdc, Kdd, self.c, self.g]
-        self.var_names = ['x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d', 'c', 'g']
+        self.var_symbols = [self.x, self.y, self.z, Kcc, Kcd, Kdc, Kdd, self.C, self.G]
+        self.var_names = ['x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d', 'C', 'G']
 
         # define expected wealth as expected income
         self.subs1[self.Wc] = ((self.rc * Kcc + self.rd * Kdc) / self.Nc).subs(self.subs1)
@@ -129,12 +129,13 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         # for clean and dirty households
 
         self.rhsECO_1 = sp.Matrix(
-            [(self.rs * self.rc - self.delta) * Kcc + self.rs * self.rd * Kdc + self.rs * self.w * self.P / self.N,
+            [(self.rs * self.rc - self.delta) * Kcc + self.rs * self.rd * Kdc
+             + self.rs * self.w * self.P * self.Nc / self.N,
              -self.delta * Kcd,
              -self.delta * Kdc,
-             self.rs * self.rc * Kcd + (self.rs * self.rd - self.delta) * Kdd + self.rs * self.w * self.P / self.N,
-             self.bc * self.Pc ** self.pi * (
-                     self.Nc * Kcc + self.Nd * Kcd) ** self.kappac * self.C ** self.xi - self.delta * self.C,
+             self.rs * self.rc * Kcd + (self.rs * self.rd - self.delta) * Kdd
+             + self.rs * self.w * self.P * self.Nd / self.N,
+             self.bc * self.Pc ** self.pi * self.Kc ** self.kappac * self.C ** self.xi - self.delta * self.C,
              -self.R])
         # Write down changes in means of capital stocks through agents'
         # switching of opinions and add them to the capital accumulation terms
@@ -142,12 +143,17 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         dtNcd = self.p3 + self.p5
         dtNdc = self.p4 + self.p6
 
-        self.rhsECO_switch_1 = sp.Matrix([Kcd / self.Nd * dtNdc - Kcc / self.Nc * dtNcd,
-                                          Kdd / self.Nd * dtNdc - Kdc / self.Nc * dtNcd,
-                                          Kcc / self.Nc * dtNcd - Kcd / self.Nd * dtNdc,
-                                          Kdc / self.Nc * dtNcd - Kdd / self.Nd * dtNdc,
-                                          0,
-                                          0])
+        self.rhsECO_switch_1 = sp.Matrix([
+            # change of clean capital owned by clean investors
+            Kcd / self.Nd * dtNdc - Kcc / self.Nc * dtNcd,
+            # change of clean capital owned by dirty investors
+            Kcc / self.Nc * dtNcd - Kcd / self.Nd * dtNdc,
+            # change in dirty capital owned by clean investors
+            Kdd / self.Nd * dtNdc - Kdc / self.Nc * dtNcd,
+            # change in dirty capital owned by dirty investors
+            Kdc / self.Nc * dtNcd - Kdd / self.Nd * dtNdc,
+            0,
+            0])
 
         self.rhsECO_switch_2 = self.rhsECO_switch_1.subs(self.subs1)
 
@@ -161,10 +167,12 @@ class IntegrateEquationsAggregate(IntegrateEquations):
 
         # In the PBP rhs substitute:
         # dependent variables for system variables
+        # NOTE TO SELF: DO NOT WRITE TO PARENT CLASS VARIABLES. THIS WILL BACKFIRE, IF OTHER
+        # CLASSES INHERIT FROM THE SAME PARENT!
 
-        self.rhsPBP = self.rhsPBP.subs(self.subs1)
+        self.rhsPBP_1 = self.rhsPBP.subs(self.subs1)
 
-        self.rhsPBP_2 = self.rhsPBP.subs(self.subs1).subs(self.subs2).subs(self.subs3).subs(self.subs4)
+        self.rhsPBP_2 = self.rhsPBP_1.subs(self.subs1).subs(self.subs2).subs(self.subs3).subs(self.subs4)
 
         # Combine dynamic equations of economic and social subsystem:
 
@@ -208,7 +216,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
             initial_conditions = [self.v_x, self.v_y, self.v_z,
                                   self.v_Kcc, self.v_Kcd,
                                   self.v_Kdc, self.v_Kdd,
-                                  self.v_c, self.v_g]
+                                  self.v_C, self.v_G]
 
             trajectory = odeint(self.dot_rhs, initial_conditions, t)
 
@@ -219,10 +227,10 @@ class IntegrateEquationsAggregate(IntegrateEquations):
             (self.v_x, self.v_y, self.v_z,
              self.v_Kcc, self.v_Kcd,
              self.v_Kdc, self.v_Kdd,
-             self.v_c, self.v_g) = trajectory[-1]
+             self.v_C, self.v_G) = trajectory[-1]
 
-            self.v_C = self.c * self.p_n
-            self.v_G = self.g * self.p_n
+            self.v_c = self.C / self.p_n
+            self.v_g = self.G / self.p_n
             self.v_t = t_max
 
         elif t_max <= self.v_t:
