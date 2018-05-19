@@ -127,6 +127,11 @@ class IntegrateEquationsMean(IntegrateEquations):
         self.subs4[self.Kc] = (self.N / 2. * (1 + self.x) * mucc + self.N / 2. * (1 - self.x) * mucd)
         self.subs4[self.Kd] = (self.N / 2. * (1 + self.x) * mudc + self.N / 2. * (1 - self.x) * mudd)
 
+        self.subs4[self.C] = self.N * self.c
+        self.subs4[self.G] = self.N * self.g
+        self.subs4[self.P] = self.N * self.p
+        self.subs4[self.G0] = self.N * self.g0
+
         # ensure constant returns to scale by eliminating kappa
         self.subs5 = {self.kappac: 1. - self.pi - self.xi,
                       self.kappad: 1. - self.pi}

@@ -1,19 +1,14 @@
-
-# coding: utf-8
-
-# In[1]:
+"""testing the mean approximation module by comparing it to the original reference implementation"""
 
 
-import pandas as pd
-import numpy as np
-import sympy as sp
-import matplotlib.pyplot as plt
-
-import networkx as nx
 from random import shuffle
 
-from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean as new_model
-from pydivest.macro_model.integrate_equations_test_reference import Integrate_Equations as old_model
+import networkx as nx
+import numpy as np
+from pydivest.macro_model.integrate_equations_mean \
+    import IntegrateEquationsMean as NewModel
+from pydivest.macro_model.integrate_equations_test_reference \
+    import Integrate_Equations as OldModel
 
 # investment_decisions:
 
@@ -36,7 +31,7 @@ input_parameters = {'b_c': 1., 'phi': phi, 'tau': 1.,
 # investment_decisions
 opinions = []
 for i, n in enumerate(nopinions):
-    opinions.append(np.full((n), i, dtype='I'))
+    opinions.append(np.full(n, i, dtype='I'))
 opinions = [item for sublist in opinions for item in sublist]
 shuffle(opinions)
 
@@ -57,18 +52,15 @@ dirty_investment = np.ones(N)
 init_conditions = (adjacency_matrix, opinions,
                    clean_investment, dirty_investment)
 
-from pydivest.macro_model.PBP_and_MC_analytics import calc_rhs
-old = calc_rhs()
+new = NewModel(*init_conditions, **input_parameters)
 
-new = new_model(*init_conditions, **input_parameters)
-
-m_old = old_model(*init_conditions, **input_parameters)
+m_old = OldModel(*init_conditions, **input_parameters)
 m_old.run(t_max=200)
 m_old.R_depletion = True
 m_old.run(t_max=600)
 trj_old = m_old.get_m_trajectory()
 
-m_new = new_model(*init_conditions, **input_parameters)
+m_new = NewModel(*init_conditions, **input_parameters)
 m_new.run(t_max=200)
 m_new.R_depletion = True
 m_new.run(t_max=600)
@@ -78,6 +70,5 @@ trj_diff = trj_new[['x', 'y', 'z']] - trj_old[['x', 'y', 'z']]
 trj_abs = trj_diff.abs().sum(axis=1)
 cs = trj_abs.cumsum()
 max_diff = cs.max()
-
 
 assert max_diff < 1e-5
