@@ -63,8 +63,6 @@ class IntegrateEquations:
     bc, bd, bR, e, G0 = sp.symbols('b_c b_d b_R e G_0', positive=True, real=True)
     Xc, Xd, XR = sp.symbols('X_c X_d X_R', positive=True, real=True)
 
-    # mucc, mucd, mudc, mudd = sp.symbols('mu_c^c mu_c^d mu_d^c mu_d^d', positive=True, real=True)
-
     # Defination of relations between variables and calculation of substitution of
     # *primitive variables* by *state variables* of the system
 
@@ -147,24 +145,11 @@ class IntegrateEquations:
              Xd: (bd * Kd ** kappad) ** (1. / (1 - pi)),
              XR: (1. - bR / e * (G0 / G) ** 2) ** (1. / (1 - pi))}
 
-    subs4 = {Kc: 'I am a placeholder',
-             Kd: 'I am a placeholder',
-             C: N * c,
-             P: N * p,
-             G: N * g,
-             G0: N * g0,
-             X: N * x,
-             Y: N * k * y,
-             Z: N * k * z,
-             K: N * k}
-
     # Define lists of symbols for parameters to substitute in rhs expression
-    param_symbols = [bc, bd, bR, e, rs, delta, pi, kappac, kappad, xi, g0, p,
+    param_symbols = [bc, bd, bR, e, rs, delta, pi, kappac, kappad, xi, g0, p, G0, P,
                      epsilon, phi, tau, k, N]
 
     # Define list of dependent and independent variables to calculate and save their values.
-    independent_vars = {'x': x, 'y': y, 'z': z,
-                        'R': R, 'c': c, 'g': g}
     dependent_vars_raw = {'w': w, 'rc': rc, 'rd': rd, 'R': R, 'Kd': Kd, 'Kc': Kc,
                           'Lc': Pc, 'Ld': Pd, 'L': P, 'rs': rs,
                           'W_d': Wd, 'W_c': Wc, 'Pcd': Pcd, 'Pdc': Pdc,
@@ -289,7 +274,7 @@ class IntegrateEquations:
         else:
             self.p_kappa_c = float(kappa_c)
             self.p_kappa_d = float(kappa_d)
-        if self.test:
+        if self.p_test:
             print('pi = {}, xi = {}, kappa_c = {}, kappa_d = {}'.format(self.p_pi, self.p_xi,
                                                                         self.p_kappa_c, self.p_kappa_d), flush=True)
         # fossil->energy->output conversion efficiency (Leontief)
@@ -375,21 +360,33 @@ class IntegrateEquations:
         self.v_c = float(self.v_C) / n
         self.v_g = self.p_g_0
 
+        # define dictionary of substitutions for rescalled variables as instance property, since different
+        # subclasses are extending it differently.
+
+        self.subs4 = {self.Kc: 'I am a placeholder',
+                      self.Kd: 'I am a placeholder',
+                      self.X: self.N * self.x,
+                      self.Y: self.N * self.k * self.y,
+                      self.Z: self.N * self.k * self.z,
+                      self.K: self.N * self.k}
+
         # Define interaction terms depending on value of interaction
 
         if interaction == 0:
-            self.subs1[self.Pcd] = (1./2.*(self.Wd - self.Wc + 1)).subs(self.subs1)
-            self.subs1[self.Pdc] = (1./2.*(self.Wc - self.Wd + 1)).subs(self.subs1)
+            self.subs1[self.Pcd] = (1./2.*(self.Wd - self.Wc + 1))
+            self.subs1[self.Pdc] = (1./2.*(self.Wc - self.Wd + 1))
         elif interaction == 1:
-            self.subs1[self.Pcd] = (1. / (1 + sp.exp(- 8. * (self.Wd - self.Wc) / (self.Wc + self.Wd)))).subs(
-                self.subs1)
-            self.subs1[self.Pdc] = (1. / (1 + sp.exp(- 8. * (self.Wc - self.Wd) / (self.Wc + self.Wd)))).subs(
-                self.subs1)
+            self.subs1[self.Pcd] = (1. / (1 + sp.exp(- 8. * (self.Wd - self.Wc) / (self.Wc + self.Wd))))
+            self.subs1[self.Pdc] = (1. / (1 + sp.exp(- 8. * (self.Wc - self.Wd) / (self.Wc + self.Wd))))
         elif interaction == 2:
-            self.subs1[self.Pcd] = ((1. / 2.) * ((self.Wd - self.Wc) / (self.Wd + self.Wc) + 1.)).subs(self.subs1)
-            self.subs1[self.Pdc] = ((1. / 2.) * ((self.Wc - self.Wd) / (self.Wd + self.Wc) + 1.)).subs(self.subs1)
+            self.subs1[self.Pcd] = ((1. / 2.) * ((self.Wd - self.Wc) / (self.Wd + self.Wc) + 1.))
+            self.subs1[self.Pdc] = ((1. / 2.) * ((self.Wc - self.Wd) / (self.Wd + self.Wc) + 1.))
         else:
             raise ValueError('interaction must be in [0, 1, 2] but is {}'.format(interaction))
+
+        # Define list of dependent and independent variables to calculate and save their values.
+        self.independent_vars = {'x': self.x, 'y': self.y, 'z': self.z,
+                                 'R': self.R, 'c': self.c, 'g': self.g}
 
         # Some dummy attributes to be specified by child classes.
         self.rhs_raw = None
@@ -405,7 +402,7 @@ class IntegrateEquations:
 
         # link parameter symbols to values,
         self.param_values = [self.p_b_c, self.p_b_d, self.p_b_r0, self.p_e, self.p_s, self.p_d_c, self.p_pi,
-                             self.p_kappa_c, self.p_kappa_d, self.p_xi, self.p_g_0, self.p_l,
+                             self.p_kappa_c, self.p_kappa_d, self.p_xi, self.p_g_0, self.p_l, self.p_G_0, self.p_P,
                              self.p_eps, self.p_phi, self.p_tau, self.p_k, 1.]
 
         self.subs_params = {symbol: value for symbol, value
