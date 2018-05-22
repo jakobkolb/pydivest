@@ -136,18 +136,15 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         # Write down changes in means of capital stocks through agents'
         # switching of opinions and add them to the capital accumulation terms
 
-        dtNcd = self.p3 + self.p5
-        dtNdc = self.p4 + self.p6
-
         self.rhsECO_switch_1 = sp.Matrix([
             # change of clean capital owned by clean investors
-            self.Kcd / self.Nd * dtNdc - self.Kcc / self.Nc * dtNcd,
+            self.Kcd / self.Nd * self.dtNdc - self.Kcc / self.Nc * self.dtNcd,
             # change of clean capital owned by dirty investors
-            self.Kcc / self.Nc * dtNcd - self.Kcd / self.Nd * dtNdc,
+            self.Kcc / self.Nc * self.dtNcd - self.Kcd / self.Nd * self.dtNdc,
             # change in dirty capital owned by clean investors
-            self.Kdd / self.Nd * dtNdc - self.Kdc / self.Nc * dtNcd,
+            self.Kdd / self.Nd * self.dtNdc - self.Kdc / self.Nc * self.dtNcd,
             # change in dirty capital owned by dirty investors
-            self.Kdc / self.Nc * dtNcd - self.Kdd / self.Nd * dtNdc,
+            self.Kdc / self.Nc * self.dtNcd - self.Kdd / self.Nd * self.dtNdc,
             0,
             0])
 

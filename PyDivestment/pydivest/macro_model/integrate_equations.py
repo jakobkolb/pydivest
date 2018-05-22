@@ -105,16 +105,17 @@ class IntegrateEquations:
     p4 = (1 - epsilon) * (1 - phi) * (Nd / N) * cd / (Nd * kd) * Pdc  # dirty investor imitates d -> c
 
     # Noise Events
-    p5 = epsilon * phi * (1. / 2) * Nc / N  # c -> d
-    p6 = epsilon * phi * (1. / 2) * Nd / N  # d -> c
-    p7 = epsilon * (1 - phi) * Nc / N * (2 * cc) / (2 * cc + cd) * Nd / N  # c-c -> c-d
-    p8 = epsilon * (1 - phi) * Nc / N * cd / (2 * cc + cd) * Nc / N  # c-d -> c-c
-    p9 = epsilon * (1 - phi) * Nd / N * (2 * dd) / (2 * dd + cd) * Nc / N  # d-d -> d-c
-    p10 = epsilon * (1 - phi) * Nd / N * cd / (2 * dd + cd) * Nd / N  # d-c -> d-d
+    p5 = epsilon * (1 - phi) * (1. / 2) * Nc / N  # imitation noise c -> d
+    p6 = epsilon * (1 - phi) * (1. / 2) * Nd / N  # imitation noise d -> c
+    p7 = epsilon * phi * Nc / N * (2 * cc) / (2 * cc + cd) * Nd / N  # rewiring noise c-c -> c-d
+    p8 = epsilon * phi * Nc / N * cd / (2 * cc + cd) * Nc / N  # rewiring noise c-d -> c-c
+    p9 = epsilon * phi * Nd / N * (2 * dd) / (2 * dd + cd) * Nc / N  # rewiring noise d-d -> d-c
+    p10 = epsilon * phi * Nd / N * cd / (2 * dd + cd) * Nd / N  # rewiring noise d-c -> d-d
 
-    # Switching terms for economic subsystem
-    dtNcd = 1. / tau * Nc * (Nc / N * cd / (2 * cc + cd) * (1 - phi) * (1 - epsilon) * Pcd + epsilon * 1. / 2 * Nc / N)
-    dtNdc = 1. / tau * Nd * (Nd / N * cd / (2 * dd + cd) * (1 - phi) * (1 - epsilon) * Pdc + epsilon * 1. / 2 * Nd / N)
+    # Switching terms for economic subsystem (total rate of households
+    # changing from clean to dirty investment and vice versa)
+    dtNcd = 1. / tau * (p3 + p5)
+    dtNdc = 1. / tau * (p4 + p6)
 
     # Create S and r matrices to write down rhs markov jump process for pair based proxy:
 
