@@ -279,12 +279,18 @@ class IntegrateEquationsMean(IntegrateEquations):
                            self.independent_vars['c'] / ll,
                            self.dependent_vars['R'] / L,
                            (self.independent_vars['x'] + 1.) / 2.,
-                           (self.dependent_vars['rc'] * self.independent_vars['mu_c^c']
-                            + self.dependent_vars['rd'] * self.independent_vars['mu_d^c'])
+                           self.dependent_vars['Nc'] * (self.dependent_vars['rc']
+                                                        * self.independent_vars['mu_c^c']
+                                                        + self.dependent_vars['rd']
+                                                        * self.independent_vars['mu_d^c'])
                            / (self.dependent_vars['rc'] * (self.independent_vars['mu_c^c']
-                                                           + self.independent_vars['mu_c^d'])
+                                                           * self.dependent_vars['Nc']
+                                                           + self.independent_vars['mu_c^d']
+                                                           * self.dependent_vars['Nd'])
                               + self.dependent_vars['rd'] * (self.independent_vars['mu_d^c']
-                                                             + self.independent_vars['mu_d^d'])),
+                                                             * self.dependent_vars['Nc']
+                                                             + self.independent_vars['mu_d^d']
+                                                             * self.dependent_vars['Nd'])),
                            self.dependent_vars['rc'],
                            self.dependent_vars['rd'],
                            self.dependent_vars['w'],
