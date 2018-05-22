@@ -4,6 +4,7 @@ from random import shuffle
 
 import numpy as np
 import pandas as pd
+import sys
 import networkx as nx
 from scipy.integrate import odeint
 from scipy.sparse.csgraph import connected_components
@@ -485,6 +486,17 @@ class DivestmentCore:
         """dummy function to mimic the interface of the approximation modules"""
         pass
 
+    @staticmethod
+    def progress(count, total, status=''):
+        bar_len = 60
+        filled_len = int(round(bar_len * count / float(total)))
+
+        percents = round(100.0 * count / float(total), 1)
+        bar = '=' * filled_len + '-' * (bar_len - filled_len)
+
+        sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
+        sys.stdout.flush()
+
     def run(self, t_max=200.):
         """
         run model for t<t_max or until consensus is reached
@@ -507,8 +519,8 @@ class DivestmentCore:
 
         candidate = 0
         while self.t < t_max:
-            # if self.debug:
-            #     print self.t, t_max
+            if self.debug:
+                self.progress(self.t, t_max, 'micro model running')
 
             # 1 find update candidate and respective update time
             (candidate, neighbor,
