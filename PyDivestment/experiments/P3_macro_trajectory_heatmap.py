@@ -102,8 +102,6 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
     # investment decisions
     t_eq = 10000 if not test else 10
     t_max = t_eq
-    if hasattr(m, 'trj_output_window'):
-        m.trj_output_window = [t_eq, np.float('inf')]
     m.R_depletion = False
     m.set_parameters()
     m.run(t_max=t_max)
@@ -241,7 +239,6 @@ def run_experiment(argv):
     try:
         if not Path(SAVE_PATH_RAW).exists():
             Path(SAVE_PATH_RAW).mkdir(parents=True, exist_ok=True)
-            print(SAVE_PATH_RAW, Path(SAVE_PATH_RAW).exists())
         run_func_output = pd.read_pickle(SAVE_PATH_RAW + 'rfof.pkl')
     except:
         params = list(PARAM_COMBS[0])
