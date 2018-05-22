@@ -10,18 +10,19 @@ from scipy.sparse.csgraph import connected_components
 from scipy.stats import linregress
 
 
-
 class DivestmentCore:
     def __init__(self, adjacency=None, opinions=None,
                  investment_clean=None, investment_dirty=None,
-                 possible_que_orders=None,
+                 possible_cue_orders=None,
                  investment_decisions=None,
                  tau=0.8, phi=.7, eps=0.05,
-                 L=100., r_b=0, b_c=1., b_d=1.5, s=0.23, d_c=0.06,
-                 b_r0=1., e=10, G_0=3000, C=1,
-                 resource_depletion=True, test=False,
-                 beta=0.06, xi=1. / 8., learning=False,
-                 campaign=False):
+                 L=100., G_0=3000, C=1.,
+                 b_c=1., b_d=1.5, s=0.23, d_c=0.06,
+                 b_r0=1., e=10,
+                 xi=1./8., pi=1./2., kappa_c=1./2., kappa_d=1./2.,
+                 R_depletion=True, test=False,
+                 beta=0.06, learning=False,
+                 campaign=False, interaction=1, crs=True, **kwargs):
 
         """
 
@@ -41,9 +42,9 @@ class DivestmentCore:
         investment_decisions: list[int]
             Initial investment decisions of households. Will be updated
             from their actual heuristic decision making during initialization
-        i_tau: float
+        tau: float
             Mean waiting time between household opinion updates
-        i_phi: float
+        phi: float
             Rewiring probability in the network adaptation process
         eps: float
             fraction of exploration events (noise) in the opinion formation process
@@ -71,6 +72,12 @@ class DivestmentCore:
             switch for verbose output for debugging
         beta: float
             Knowledge depreciation (forgetting) rate in the clean sector
+        pi: float
+            labor elasticity (equal in both sectors)
+        kappa_c: float
+            capital elasticity in the clean sector. Discarted, if crs is True
+        kappa_d: float
+            capital elasticity in the dirty sector. Discarted, if crs is True
         xi: float
             Elasticity of knowledge stock in the production process in the clean sector
         learning: bool
@@ -86,28 +93,29 @@ class DivestmentCore:
             if 2: (Wi-Wj)/(Wi+Wj) interaction.
         t_trend: float
             length of running window average that chartes use to predict trends
-
-        Optional
-        --------
-        trj_output_window: list
-            list of length two containing the beginning and end time of the trajectory output window.
-            if none is given, the trajectory contains the entire run.
         """
 
         # Modes:
         #  1: only economy,
         #  2: economy + opinion formation + decision making,
 
-        if possible_que_orders is None:
-            possible_que_orders = [[0], [1]]
+        if possible_cue_orders is None:
+            possible_cue_orders = [[0], [1]]
 
         # check, if heuristic decision making of imitation only
         self.heuristic_decision_making = False
-        for p in possible_que_orders:
+        for p in possible_cue_orders:
             if p not in [[0], [1]]:
                 self.heuristic_decision_making = True
 
         self.mode = 2
+
+        # Agent Interactions:
+        #  if 0: tanh(Wi-Wj) interaction,
+        #  if 1: interaction as in Traulsen, 2010 but with relative differences
+        #  if 2: (Wi-Wj)/(Wi+Wj) interaction.
+
+        self.interaction = interaction
 
         # General Parameters
 
@@ -120,7 +128,7 @@ class DivestmentCore:
         # toggle whether to run full time or only until consensus
         self.run_full_time = True
         # toggle resource depletion
-        self.R_depletion = resource_depletion
+        self.R_depletion = R_depletion
         # toggle learning by doing
         self.learning = learning
         # toggle campaigning
@@ -175,7 +183,7 @@ class DivestmentCore:
         # number of households
         self.n = adjacency.shape[0]
         # birth rate for household members
-        self.r_b = r_b
+        self.r_b = 0.
         # percentage of income saved
         self.s = s
 
@@ -201,16 +209,16 @@ class DivestmentCore:
         self.neighbors = adjacency
         # to select random investment_decisions,
         # all possible investment_decisions must be known
-        self.possible_que_orders = possible_que_orders
-        # investment_decisions as indices of possible_que_orders
+        self.possible_que_orders = possible_cue_orders
+        # investment_decisions as indices of possible_cue_orders
         self.opinions = np.array(opinions)
         # to keep track of the current ration of investment_decisions
-        self.clean_opinions = np.zeros((len(possible_que_orders)))
-        self.dirty_opinions = np.zeros((len(possible_que_orders)))
+        self.clean_opinions = np.zeros((len(possible_cue_orders)))
+        self.dirty_opinions = np.zeros((len(possible_cue_orders)))
 
         i, n = np.unique(self.opinions,
                          return_counts=True)
-        for j in range(len(possible_que_orders)):
+        for j in range(len(possible_cue_orders)):
             if j not in list(i):
                 n = np.append(n, [0])
                 i = np.append(i, [j])
@@ -221,10 +229,13 @@ class DivestmentCore:
         # to keep track of investment decisions.
         self.decision_state = 0.
         # investment decision vector, so far equal to investment_decisions
-        if possible_que_orders == [[0], [1]]:
-            self.investment_decisions = np.array(opinions)
+        if investment_decisions is None:
+            if possible_cue_orders == [[0], [1]]:
+                self.investment_decisions = np.array(opinions)
+            else:
+                self.investment_decisions = np.random.randint(0, 2, self.n)
         else:
-            self.investment_decisions = np.random.randint(0, 2, self.n)
+            self.investment_decisions = investment_decisions
 
         # members of ALL household = population   
         self.P = L
@@ -278,13 +289,17 @@ class DivestmentCore:
         self.b_d = b_d
 
         # labor elasticity (equal in both sectors)
-        self.pi = 1. / 2.
+        self.pi = pi
         # elasticity of knowledge
         self.xi = xi
         # clean capital elasticity
-        self.kappa_c = 1. - self.pi - self.xi
-        # dirty capital elasticity
-        self.kappa_d = 1. - self.pi
+        if crs:
+            self.kappa_c = 1. - self.pi - self.xi
+            # dirty capital elasticity
+            self.kappa_d = 1. - self.pi
+        else:
+            self.kappa_c = kappa_c
+            self.kappa_d = kappa_d
         # fossil->energy->output conversion efficiency (Leontief)
         self.e = e
 
@@ -894,12 +909,23 @@ class DivestmentCore:
         else:
             # if adapt
             # compare fitness
+            Wi = self.fitness(candidate)
+            Wj = self.fitness(neighbor)
+            if self.interaction == 0:
+                p_imitate = .5 * (np.tanh(Wj - Wi) + 1)
+            elif self.interaction == 1:
+                p_imitate = 1. / (1 + np.exp(- 8. * (Wj - Wi) / (Wj + Wi)))
+            elif self.interaction == 2:
+                p_imitate = .5 * ((Wj - Wi) / (Wj + Wi) + 1)
+            elif self.interaction == 3:
+                p_imitate = .5
+            else:
+                raise ValueError('interaction not defined, must be in [0, 1, 2] but is {}'.format(self.interaction))
             df = self.fitness(neighbor) - self.fitness(candidate)
             # and immitate, if not a campaigner
-            if ((self.campaign is False
-                 or opinion[candidate] != len(self.possible_que_orders) - 1)
-                and (np.random.uniform() < .5 * (np.tanh(df) + 1))
-                and self.imitation):
+            if ((self.campaign is False or opinion[candidate] != len(self.possible_que_orders) - 1)
+                    and (np.random.uniform() < p_imitate)
+                    and self.imitation):
                 if self.switchlist_output:
                     self.save_switch(candidate, self.opinions[candidate])
                 self.opinions[candidate] = self.opinions[neighbor]
@@ -1214,13 +1240,13 @@ class DivestmentCore:
                    'r_c', 'r_d', 'w', 'W_c', 'W_d']
         edf = self.get_economic_trajectory()
         df = pd.DataFrame(index=edf.index, columns=columns)
-        df['k_c'] = edf['K_c'] / self.L
-        df['k_d'] = edf['K_d'] / self.L
-        df['l_c'] = edf['P_c'] / self.L
-        df['l_d'] = edf['P_d'] / self.L
-        df['g'] = edf['G'] / self.L
-        df['c'] = edf['C'] / self.L
-        df['r'] = edf['R'] / self.L
+        df['k_c'] = edf['K_c'] / self.P
+        df['k_d'] = edf['K_d'] / self.P
+        df['l_c'] = edf['P_c'] / self.P
+        df['l_d'] = edf['P_d'] / self.P
+        df['g'] = edf['G'] / self.P
+        df['c'] = edf['C'] / self.P
+        df['r'] = edf['R'] / self.P
         df['n_c'] = edf['[1]'] / self.n
         df['i_c'] = edf['i_c']
         df['r_c'] = edf['r_c']
