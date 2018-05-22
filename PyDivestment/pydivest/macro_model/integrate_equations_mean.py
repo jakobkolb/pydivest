@@ -109,23 +109,19 @@ class IntegrateEquationsMean(IntegrateEquations):
         self.v_mudd = sum(self.investment_dirty * d) / nd
 
         # define symbols for mean capital endowments
-        mucc, mucd, mudc, mudd = sp.symbols('mu_c^c mu_c^d mu_d^c mu_d^d', positive=True, real=True)
-
-        # Add new variables to list of independent Variables.
-        for key, val in [('mu_c^c', mucc), ('mu_d^c', mudc), ('mu_c^d', mucd), ('mu_d^d', mudd)]:
-            self.independent_vars[key] = val
+        self.mucc, self.mucd, self.mudc, self.mudd = sp.symbols('mu_c^c mu_c^d mu_d^c mu_d^d', positive=True, real=True)
 
         # create list of symbols and names of all independent variables
-        self.var_symbols = [self.x, self.y, self.z, mucc, mucd, mudc, mudd, self.c, self.g]
-        self.var_names = ['x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c', 'g']
+        self.var_symbols = [self.x, self.y, self.z, self.mucc, self.mucd, self.mudc, self.mudd, self.c, self.g]
+        self.var_names = ['x', 'y', 'z', 'mu_c^c', 'mu_c^d', 'mu_d^c', 'mu_d^d', 'c', 'g']
 
         # define expected wealth as expected income.
-        self.subs1[self.Wc] = self.rc * mucc + self.rd * mudc
-        self.subs1[self.Wd] = self.rc * mucd + self.rd * mudd
+        self.subs1[self.Wc] = self.rc * self.mucc + self.rd * self.mudc
+        self.subs1[self.Wd] = self.rc * self.mucd + self.rd * self.mudd
 
         # Define clean and dirty capital as weighted sums over average endowments
-        self.subs4[self.Kc] = (self.N / 2. * (1 + self.x) * mucc + self.N / 2. * (1 - self.x) * mucd)
-        self.subs4[self.Kd] = (self.N / 2. * (1 + self.x) * mudc + self.N / 2. * (1 - self.x) * mudd)
+        self.subs4[self.Kc] = (self.N / 2. * (1 + self.x) * self.mucc + self.N / 2. * (1 - self.x) * self.mucd)
+        self.subs4[self.Kd] = (self.N / 2. * (1 + self.x) * self.mudc + self.N / 2. * (1 - self.x) * self.mudd)
 
         self.subs4[self.C] = self.N * self.c
         self.subs4[self.G] = self.N * self.g
@@ -140,24 +136,24 @@ class IntegrateEquationsMean(IntegrateEquations):
         # for clean and dirty households
 
         self.rhsECO_1 = sp.Matrix(
-            [(self.rs * self.rc - self.delta) * mucc + self.rs * self.rd * mudc
+            [(self.rs * self.rc - self.delta) * self.mucc + self.rs * self.rd * self.mudc
              + self.rs * self.w * self.P / self.N,
-             -self.delta * mucd,
-             -self.delta * mudc,
-             self.rs * self.rc * mucd + (self.rs * self.rd - self.delta) * mudd
+             -self.delta * self.mucd,
+             -self.delta * self.mudc,
+             self.rs * self.rc * self.mucd + (self.rs * self.rd - self.delta) * self.mudd
              + self.rs * self.w * self.P / self.N,
              self.bc * self.Pc ** self.pi * self.Kc ** self.kappac * self.C ** self.xi - self.delta * self.C,
              -self.R])
 
         self.rhsECO_switch_1 = sp.Matrix([
             # change of clean capital owned by clean investors
-            (mucd - mucc) * self.dtNdc / self.Nc,
+            (self.mucd - self.mucc) * self.dtNdc / self.Nc,
             # change of clean capital owned by dirty investors
-            (mucc - mucd) * self.dtNcd / self.Nd,
+            (self.mucc - self.mucd) * self.dtNcd / self.Nd,
             # change in dirty capital owned by clean investors
-            (mudd - mudc) * self.dtNdc / self.Nc,
+            (self.mudd - self.mudc) * self.dtNdc / self.Nc,
             # change in dirty capital owned by dirty investors
-            (mudc - mudd) * self.dtNcd / self.Nd,
+            (self.mudc - self.mudd) * self.dtNcd / self.Nd,
             0,
             0])
 
@@ -186,6 +182,8 @@ class IntegrateEquationsMean(IntegrateEquations):
 
         self.rhs_raw = sp.Matrix([self.rhsPBP_2, self.rhsECO_3]).subs(self.subs1)
 
+        # update dependent vars with specific approximation variables
+        self.update_dependent_vars()
         # Set parameter values in rhs and dependent variables:
         self.set_parameters()
 
@@ -246,3 +244,47 @@ class IntegrateEquationsMean(IntegrateEquations):
                 print('upper time limit is smaller than system time', self.v_t)
 
         return 1
+
+    def get_unified_trajectory(self):
+        """
+        Calculates unified trajectory in per capita variables
+
+        Returns
+        -------
+        Dataframe of unified per capita variables if calculation succeeds,
+        else return -1 for TypeError and -2 for ValueError
+        """
+
+        L = self.dependent_vars['L']
+        l = self.dependent_vars['l']
+
+        columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r',
+                   'n_c', 'i_c', 'r_c', 'r_d', 'w',
+                   'W_c', 'W_d', 'Pcd', 'Pdc']
+        var_expressions = [(self.independent_vars['mu_c^c'] * self.dependent_vars['Nc']
+                            + self.independent_vars['mu_c^d'] * self.dependent_vars['Nd']) / L,
+                           (self.independent_vars['mu_d^c'] * self.dependent_vars['Nc']
+                            + self.independent_vars['mu_d^d'] * self.dependent_vars['Nd']) / L,
+                           self.dependent_vars['Lc'] / L,
+                           self.dependent_vars['Ld'] / L,
+                           self.independent_vars['g'] / l,
+                           self.independent_vars['c'] / l,
+                           self.dependent_vars['R'] / L,
+                           (self.independent_vars['x'] + 1.) / 2.,
+                           (self.dependent_vars['rc'] * self.independent_vars['mu_c^c']
+                            + self.dependent_vars['rd'] * self.independent_vars['mu_d^c'])
+                           / (self.dependent_vars['rc'] * (self.independent_vars['mu_c^c']
+                                                           + self.independent_vars['mu_c^d'])
+                              + self.dependent_vars['rd'] * (self.independent_vars['mu_d^c']
+                                                             + self.independent_vars['mu_d^d'])),
+                           self.dependent_vars['rc'],
+                           self.dependent_vars['rd'],
+                           self.dependent_vars['w'],
+                           self.dependent_vars['W_c'],
+                           self.dependent_vars['W_d'],
+                           self.dependent_vars['Pcd'],
+                           self.dependent_vars['Pdc']
+                           ]
+
+        return self.calculate_unified_trajectory(columns=columns,
+                                                 var_expressions=var_expressions)

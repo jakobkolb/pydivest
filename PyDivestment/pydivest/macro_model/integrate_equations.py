@@ -4,6 +4,7 @@ import sys
 
 import numpy as np
 import sympy as sp
+import pandas as pd
 
 
 class IntegrateEquations:
@@ -148,12 +149,6 @@ class IntegrateEquations:
     # Define lists of symbols for parameters to substitute in rhs expression
     param_symbols = [bc, bd, bR, e, rs, delta, pi, kappac, kappad, xi, g0, p, G0, P,
                      epsilon, phi, tau, k, N]
-
-    # Define list of dependent and independent variables to calculate and save their values.
-    dependent_vars_raw = {'w': w, 'rc': rc, 'rd': rd, 'R': R, 'Kd': Kd, 'Kc': Kc,
-                          'Lc': Pc, 'Ld': Pd, 'L': P, 'rs': rs,
-                          'W_d': Wd, 'W_c': Wc, 'Pcd': Pcd, 'Pdc': Pdc,
-                          'l': p, 'Nc': Nc, 'Nd': Nd}
 
     def __init__(self, adjacency=None, investment_decisions=None,
                  investment_clean=None, investment_dirty=None,
@@ -386,7 +381,13 @@ class IntegrateEquations:
 
         # Define list of dependent and independent variables to calculate and save their values.
         self.independent_vars = {'x': self.x, 'y': self.y, 'z': self.z,
-                                 'R': self.R, 'c': self.c, 'g': self.g}
+                                 'R': self.R}
+        # Define list of dependent and independent variables to calculate and save their values.
+        self.dependent_vars_raw = {'w': self.w, 'rc': self.rc, 'rd': self.rd,
+                                   'R': self.R, 'Kd': self.Kd, 'Kc': self.Kc,
+                                   'Lc': self.Pc, 'Ld': self.Pd, 'L': self.P, 'rs': self.rs,
+                                   'W_d': self.Wd, 'W_c': self.Wc, 'Pcd': self.Pcd, 'Pdc': self.Pdc,
+                                   'l': self.p, 'Nc': self.Nc, 'Nd': self.Nd, 'P': self.P}
 
         # Some dummy attributes to be specified by child classes.
         self.rhs_raw = None
@@ -396,6 +397,18 @@ class IntegrateEquations:
         self.subs_params = {}
         self.dependent_vars = {}
         self.var_symbols = []
+
+    def update_dependent_vars(self):
+
+        # Add new variables to list of independent Variables.
+        for key, val in zip(self.var_names, self.var_symbols):
+            self.independent_vars[key] = val
+
+        # Substitute expressions in variables
+        for key in self.dependent_vars_raw.keys():
+            self.dependent_vars_raw[key] = self.dependent_vars_raw[key].subs(self.subs1)\
+                .subs(self.subs2).subs(self.subs3) \
+                .subs(self.subs1).subs(self.subs4).subs({self.N: 1})
 
     def set_parameters(self):
         """(re)set parameter values in rhs and dependent expressions"""
@@ -467,3 +480,47 @@ class IntegrateEquations:
 
         sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
         sys.stdout.flush()
+
+    def calculate_unified_trajectory(self, columns, var_expressions):
+        """
+        Calculate the values of unified output variables from given expressions
+        Parameters
+        ----------
+        columns: iterable[string]
+            names of the output variables
+        var_expressions: iterable
+            sympy expressions for output variables
+
+        Returns
+        -------
+        df_out: pd.DataFrame
+            Dataframe with timestamps t as index, variable names as columns
+            and variable values at times t as content
+
+        """
+
+        t_values = self.m_trajectory.index.values
+        data = np.zeros((len(t_values), len(columns)))
+        var_expressions_lambdified = [sp.lambdify(tuple(self.var_symbols), expr)
+                                      for expr in var_expressions]
+        for i, t in enumerate(t_values):
+            if self.p_test:
+                self.progress(i, len(t_values), 'calculating dependant variables')
+            Yi = self.m_trajectory.loc[t]
+            try:
+                data[i, :] = [expr(*Yi.values) for expr in var_expressions_lambdified]
+            except TypeError:
+                # catching double entries from piecewise runs
+                # resulting in end of one piece and start of
+                # next piece having the same time step
+                # try:
+                Yi = Yi.iloc[0]
+                data[i, :] = [expr(*Yi) for expr in var_expressions_lambdified]
+                # except TypeError:
+                #     print('Type Error at t={} in getting unified trajectory ')
+                #     print(Yi)
+                #     print('returning functional part of trajectory', flush=True)
+
+        df_out = pd.DataFrame(index=t_values, columns=columns, data=data)
+
+        return df_out
