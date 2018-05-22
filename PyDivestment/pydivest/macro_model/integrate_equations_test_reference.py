@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import sympy as sp
 import pickle as pkl
-from pydivest.macro_model.PBP_and_MC_analytics import calc_rhs
+from pydivest.macro_model.PBP_and_MC_analytics import CalcRhs
 
 
 class Integrate_Equations:
@@ -174,7 +174,7 @@ class Integrate_Equations:
         # Load right hand side of ode system
         # rhs = np.load(__file__.rsplit('/', 1)[0] + '/res_raw.pkl')
         # pcl = np.load(__file__.rsplit('/', 1)[0] + '/pcl.pkl')
-        calc = calc_rhs()
+        calc = CalcRhs()
         rhs, var_symbols, param_symbols, r, S, rhsECO, rhsECO_s, rhsPBP = calc()
 
         self.r = r
