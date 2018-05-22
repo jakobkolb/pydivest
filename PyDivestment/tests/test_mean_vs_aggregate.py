@@ -70,6 +70,7 @@ for interaction in [1, 2]:
     for c in trj_m.columns:
         dif = trj_m[[c]] - trj_a[[c]]
         dif_cum = dif.cumsum()
-        max_dif = dif_cum.max()
-        assert max_dif < 1e-4
+        max_dif = dif_cum.max().values[0]
+        print(max_dif)
+        assert max_dif < 1e-3
 
