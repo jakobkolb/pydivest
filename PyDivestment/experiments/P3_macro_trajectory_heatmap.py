@@ -2,16 +2,14 @@
 This experiment is meant to create trajectories of macroscopic variables from
 1) the numeric micro model and
 2) the analytic macro model
-that can be compared to evaluate the validity and quality of the analytic
-approximation.
-The variable Parameters are b_d and phi.
+From these trajectories, I will calculate the distance
+The variable Parameters are tau and phi.
 """
 
 import getpass
 import itertools as it
 import os
 import sys
-import time
 
 import networkx as nx
 import numpy as np
@@ -21,10 +19,11 @@ from pymofa.experiment_handling import experiment_handling, even_time_series_spa
 
 from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean
 from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
+from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as IntegrateEquationsRep
 from pydivest.micro_model.divestmentcore import DivestmentCore
 
 
-def RUN_FUNC(b_d, phi, eps, approximate, test):
+def RUN_FUNC(tau, phi, eps, approximate, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -34,8 +33,8 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
 
     Parameters:
     -----------
-    b_d : float > 0
-        the solow residual in the dirty sector
+    tau : float > 0
+        the frequency of social interactions
     phi : float \in [0,1]
         the rewiring probability for the network update
     eps : float
@@ -52,14 +51,14 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
-                    'eps': eps, 'b_d': b_d, 'e': 100.,
+    input_params = {'b_c': 1., 'phi': phi, 'tau': tau,
+                    'eps': eps, 'b_d': 1.25, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,
                     'possible_cue_orders': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
-                    'interaction': 1, 'test': test}
+                    'interaction': 1, 'test': False}
 
     # investment_decisions:
     nopinions = [100, 100]
@@ -89,52 +88,59 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
     elif approximate == 2:
         m = IntegrateEquationsMean(*init_conditions, **input_params)
     elif approximate == 3:
+        m = IntegrateEquationsRep(*init_conditions, **input_params)
+    elif approximate == 4:
         m = IntegrateEquationsAggregate(*init_conditions, **input_params)
     else:
-        raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
+        raise ValueError('approximate must be in [1, 2, 3, 4] but is {}'.format(approximate))
 
-    t_max = 400 if not test else 2
+    # THIS TURNED OUT TO BE TROUBLE! SINCE THE EQUILIBRIUM STATE APPARENTLY DEPENDS ON TAU
+    # (even though i'm sure it is not supposed to.)
+
+    # equilibration phase with small tau
+    # to reach equilibrium distribution of
+    # investment decisions
+    t_eq = 10000 if not test else 10
+    t_max = t_eq
+    if hasattr(m, 'trj_output_window'):
+        m.trj_output_window = [t_eq, np.float('inf')]
     m.R_depletion = False
+    m.set_parameters()
     m.run(t_max=t_max)
 
-    t_max += 600 if not test else 1
+    # ONLY KEEPING THIS.
+    # intermediate phase with original tau but still no resource depletion
+    # to verify that the equilibrium distribution of investment decisions
+    # is in fact independent from tau
+
+    t_max += 200 if not test else 2
+    m.tau = tau
+    m.set_parameters()
+    m.run(t_max=t_max)
+
+    # transition phase with resource depletion
+
+    t_max += 600 if not test else 6
     m.R_depletion = True
+    m.set_parameters()
     exit_status = m.run(t_max=t_max)
 
     # store data in case of successful run
     if exit_status in [0, 1]:
-        if approximate == 1:
-            df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
-            df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
-            df3 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
-        elif approximate == 2:
-            df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
-            df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
-            df3 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
-        elif approximate == 3:
-            df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
-            df2 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
-            df3 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
-        else:
-            raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
+        df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, t_eq, t_max)
+        df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, t_eq, t_max)
 
-        for c in df1.columns:
-            if c in df2.columns:
+        for c in df2.columns:
+            if c in df1.columns:
                 df2.drop(c, axis=1, inplace=True)
 
-        df_tmp = pd.concat([df1, df2], axis=1)
-
-        for c in df_tmp.columns:
-            if c in df3.columns:
-                df_tmp.drop(c, axis=1, inplace=True)
-
-        df_out = pd.concat([df3, df_tmp], axis=1)
-
+        df_out = pd.concat([df1, df2], axis=1)
         df_out.index.name = 'tstep'
     else:
         df_out = None
 
     return exit_status, df_out
+
 
 # get sub experiment and mode from command line
 
@@ -199,8 +205,8 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    sub_experiment = ['micro', 'mean', 'aggregate'][approximate - 1]
-    folder = 'P2'
+    sub_experiment = ['micro', 'mean', 'representative'][approximate - 1]
+    folder = 'P3'
 
     # make sure, testing output goes to its own folder:
 
@@ -208,29 +214,28 @@ def run_experiment(argv):
 
     SAVE_PATH_RAW = \
         "{}/{}{}/{}/" \
-        .format(tmppath, test_folder, folder, sub_experiment)
+            .format(tmppath, test_folder, folder, sub_experiment)
     SAVE_PATH_RES = \
         "{}/{}{}/{}/" \
-        .format(respath, test_folder, folder, sub_experiment)
+            .format(respath, test_folder, folder, sub_experiment)
     """
     create parameter combinations and index
     """
 
-    phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
-    b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
+    phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 21))]
+    taus = [round(x, 5) for x in list(np.linspace(.5, 10., 20))]
     eps = [0.1, 0.05, 0.01]
-    b_d, phi = [1.25], [.4]
+    tau, phi = [1.], [.8]
 
     if test:
-        PARAM_COMBS = list(it.product(b_d, phi, eps, [approximate], [test]))
+        PARAM_COMBS = list(it.product(tau, phi, eps, [approximate], [test]))
     else:
-        PARAM_COMBS = list(it.product(b_ds, phis, eps, [approximate], [test]))
+        PARAM_COMBS = list(it.product(taus, phis, eps, [approximate], [test]))
 
     """
     run computation and/or post processing and/or plotting
     """
 
-    # Create dummy runfunc output to pass its shape to experiment handle
     # Create dummy runfunc output to pass its shape to experiment handle
 
     try:
@@ -245,7 +250,7 @@ def run_experiment(argv):
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 10
+    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,
@@ -257,27 +262,29 @@ def run_experiment(argv):
 
     # define eva functions
 
-    def mean(b_d, phi, eps, approximate, test):
+    def mean(tau, phi, eps, approximate, test):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = 'b_d={} & phi={} & eps={} & approximate={} & test={}'.format(b_d, phi, eps, approximate, test)
+        query = 'tau={} & phi={} & eps={} & approximate={} & test={}'.format(tau, phi, eps, approximate, test)
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
 
         return 1, trj.groupby(level='tstep').mean()
 
-    def std(b_d, phi, eps, approximate, test):
+    def std(tau, phi, eps, approximate, test):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = 'b_d={} & phi={} & eps={} & approximate={} & test={}'.format(b_d, phi, eps, approximate, test)
+        query = 'tau={} & phi={} & eps={} & approximate={} & test={}'.format(tau, phi, eps, approximate, test)
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
 
-        return 1, trj.groupby(level='tstep').std()
+        df_out = trj.groupby(level='tstep').std()
+
+        return 1, df_out
 
     eva_1_handle = experiment_handling(run_func=mean,
                                        runfunc_output=run_func_output,
@@ -307,4 +314,3 @@ def run_experiment(argv):
 if __name__ == "__main__":
     cmdline_arguments = sys.argv
     run_experiment(cmdline_arguments)
-
