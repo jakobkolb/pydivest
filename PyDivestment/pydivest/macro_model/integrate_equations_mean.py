@@ -256,7 +256,7 @@ class IntegrateEquationsMean(IntegrateEquations):
         """
 
         L = self.dependent_vars['L']
-        l = self.dependent_vars['l']
+        ll = self.dependent_vars['l']
 
         columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r',
                    'n_c', 'i_c', 'r_c', 'r_d', 'w',
@@ -267,8 +267,8 @@ class IntegrateEquationsMean(IntegrateEquations):
                             + self.independent_vars['mu_d^d'] * self.dependent_vars['Nd']) / L,
                            self.dependent_vars['Lc'] / L,
                            self.dependent_vars['Ld'] / L,
-                           self.independent_vars['g'] / l,
-                           self.independent_vars['c'] / l,
+                           self.independent_vars['g'] / ll,
+                           self.independent_vars['c'] / ll,
                            self.dependent_vars['R'] / L,
                            (self.independent_vars['x'] + 1.) / 2.,
                            (self.dependent_vars['rc'] * self.independent_vars['mu_c^c']

@@ -181,7 +181,6 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         # dictionary for final state
         self.final_state = {}
 
-
     def get_m_trajectory(self):
 
         return self.m_trajectory
