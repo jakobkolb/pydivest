@@ -102,6 +102,8 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
     # investment decisions
     t_eq = 10000 if not test else 10
     t_max = t_eq
+    if hasattr(m, 'trj_output_window'):
+        m.trj_output_window = [t_eq, np.float('inf')]
     m.R_depletion = False
     m.set_parameters()
     m.run(t_max=t_max)
