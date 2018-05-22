@@ -1,16 +1,13 @@
 
 # coding: utf-8
-
-# In[ ]:
-
-
-import pandas as pd
 import numpy as np
 import networkx as nx
 from random import shuffle
 
-from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean as mean_model
-from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate as aggregate_model
+from pydivest.macro_model.integrate_equations_mean import \
+    IntegrateEquationsMean as mean_model
+from pydivest.macro_model.integrate_equations_aggregate import \
+    IntegrateEquationsAggregate as aggregate_model
 
 # investment_decisions:
 
@@ -53,7 +50,8 @@ for interaction in [1, 2]:
                         'L': 100., 'C': 100., 'G_0': 800.,
                         'campaign': False, 'learning': True,
                         'R_depletion': False, 'test': False,
-                        'interaction': interaction, 'crs': True}
+                        'interaction': interaction,
+                        'crs': True}
 
     mm = mean_model(*init_conditions, **input_parameters)
     mm.run(t_max=200)
@@ -72,5 +70,6 @@ for interaction in [1, 2]:
         dif_cum = dif.cumsum()
         max_dif = dif_cum.max().values[0]
         print(max_dif)
-        assert max_dif < 1e-3
+        assert max_dif < 1e-3, 'failed at {} with interaction={}'\
+            .format(c, interaction)
 
