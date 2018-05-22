@@ -230,9 +230,9 @@ def RUN_FUNC(t_a, phi, alpha,
     # interpolate e_trajectory to get evenly spaced time series.
 
     res["e_trajectory"] = \
-        even_time_series_spacing(m.get_e_trajectory(), 201, 0., t_max)
+        even_time_series_spacing(m.get_economic_trajectory(), 201, 0., t_max)
     res["m_trajectory"] = \
-        even_time_series_spacing(m.get_m_trajectory(), 201, 0., t_max)
+        even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
 
     end = time.clock()
     res["runtime"] = end-start

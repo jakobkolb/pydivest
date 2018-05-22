@@ -323,9 +323,9 @@ class DivestmentCore:
         self.G = G_0
 
         if self.e_trajectory_output:
-            self.init_e_trajectory()
+            self.init_economic_trajectory()
         if self.m_trajectory_output:
-            self.init_m_trajectory()
+            self.init_mean_trajectory()
         if self.switchlist_output:
             self.init_switchlist()
 
@@ -774,9 +774,9 @@ class DivestmentCore:
 
         # output economic data
         if self.e_trajectory_output:
-            self.update_e_trajectory()
+            self.update_economic_trajectory()
         if self.m_trajectory_output:
-            self.update_m_trajectory()
+            self.update_mean_trajectory()
 
     def find_update_candidates(self):
 
@@ -988,7 +988,7 @@ class DivestmentCore:
     def fitness(self, agent):
         return self.income[agent]
 
-    def init_e_trajectory(self):
+    def init_economic_trajectory(self):
         element = list(chain.from_iterable(
             [['time',
               'wage',
@@ -1033,9 +1033,9 @@ class DivestmentCore:
         self.G = x1[-2]
         self.C = x1[-1]
 
-        self.update_e_trajectory()
+        self.update_economic_trajectory()
 
-    def update_e_trajectory(self):
+    def update_economic_trajectory(self):
         alpha = (self.b_r0 / self.e) ** (1. / 2.)
         element = list(chain.from_iterable(
             [[self.t,
@@ -1067,7 +1067,7 @@ class DivestmentCore:
              self.dirty_opinions]))
         self.e_trajectory.append(element)
 
-    def get_e_trajectory(self):
+    def get_economic_trajectory(self):
         # make up DataFrame from micro data
         columns = self.e_trajectory.pop(0)
         df = pd.DataFrame(self.e_trajectory, columns=columns)
@@ -1075,7 +1075,7 @@ class DivestmentCore:
 
         return df
 
-    def init_m_trajectory(self):
+    def init_mean_trajectory(self):
         """
         This function initializes the e_trajectory for the output of the
         macroscopic quantitites as computed via moment closure and
@@ -1100,9 +1100,9 @@ class DivestmentCore:
         self.G = x1[-2]
         self.C = x1[-1]
 
-        self.update_m_trajectory()
+        self.update_mean_trajectory()
 
-    def update_m_trajectory(self):
+    def update_mean_trajectory(self):
         """
         This function calculates the macroscopic variables that are
         the dynamic variables in the macroscopic approximation and saves
@@ -1158,7 +1158,7 @@ class DivestmentCore:
                  self.G / n]
         self.m_trajectory.append(entry)
 
-    def get_m_trajectory(self):
+    def get_mean_trajectory(self):
         # make up Dataframe from macro data:
         columns = self.m_trajectory.pop(0)
         df = pd.DataFrame(self.m_trajectory, columns=columns)
@@ -1302,7 +1302,7 @@ if __name__ == '__main__':
 
     colors = [c for c in 'gk']
 
-    df = model.get_e_trajectory()
+    df = model.get_economic_trajectory()
     print(df.columns)
 
     fig = mp.figure()
