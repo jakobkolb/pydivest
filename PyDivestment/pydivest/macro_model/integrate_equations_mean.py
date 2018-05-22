@@ -192,10 +192,6 @@ class IntegrateEquationsMean(IntegrateEquations):
         # dictionary for final state
         self.final_state = {}
 
-    def get_m_trajectory(self):
-
-        return self.m_trajectory
-
     def run(self, t_max=100, t_steps=500):
         """
         run the model for a given time t_max and produce results in resolution t_steps
@@ -245,6 +241,18 @@ class IntegrateEquationsMean(IntegrateEquations):
 
         return 1
 
+    def get_mean_trajectory(self):
+
+        return self.m_trajectory
+
+    def get_aggregate_trajectory(self):
+        """return a mock aggregate trajectory with correct shape but containing zeros"""
+
+        columns = ['x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d', 'C', 'G']
+        index = self.m_trajectory.index
+
+        return pd.DataFrame(0, index=index, columns=columns)
+
     def get_unified_trajectory(self):
         """
         Calculates unified trajectory in per capita variables
@@ -260,7 +268,7 @@ class IntegrateEquationsMean(IntegrateEquations):
 
         columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r',
                    'n_c', 'i_c', 'r_c', 'r_d', 'w',
-                   'W_c', 'W_d', 'Pcd', 'Pdc']
+                   'W_c', 'W_d']
         var_expressions = [(self.independent_vars['mu_c^c'] * self.dependent_vars['Nc']
                             + self.independent_vars['mu_c^d'] * self.dependent_vars['Nd']) / L,
                            (self.independent_vars['mu_d^c'] * self.dependent_vars['Nc']
@@ -281,9 +289,7 @@ class IntegrateEquationsMean(IntegrateEquations):
                            self.dependent_vars['rd'],
                            self.dependent_vars['w'],
                            self.dependent_vars['W_c'],
-                           self.dependent_vars['W_d'],
-                           self.dependent_vars['Pcd'],
-                           self.dependent_vars['Pdc']
+                           self.dependent_vars['W_d']
                            ]
 
         return self.calculate_unified_trajectory(columns=columns,
