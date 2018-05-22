@@ -9,7 +9,8 @@
 import sympy as s
 from sympy.abc import epsilon, phi, tau
 
-class calc_rhs():
+
+class CalcRhs:
 
     # Define variables and parameters for the adaptive voter model
 
@@ -62,7 +63,8 @@ class calc_rhs():
     bc, bd, bR, e, G0 = s.symbols('b_c b_d b_R e G_0', positive=True, real=True)
     Xc, Xd, XR = s.symbols('X_c X_d X_R', positive=True, real=True)
 
-    # Defination of relations between variables and calculation of substitution of *primitive variables* by *state variables* of the system
+    # Defination of relations between variables and calculation of substitution of
+    # *primitive variables* by *state variables* of the system
 
     # In[70]:
 
@@ -113,12 +115,12 @@ class calc_rhs():
             s.tanh(Wc - Wd) + 1)  # dirty investor imitates d -> c
 
     # Noise Events
-    p5 = epsilon * phi * (1. / 2) * Nc / N  # c -> d
-    p6 = epsilon * phi * (1. / 2) * Nd / N  # d -> c
-    p7 = epsilon * (1 - phi) * Nc / N * (2 * cc) / (2 * cc + cd) * Nd / N  # c-c -> c-d
-    p8 = epsilon * (1 - phi) * Nc / N * (cd) / (2 * cc + cd) * Nc / N  # c-d -> c-c
-    p9 = epsilon * (1 - phi) * Nd / N * (2 * dd) / (2 * dd + cd) * Nc / N  # d-d -> d-c
-    p10 = epsilon * (1 - phi) * Nd / N * (cd) / (2 * dd + cd) * Nd / N  # d-c -> d-d
+    p5 = epsilon * (1 - phi) * phi * (1. / 2) * Nc / N  # c -> d
+    p6 = epsilon * (1 - phi) * phi * (1. / 2) * Nd / N  # d -> c
+    p7 = epsilon * phi * Nc / N * (2 * cc) / (2 * cc + cd) * Nd / N  # c-c -> c-d
+    p8 = epsilon * phi * Nc / N * cd / (2 * cc + cd) * Nc / N  # c-d -> c-c
+    p9 = epsilon * phi * Nd / N * (2 * dd) / (2 * dd + cd) * Nc / N  # d-d -> d-c
+    p10 = epsilon * phi * Nd / N * cd / (2 * dd + cd) * Nd / N  # d-c -> d-d
 
     # Create S and r matrices to write down rhs markov jump process for pair based proxy:
 
@@ -157,7 +159,8 @@ class calc_rhs():
              Z: N * k * z,
              K: N * k}
 
-    # Substitutute solutions to algebraic constraints of economic system (market clearing for labor and expressions for capital rent and resource flow)
+    # Substitutute solutions to algebraic constraints of economic system (market clearing for
+    # labor and expressions for capital rent and resource flow)
 
     subs3 = {Xc: (bc * Kc ** kappac * C ** xi) ** (1. / (1 - pi)),
              Xd: (bd * Kd ** kappad) ** (1. / (1 - pi)),
@@ -179,7 +182,8 @@ class calc_rhs():
     subs5 = {kappac: 1. - pi - xi,
              kappad: 1. - pi}
 
-    # Write down dynamic equations for the economic subsystem in terms of means of clean and dirty capital stocks for clean and dirty households
+    # Write down dynamic equations for the economic subsystem in terms of means of clean and
+    # dirty capital stocks for clean and dirty households
 
     # In[81]:
 
@@ -194,10 +198,8 @@ class calc_rhs():
 
     # In[82]:
 
-    dtNcd = 1. / tau * Nc * (Nc / N * cd / (2 * cc + cd) * (1 - phi) * (1 - epsilon) * 1. / 2 * (
-                s.tanh(Wd - Wc) + 1) + epsilon * 1. / 2 * Nc / N)
-    dtNdc = 1. / tau * Nd * (Nd / N * cd / (2 * dd + cd) * (1 - phi) * (1 - epsilon) * 1. / 2 * (
-                s.tanh(Wc - Wd) + 1) + epsilon * 1. / 2 * Nd / N)
+    dtNcd = 1. / tau * (p3 + p5)
+    dtNdc = 1. / tau * (p4 + p6)
 
     rhsECO_switch_1 = s.Matrix([(mucd - mucc) * dtNdc / Nc,
                                 (mucc - mucd) * dtNcd / Nd,
