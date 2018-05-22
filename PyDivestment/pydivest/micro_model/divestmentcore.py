@@ -166,6 +166,7 @@ class DivestmentCore:
         # list to save macroscopic quantities to compare with
         # moment closure / pair based proxy approach
         self.m_trajectory = []
+        self.ag_trajectory = []
         # list of data for switching events
         self.switchlist = []
         # dictionary for final state
@@ -341,6 +342,7 @@ class DivestmentCore:
             self.init_economic_trajectory()
         if self.m_trajectory_output:
             self.init_mean_trajectory()
+            self.init_aggregate_trajectory()
         if self.switchlist_output:
             self.init_switchlist()
 
@@ -478,6 +480,10 @@ class DivestmentCore:
             dec = -1
 
         return dec
+
+    def set_parameters(self):
+        """dummy function to mimic the interface of the approximation modules"""
+        pass
 
     def run(self, t_max=200.):
         """
@@ -792,6 +798,7 @@ class DivestmentCore:
             self.update_economic_trajectory()
         if self.m_trajectory_output:
             self.update_mean_trajectory()
+            self.update_aggregate_trajectory()
 
     def find_update_candidates(self):
 
@@ -1039,7 +1046,8 @@ class DivestmentCore:
               'c_R',
               'consensus',
               'decision state',
-              'G_alpha'],
+              'G_alpha',
+              'i_c'],
              [str(x) for x in self.possible_que_orders],
              ['c' + str(x) for x in self.possible_que_orders],
              ['d' + str(x) for x in self.possible_que_orders]]))
@@ -1087,7 +1095,8 @@ class DivestmentCore:
               self.c_R,
               self.converged,
               self.decision_state,
-              (self.G - alpha * self.G_0) / (self.G_0 * (1. - alpha))],
+              (self.G - alpha * self.G_0) / (self.G_0 * (1. - alpha)),
+             sum(self.income * self.investment_decisions) / sum(self.income) if sum(self.income) > 0 else 0],
              self.opinion_state,
              self.clean_opinions,
              self.dirty_opinions]))
@@ -1095,8 +1104,8 @@ class DivestmentCore:
 
     def get_economic_trajectory(self):
         # make up DataFrame from micro data
-        columns = self.e_trajectory.pop(0)
-        df = pd.DataFrame(self.e_trajectory, columns=columns)
+        columns = self.e_trajectory[0]
+        df = pd.DataFrame(self.e_trajectory[1:], columns=columns)
         df = df.set_index('time')
 
         return df
@@ -1108,23 +1117,8 @@ class DivestmentCore:
         pair based proxy.
         :return: None
         """
-        element = ['time', 'x', 'y', 'z', 'mucc', 'mucd', 'mudc', 'mudd', 'c',
-                   'g']
+        element = ['time', 'x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c', 'g']
         self.m_trajectory.append(element)
-
-        dt = [self.t, self.t]
-        x0 = np.fromiter(chain.from_iterable([
-            list(self.investment_clean),
-            list(self.investment_dirty),
-            [self.P, self.G, self.C]]), dtype='float')
-
-        [x0, x1] = odeint(self.economy_dot_leontief, x0, dt)
-
-        self.investment_clean = x1[0:self.n]
-        self.investment_dirty = x1[self.n:2 * self.n]
-        self.P = x1[-3]
-        self.G = x1[-2]
-        self.C = x1[-1]
 
         self.update_mean_trajectory()
 
@@ -1168,26 +1162,103 @@ class DivestmentCore:
 
         if nc > 0:
             mucc = sum(self.investment_decisions * self.investment_clean) / nc
-            mucd = sum(self.investment_decisions * self.investment_dirty) / nc
+            mudc = sum(self.investment_decisions * self.investment_dirty) / nc
         else:
-            mucc = mucd = 0
+            mucc = mudc = 0
 
         if nd > 0:
-            mudc = sum((1 - self.investment_decisions)
-                       * self.investment_clean) / nd
-            mudd = sum((1 - self.investment_decisions)
-                       * self.investment_dirty) / nd
+            mucd = sum((1 - self.investment_decisions) * self.investment_clean) / nd
+            mudd = sum((1 - self.investment_decisions) * self.investment_dirty) / nd
         else:
-            mudc = mudd = 0
+            mucd = mudd = 0
 
-        entry = [self.t, x, y, z, mucc, mucd, mudc, mudd, self.C / n,
-                 self.G / n]
+        entry = [self.t, x, y, z, mucc, mudc, mucd, mudd, self.C / n, self.G / n]
         self.m_trajectory.append(entry)
 
     def get_mean_trajectory(self):
         # make up Dataframe from macro data:
-        columns = self.m_trajectory.pop(0)
-        df = pd.DataFrame(self.m_trajectory, columns=columns)
+        columns = self.m_trajectory[0]
+        df = pd.DataFrame(self.m_trajectory[1:], columns=columns)
+        df = df.set_index('time')
+
+        return df
+
+    def init_aggregate_trajectory(self):
+        """
+        This function initializes the e_trajectory for the output of the
+        macroscopic quantitites as computed via moment closure and
+        pair based proxy.
+        :return: None
+        """
+        element = ['time', 'x', 'y', 'z', 'Kcc', 'Kdc', 'Kcd', 'Kdd', 'C',
+                   'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d']
+        self.ag_trajectory.append(element)
+
+        self.update_aggregate_trajectory()
+
+    def update_aggregate_trajectory(self):
+        """
+        This function calculates the macroscopic variables that are
+        the dynamic variables in the macroscopic approximation and saves
+        them in the e_trajectory list.
+        :return: None
+        """
+
+        def cl(adj, x, y):
+            """
+            calculate number of links between like links in x and y
+            :param adj: adjacency matrix
+            :param x: node vector
+            :param y: node vector
+            :return: number of like links
+            """
+            assert len(x) == len(y)
+
+            return float(np.dot(x, np.dot(adj, y)))
+
+        adj = self.neighbors
+        c = self.investment_decisions
+        d = - self.investment_decisions + 1
+
+        n = self.n
+        k = float(sum(sum(self.neighbors))) / 2
+
+        nc = sum(self.investment_decisions)
+        nd = sum(- self.investment_decisions + 1)
+
+        cc = cl(adj, c, c) / 2
+        cd = cl(adj, c, d)
+        dd = cl(adj, d, d) / 2
+
+        x = float(nc - nd) / n
+        y = float(cc - dd) / k
+        z = float(cd) / k
+
+        if nc > 0:
+            Kcc = sum(self.investment_decisions * self.investment_clean)
+            Kdc = sum(self.investment_decisions * self.investment_dirty)
+            Wc = Kcc / nc * self.r_c + Kdc / nc * self.r_d
+        else:
+            Kcc = Kdc = 0
+            Wc = 0.
+
+        if nd > 0:
+            Kcd = sum((1 - self.investment_decisions) * self.investment_clean)
+            Kdd = sum((1 - self.investment_decisions) * self.investment_dirty)
+            Wd = Kcd / nd * self.r_c + Kdd / nd * self.r_d
+        else:
+            Kcd = Kdd = 0
+            Wd = 0.
+
+        entry = [self.t, x, y, z, Kcc, Kdc, Kcd, Kdd, self.C, self.G, self.w, self.r_c, self.r_d, Wc, Wd]
+        self.ag_trajectory.append(entry)
+
+    def get_aggregate_trajectory(self):
+        # make up Dataframe from macro data:
+        columns = self.ag_trajectory[0]
+        if self.debug:
+            print(columns)
+        df = pd.DataFrame(self.ag_trajectory[1:], columns=columns)
         df = df.set_index('time')
 
         return df
