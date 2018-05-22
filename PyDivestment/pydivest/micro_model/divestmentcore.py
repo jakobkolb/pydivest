@@ -1193,6 +1193,44 @@ class DivestmentCore:
 
         return df
 
+    def get_unified_trajectory(self):
+        """
+        Calculates unified trajectory in per capita variables
+
+        Returns
+        -------
+        Dataframe of unified per capita variables
+        """
+        if self.e_trajectory is False:
+            print('calculating the economic trajectory is a prerequisite.'
+                  'please rerun the model with e_trajectory set to true.')
+            return -1
+        if self.m_trajectory is False:
+            print('needs mean trajectory to be enabled.')
+            return -1
+        mdf = self.get_mean_trajectory()
+
+        columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r', 'n_c', 'i_c',
+                   'r_c', 'r_d', 'w', 'W_c', 'W_d']
+        edf = self.get_economic_trajectory()
+        df = pd.DataFrame(index=edf.index, columns=columns)
+        df['k_c'] = edf['K_c'] / self.L
+        df['k_d'] = edf['K_d'] / self.L
+        df['l_c'] = edf['P_c'] / self.L
+        df['l_d'] = edf['P_d'] / self.L
+        df['g'] = edf['G'] / self.L
+        df['c'] = edf['C'] / self.L
+        df['r'] = edf['R'] / self.L
+        df['n_c'] = edf['[1]'] / self.n
+        df['i_c'] = edf['i_c']
+        df['r_c'] = edf['r_c']
+        df['r_d'] = edf['r_d']
+        df['w'] = edf['wage']
+        df['W_c'] = mdf['mu_c^c'] * edf['r_c'] + mdf['mu_d^c'] * edf['r_d']
+        df['W_d'] = mdf['mu_c^d'] * edf['r_c'] + mdf['mu_d^d'] * edf['r_d']
+
+        return df
+
 
 if __name__ == '__main__':
     """
