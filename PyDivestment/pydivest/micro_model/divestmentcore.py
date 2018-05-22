@@ -118,6 +118,13 @@ class DivestmentCore:
 
         self.interaction = interaction
 
+        # trajectory output time window
+        if 'trj_output_window' in kwargs.keys():
+            print('found trj_output_window')
+            self.trj_output_window = kwargs['trj_output_window']
+        else:
+            self.trj_output_window = [0, np.float('inf')]
+
         # General Parameters
 
         # turn output for debugging on or off
@@ -805,12 +812,13 @@ class DivestmentCore:
                    * self.K_c ** self.kappa_c * self.P_c ** self.pi
         self.Y_d = self.b_d * self.K_d ** self.kappa_d * self.P_d ** self.pi
 
-        # output economic data
-        if self.e_trajectory_output:
-            self.update_economic_trajectory()
-        if self.m_trajectory_output:
-            self.update_mean_trajectory()
-            self.update_aggregate_trajectory()
+        # output economic data if t is in time window
+        if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
+            if self.e_trajectory_output:
+                self.update_economic_trajectory()
+            if self.m_trajectory_output:
+                self.update_mean_trajectory()
+                self.update_aggregate_trajectory()
 
     def find_update_candidates(self):
 
@@ -1079,7 +1087,8 @@ class DivestmentCore:
         self.G = x1[-2]
         self.C = x1[-1]
 
-        self.update_economic_trajectory()
+        if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
+            self.update_economic_trajectory()
 
     def update_economic_trajectory(self):
         alpha = (self.b_r0 / self.e) ** (1. / 2.)
@@ -1132,7 +1141,8 @@ class DivestmentCore:
         element = ['time', 'x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c', 'g']
         self.m_trajectory.append(element)
 
-        self.update_mean_trajectory()
+        if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
+            self.update_mean_trajectory()
 
     def update_mean_trajectory(self):
         """
@@ -1206,7 +1216,8 @@ class DivestmentCore:
                    'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d']
         self.ag_trajectory.append(element)
 
-        self.update_aggregate_trajectory()
+        if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
+            self.update_aggregate_trajectory()
 
     def update_aggregate_trajectory(self):
         """
