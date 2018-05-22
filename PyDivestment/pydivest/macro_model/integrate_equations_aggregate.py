@@ -103,37 +103,33 @@ class IntegrateEquationsAggregate(IntegrateEquations):
 
         # aggreagate capital endowments of clean and dirty households
         # lower (first) index: capital type, upper (second) index: household type
-        Kcc, Kcd, Kdc, Kdd = sp.symbols('K_c^c K_c^d K_d^c K_d^d', positive=True, real=True)
-
-        # Add new variables to list of independent Variables.
-        for key, val in [('K_c^c', Kcc), ('K_d^c', Kdc), ('K_c^d', Kcd), ('K_d^d', Kdd)]:
-            self.independent_vars[key] = val
+        self.Kcc, self.Kcd, self.Kdc, self.Kdd = sp.symbols('K_c^c K_c^d K_d^c K_d^d', positive=True, real=True)
 
         # create list of symbols and names of all independent variables
-        self.var_symbols = [self.x, self.y, self.z, Kcc, Kcd, Kdc, Kdd, self.C, self.G]
-        self.var_names = ['x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d', 'C', 'G']
+        self.var_symbols = [self.x, self.y, self.z, self.Kcc, self.Kcd, self.Kdc, self.Kdd, self.C, self.G]
+        self.var_names = ['x', 'y', 'z', 'K_c^c', 'K_c^d', 'K_d^c', 'K_d^d', 'C', 'G']
 
         # define expected wealth as expected income
-        self.subs1[self.Wc] = ((self.rc * Kcc + self.rd * Kdc) / self.Nc).subs(self.subs1)
-        self.subs1[self.Wd] = ((self.rc * Kcd + self.rd * Kdd) / self.Nd).subs(self.subs1)
+        self.subs1[self.Wc] = ((self.rc * self.Kcc + self.rd * self.Kdc) / self.Nc).subs(self.subs1)
+        self.subs1[self.Wd] = ((self.rc * self.Kcd + self.rd * self.Kdd) / self.Nd).subs(self.subs1)
 
         if interaction == 0:
             raise ValueError('only interactions depending on relative differences of agent properties are'
                              'possible with a macroscopic approximation in aggregate quantities')
 
         # Define clean and dirty capital as weighted sums over aggregate endowments
-        self.subs4[self.Kc] = Kcc + Kcd
-        self.subs4[self.Kd] = Kdc + Kdd
+        self.subs4[self.Kc] = self.Kcc + self.Kcd
+        self.subs4[self.Kd] = self.Kdc + self.Kdd
 
         # Write down dynamic equations for the economic subsystem in terms of means of clean and dirty capital stocks
         # for clean and dirty households
 
         self.rhsECO_1 = sp.Matrix(
-            [(self.rs * self.rc - self.delta) * Kcc + self.rs * self.rd * Kdc
+            [(self.rs * self.rc - self.delta) * self.Kcc + self.rs * self.rd * self.Kdc
              + self.rs * self.w * self.P * self.Nc / self.N,
-             -self.delta * Kcd,
-             -self.delta * Kdc,
-             self.rs * self.rc * Kcd + (self.rs * self.rd - self.delta) * Kdd
+             -self.delta * self.Kcd,
+             -self.delta * self.Kdc,
+             self.rs * self.rc * self.Kcd + (self.rs * self.rd - self.delta) * self.Kdd
              + self.rs * self.w * self.P * self.Nd / self.N,
              self.bc * self.Pc ** self.pi * self.Kc ** self.kappac * self.C ** self.xi - self.delta * self.C,
              -self.R])
@@ -145,13 +141,13 @@ class IntegrateEquationsAggregate(IntegrateEquations):
 
         self.rhsECO_switch_1 = sp.Matrix([
             # change of clean capital owned by clean investors
-            Kcd / self.Nd * dtNdc - Kcc / self.Nc * dtNcd,
+            self.Kcd / self.Nd * dtNdc - self.Kcc / self.Nc * dtNcd,
             # change of clean capital owned by dirty investors
-            Kcc / self.Nc * dtNcd - Kcd / self.Nd * dtNdc,
+            self.Kcc / self.Nc * dtNcd - self.Kcd / self.Nd * dtNdc,
             # change in dirty capital owned by clean investors
-            Kdd / self.Nd * dtNdc - Kdc / self.Nc * dtNcd,
+            self.Kdd / self.Nd * dtNdc - self.Kdc / self.Nc * dtNcd,
             # change in dirty capital owned by dirty investors
-            Kdc / self.Nc * dtNcd - Kdd / self.Nd * dtNdc,
+            self.Kdc / self.Nc * dtNcd - self.Kdd / self.Nd * dtNdc,
             0,
             0])
 
@@ -178,6 +174,8 @@ class IntegrateEquationsAggregate(IntegrateEquations):
 
         self.rhs_raw = sp.Matrix([self.rhsPBP_2, self.rhsECO_3]).subs(self.subs1)
 
+        # update dependent vars with specific approximation variables
+        self.update_dependent_vars()
         # Set parameter values in rhs and dependent variables:
         self.set_parameters()
 
@@ -185,6 +183,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
 
         # dictionary for final state
         self.final_state = {}
+
 
     def get_m_trajectory(self):
 
@@ -238,3 +237,43 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                 print('upper time limit is smaller than system time', self.v_t)
 
         return 1
+
+    def get_unified_trajectory(self):
+        """
+        Calculate unified trajectory in per capita variables
+
+        Returns
+        -------
+        Dataframe of unified per capita variables if calculation succeeds,
+        else return -1 for TypeError and -2 for ValueError
+        """
+
+        L = self.dependent_vars['L']
+        columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r',
+                   'n_c', 'i_c', 'r_c', 'r_d', 'w',
+                   'W_c', 'W_d', 'Pcd', 'Pdc']
+        var_expressions = [(self.independent_vars['K_c^c'] + self.independent_vars['K_c^d']) / L,
+                           (self.independent_vars['K_d^c'] + self.independent_vars['K_d^d']) / L,
+                           self.dependent_vars['Lc'] / L,
+                           self.dependent_vars['Ld'] / L,
+                           self.independent_vars['G'] / L,
+                           self.independent_vars['C'] / L,
+                           self.dependent_vars['R'] / L,
+                           (self.independent_vars['x'] + 1.) / 2.,
+                           (self.dependent_vars['rc'] * self.independent_vars['K_c^c']
+                            + self.dependent_vars['rd'] * self.independent_vars['K_d^c'])
+                           / (self.dependent_vars['rc'] * (self.independent_vars['K_c^c']
+                                                           + self.independent_vars['K_c^d'])
+                              + self.dependent_vars['rd'] * (self.independent_vars['K_d^c']
+                                                             + self.independent_vars['K_d^d'])),
+                           self.dependent_vars['rc'],
+                           self.dependent_vars['rd'],
+                           self.dependent_vars['w'],
+                           self.dependent_vars['W_c'] / self.p_n,
+                           self.dependent_vars['W_d'] / self.p_n,
+                           self.dependent_vars['Pcd'],
+                           self.dependent_vars['Pdc']
+                           ]
+
+        return self.calculate_unified_trajectory(columns=columns,
+                                                 var_expressions=var_expressions)
