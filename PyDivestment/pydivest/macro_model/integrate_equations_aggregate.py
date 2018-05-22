@@ -181,10 +181,6 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         # dictionary for final state
         self.final_state = {}
 
-    def get_m_trajectory(self):
-
-        return self.m_trajectory
-
     def run(self, t_max=100, t_steps=500):
         """
         run the model for a given time t_max and produce results in resolution t_steps
@@ -234,6 +230,18 @@ class IntegrateEquationsAggregate(IntegrateEquations):
 
         return 1
 
+    def get_aggregate_trajectory(self):
+
+        return self.m_trajectory
+
+    def get_mean_trajectory(self):
+        """return a mock mean trajectory with correct shape but containing zeros"""
+
+        columns = ['x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c', 'g']
+        index = self.m_trajectory.index
+
+        return pd.DataFrame(0, index=index, columns=columns)
+
     def get_unified_trajectory(self):
         """
         Calculate unified trajectory in per capita variables
@@ -247,7 +255,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         L = self.dependent_vars['L']
         columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r',
                    'n_c', 'i_c', 'r_c', 'r_d', 'w',
-                   'W_c', 'W_d', 'Pcd', 'Pdc']
+                   'W_c', 'W_d']
         var_expressions = [(self.independent_vars['K_c^c'] + self.independent_vars['K_c^d']) / L,
                            (self.independent_vars['K_d^c'] + self.independent_vars['K_d^d']) / L,
                            self.dependent_vars['Lc'] / L,
@@ -266,9 +274,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                            self.dependent_vars['rd'],
                            self.dependent_vars['w'],
                            self.dependent_vars['W_c'] / self.p_n,
-                           self.dependent_vars['W_d'] / self.p_n,
-                           self.dependent_vars['Pcd'],
-                           self.dependent_vars['Pdc']
+                           self.dependent_vars['W_d'] / self.p_n
                            ]
 
         return self.calculate_unified_trajectory(columns=columns,
