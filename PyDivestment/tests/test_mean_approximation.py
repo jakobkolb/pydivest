@@ -64,7 +64,7 @@ m_new = NewModel(*init_conditions, **input_parameters)
 m_new.run(t_max=200)
 m_new.R_depletion = True
 m_new.run(t_max=600)
-trj_new = m_new.get_m_trajectory()
+trj_new = m_new.get_mean_trajectory()
 
 trj_diff = trj_new[['x', 'y', 'z']] - trj_old[['x', 'y', 'z']]
 trj_abs = trj_diff.abs().sum(axis=1)
