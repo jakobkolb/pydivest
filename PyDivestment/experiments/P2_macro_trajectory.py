@@ -1,5 +1,10 @@
 """
-Compare Trajectory from micro simulation for new and old interaction between households.
+This experiment is meant to create trajectories of macroscopic variables from
+1) the numeric micro model and
+2) the analytic macro model
+that can be compared to evaluate the validity and quality of the analytic
+approximation.
+The variable Parameters are b_d and phi.
 """
 
 import getpass
@@ -12,14 +17,14 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from pymofa.experiment_handling import experiment_handling, \
-even_time_series_spacing
+from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
 
-from pydivest.micro_model.divestmentcore import DivestmentCore as micro
-from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean as mean
+from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean
+from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
+from pydivest.micro_model.divestmentcore import DivestmentCore
 
 
-def RUN_FUNC(interaction, phi, b_d, model, test):
+def RUN_FUNC(b_d, phi, eps, approximate, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -33,6 +38,8 @@ def RUN_FUNC(interaction, phi, b_d, model, test):
         the solow residual in the dirty sector
     phi : float \in [0,1]
         the rewiring probability for the network update
+    eps : float
+        the fraction of opinion formation events that is random
     approximate: bool
         if True: run macroscopic approximation
         if False: run micro-model
@@ -46,16 +53,16 @@ def RUN_FUNC(interaction, phi, b_d, model, test):
     # Parameters:
 
     input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
-                    'eps': 0.05, 'b_d': b_d, 'e': 100.,
+                    'eps': eps, 'b_d': b_d, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,
                     'possible_cue_orders': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
-                    'interaction': interaction, 'test': test}
+                    'interaction': 1, 'test': test}
 
     # investment_decisions:
-    nopinions = [50, 50]
+    nopinions = [100, 100]
 
     # network:
     N = sum(nopinions)
@@ -76,42 +83,63 @@ def RUN_FUNC(interaction, phi, b_d, model, test):
     init_conditions = (adjacency_matrix, investment_decisions,
                        clean_investment, dirty_investment)
 
-    if model == 1:
-        m = micro(*init_conditions, **input_params)
-    elif model == 2:
-        m = mean(*init_conditions, **input_params)
+    # initializing the model
+    if approximate == 1:
+        m = DivestmentCore(*init_conditions, **input_params)
+    elif approximate == 2:
+        m = IntegrateEquationsMean(*init_conditions, **input_params)
+    elif approximate == 3:
+        m = IntegrateEquationsAggregate(*init_conditions, **input_params)
+    else:
+        raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
 
-    t_max = 300 if not test else 20
+    t_max = 400 if not test else 2
     m.R_depletion = False
     m.run(t_max=t_max)
 
     t_max += 600 if not test else 1
     m.R_depletion = True
-    m.set_parameters()
     exit_status = m.run(t_max=t_max)
 
     # store data in case of successful run
     if exit_status in [0, 1]:
-        # interpolate m_trajectory to get evenly spaced time series.
-        df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
-        df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
+        if approximate == 1:
+            df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+            df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
+            df3 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
+        elif approximate == 2:
+            df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+            df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
+            df3 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
+        elif approximate == 3:
+            df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
+            df2 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+            df3 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
+        else:
+            raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
 
         for c in df1.columns:
             if c in df2.columns:
                 df2.drop(c, axis=1, inplace=True)
 
-        df_out = pd.concat([df1, df2], axis=1)
+        df_tmp = pd.concat([df1, df2], axis=1)
+
+        for c in df_tmp.columns:
+            if c in df3.columns:
+                df_tmp.drop(c, axis=1, inplace=True)
+
+        df_out = pd.concat([df3, df_tmp], axis=1)
 
         df_out.index.name = 'tstep'
     else:
         df_out = None
-
+        
     return exit_status, df_out
-
 
 # get sub experiment and mode from command line
 
 # experiment, mode, test
+
 
 def run_experiment(argv):
     """
@@ -147,12 +175,17 @@ def run_experiment(argv):
     if len(argv) > 1:
         test = bool(int(argv[1]))
     else:
-        test = True
+        test = False
     # switch sub_experiment mode
     if len(argv) > 2:
         mode = int(argv[2])
     else:
         mode = 0
+    # switch micro macro model
+    if len(argv) > 3:
+        approximate = int(argv[3])
+    else:
+        approximate = 1
 
     """
     set input/output paths
@@ -166,77 +199,80 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    folder = 'P1'
+    sub_experiment = ['micro', 'mean', 'aggregate'][approximate - 1]
+    folder = 'P2'
 
     # make sure, testing output goes to its own folder:
 
     test_folder = ['', 'test_output/'][int(test)]
 
-    save_path_raw = \
-        "{}/{}{}/" \
-            .format(tmppath, test_folder, folder)
-    save_path_res = \
-        "{}/{}{}/" \
-            .format(respath, test_folder, folder)
-
+    SAVE_PATH_RAW = \
+        "{}/{}{}/{}/" \
+        .format(tmppath, test_folder, folder, sub_experiment)
+    SAVE_PATH_RES = \
+        "{}/{}{}/{}/" \
+        .format(respath, test_folder, folder, sub_experiment)
     """
     create parameter combinations and index
     """
 
-    phis = [round(x, 2) for x in list(np.linspace(0.0, 0.9, 20))]
-    b_ds = [round(x, 2) for x in list(np.linspace(1., 1.5, 5))]
-    interactions = [0, 1, 2]
-    model = [1, 2]
-    b_d, phi, interaction = [1.25], [.5], [0, 1, 2]
+    phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
+    b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
+    eps = [0.1, 0.05, 0.01]
+    b_d, phi = [1.25], [.4]
 
     if test:
-        param_combs = list(it.product(interaction, phi, b_d, model, [test]))
+        PARAM_COMBS = list(it.product(b_d, phi, eps, [approximate], [test]))
     else:
-        param_combs = list(it.product(interactions, phis, b_ds, model, [test]))
+        PARAM_COMBS = list(it.product(b_ds, phis, eps, [approximate], [test]))
 
     """
     run computation and/or post processing and/or plotting
     """
+
     # Create dummy runfunc output to pass its shape to experiment handle
+    # Create dummy runfunc output to pass its shape to experiment handle
+
     try:
-        if not Path(save_path_raw).exists():
-            Path(save_path_raw).mkdir()
-        run_func_output = pd.read_pickle(save_path_raw + 'rfof.pkl')
+        if not Path(SAVE_PATH_RAW).exists():
+            Path(SAVE_PATH_RAW).mkdir(parents=True, exist_ok=True)
+            print(SAVE_PATH_RAW, Path(SAVE_PATH_RAW).exists())
+        run_func_output = pd.read_pickle(SAVE_PATH_RAW + 'rfof.pkl')
     except:
-        params = list(param_combs[0])
+        params = list(PARAM_COMBS[0])
         params[-1] = True
         run_func_output = RUN_FUNC(*params)[1]
-        with open(save_path_raw+'rfof.pkl', 'wb') as dmp:
+        with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    sample_size = 100 if not test else 3
+    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 10
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,
                                          runfunc_output=run_func_output,
-                                         sample_size=sample_size,
-                                         parameter_combinations=param_combs,
-                                         path_raw=save_path_raw
+                                         sample_size=SAMPLE_SIZE,
+                                         parameter_combinations=PARAM_COMBS,
+                                         path_raw=SAVE_PATH_RAW
                                          )
 
     # define eva functions
 
-    def mean(interaction, phi, b_d, model, test):
+    def mean(b_d, phi, eps, approximate, test):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = 'b_d={} & phi={} & interaction={} & model={} & test={}'.format(b_d, phi, interaction, model, test)
+        query = 'b_d={} & phi={} & eps={} & approximate={} & test={}'.format(b_d, phi, eps, approximate, test)
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
 
         return 1, trj.groupby(level='tstep').mean()
 
-    def std(interaction, phi, b_d, model, test):
+    def std(b_d, phi, eps, approximate, test):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = 'b_d={} & phi={} & interaction={} & model={} & test={}'.format(b_d, phi, interaction, model, test)
+        query = 'b_d={} & phi={} & eps={} & approximate={} & test={}'.format(b_d, phi, eps, approximate, test)
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
@@ -246,23 +282,20 @@ def run_experiment(argv):
     eva_1_handle = experiment_handling(run_func=mean,
                                        runfunc_output=run_func_output,
                                        sample_size=1,
-                                       parameter_combinations=param_combs,
-                                       path_raw=save_path_res + '/mean.h5'
+                                       parameter_combinations=PARAM_COMBS,
+                                       path_raw=SAVE_PATH_RES + '/mean.h5'
                                        )
     eva_2_handle = experiment_handling(run_func=std,
                                        runfunc_output=run_func_output,
                                        sample_size=1,
-                                       parameter_combinations=param_combs,
-                                       path_raw=save_path_res + '/std.h5'
+                                       parameter_combinations=PARAM_COMBS,
+                                       path_raw=SAVE_PATH_RES + '/std.h5'
                                        )
 
     if mode == 0:
-        # computation, parameters split between threads
         compute_handle.compute()
         return 1
     elif mode == 1:
-        # post processing (all parameter combinations on one thread)
-        print('post processing')
         eva_1_handle.compute()
         eva_2_handle.compute()
         return 1
@@ -274,3 +307,4 @@ def run_experiment(argv):
 if __name__ == "__main__":
     cmdline_arguments = sys.argv
     run_experiment(cmdline_arguments)
+
