@@ -149,7 +149,7 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     # store data in case of successful run
     if exit_status in [0, 1] or test:
         res["micro_trajectory"] = \
-            even_time_series_spacing(m.get_e_trajectory(), 401, 0., t_max)
+            even_time_series_spacing(m.get_economic_trajectory(), 401, 0., t_max)
         res["convergence_state"] = m.convergence_state
         res["convergence_time"] = m.convergence_time
 

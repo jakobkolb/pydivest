@@ -102,7 +102,7 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     if exit_status in [0, 1]:
         # interpolate m_trajectory to get evenly spaced time series.
         res["macro_trajectory"] = \
-            even_time_series_spacing(m.get_m_trajectory(), 201, 0., t_max)
+            even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
 
     # save data
     with open(filename, 'wb') as dumpfile:
