@@ -476,7 +476,7 @@ def plot_observables(t_data_in, c_data_in, loc,
     # which will be transformed into columns by unstack()
 
     for p in range(len(plot_list)):
-        # for P in [8]:
+        # for L in [8]:
         pl = plot_list[p]
         if len(pl) == 1:
             colors = colorlist[-1]

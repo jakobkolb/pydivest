@@ -1,8 +1,8 @@
 
 
 from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as Rep
-from pydivest.macro_model.integrate_equations_aggregate import Integrate_Equations as Agg
-from pydivest.macro_model.integrate_equations_mean import Integrate_Equations as Mean
+from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate as Agg
+from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean as Mean
 from .run_model import run
 
 models = {'Representative_agent': Rep,

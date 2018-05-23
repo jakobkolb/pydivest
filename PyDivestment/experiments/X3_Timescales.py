@@ -4,7 +4,7 @@ model againts each other. Nameley the timescales for
 1) capital accumulation in the dirty sector,
     t_d = 1/(d_c*(1-kappa_c))
 2) depletion of the fossil resource and
-    t_G = G_0*e*d_c/(P*s*b_d**2)
+    t_G = G_0*e*d_c/(L*s*b_d**2)
 3) opinion spreading in the adaptive voter model
    given one opinion dominates the other.
     t_a = tau*(1-phi)
@@ -117,7 +117,7 @@ def RUN_FUNC(t_a, phi, eps, t_G, alpha, test, filename):
 
     #input parameters
 
-    input_params = {'i_tau':tau, 'i_phi':phi, 'eps':eps, \
+    input_params = {'tau':tau, 'phi':phi, 'eps':eps, \
             'L':P, 'b_d':b_d, 'b_R0':b_R0, 'G_0':G_0, \
             'e':e, 'd_c':d_c, 'test':bool(test)}
 
@@ -150,7 +150,7 @@ def RUN_FUNC(t_a, phi, eps, t_G, alpha, test, filename):
                         "phi": m.phi,
                         "N": m.N,
                         "p": p,
-                        "L": m.L,
+                        "L": m.P,
                         "birth rate": m.r_b,
                         "savings rate": m.s,
                         "clean capital depreciation rate":m.d_c,
@@ -229,11 +229,11 @@ folder = 'X3Noise' if noise else 'X3NoNoise'
 
 #check if cluster or local
 if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW = '/p/tmp/kolb/Divest_Experiments/output_data/{}/raw_data_{}/'.format(folder, input_int)
-    SAVE_PATH_RES = '/home/kolb/Divest_Experiments/output_data/{}/raw_data_{}/'.format(folder, input_int)
+    SAVE_PATH_RAW = '/p/tmp/kolb/Divest_Experiments/divestdata/{}/raw_data_{}/'.format(folder, input_int)
+    SAVE_PATH_RES = '/home/kolb/Divest_Experiments/divestdata/{}/raw_data_{}/'.format(folder, input_int)
 elif getpass.getuser() == "jakob":
-    SAVE_PATH_RAW = '/home/jakob/PhD/Project_Divestment/Implementation/output_data/{}/raw_data_{}/'.format(folder, input_int)
-    SAVE_PATH_RES = 'home/jakob/PhD/Project_Divestment/Implementation/output_data/{}/raw_data_{}/'.format(folder, input_int)
+    SAVE_PATH_RAW = '/home/jakob/PhD/Project_Divestment/Implementation/divestdata/{}/raw_data_{}/'.format(folder, input_int)
+    SAVE_PATH_RES = 'home/jakob/PhD/Project_Divestment/Implementation/divestdata/{}/raw_data_{}/'.format(folder, input_int)
 
 t_as = [round(x,5) for x in list(10**np.linspace(-2.0, 2.0, 11))]
 phis = [round(x,5) for x in list(np.linspace( 0.0, 1.0, 11))[1:-1]]

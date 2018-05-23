@@ -41,18 +41,17 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import scipy.stats as st
-from pymofa.experiment_handling \
-    import experiment_handling, even_time_series_spacing
-
 from pydivest.divestvisuals.data_visualization \
     import plot_obs_grid, plot_tau_phi
 from pydivest.micro_model import divestmentcore as model
+from pymofa.experiment_handling \
+    import experiment_handling, even_time_series_spacing
 
 save_path_init = ""
 
 
 def RUN_FUNC(t_a, phi, alpha,
-             t_d, possible_cue_orders, eps, transition, test, filename):
+             t_d, possible_opinions, eps, transition, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -81,7 +80,7 @@ def RUN_FUNC(t_a, phi, alpha,
     t_d : float
         the capital accumulation timescale
         t_d = 1/(d_c(1-kappa_d))
-    possible_cue_orders : list of list of integers
+    possible_que_orders : list of list of integers
         the set of cue orders that are allowed in the
         model. investment_decisions determine the individual cue
         order, that a household uses.
@@ -137,7 +136,7 @@ def RUN_FUNC(t_a, phi, alpha,
                 break
         adjacency_matrix = nx.adj_matrix(net).toarray()
 
-        opinions = [np.random.randint(0, len(possible_cue_orders))
+        opinions = [np.random.randint(0, len(possible_opinions))
                     for x in range(N)]
         investment_clean = np.full((N), 0.1)
         investment_dirty = np.full((N), K_d0/N)
@@ -148,8 +147,8 @@ def RUN_FUNC(t_a, phi, alpha,
                         'opinions': opinions,
                         'investment_clean': investment_clean,
                         'investment_dirty': investment_dirty,
-                        'possible_cue_orders': possible_cue_orders,
-                        'i_tau': tau, 'i_phi': phi, 'eps': eps,
+                        'possible_que_orders': possible_opinions,
+                        'tau': tau, 'phi': phi, 'eps': eps,
                         'L': P, 'b_d': b_d, 'b_r0': b_R0, 'G_0': G_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
                         'R_depletion': transition}
@@ -192,7 +191,7 @@ def RUN_FUNC(t_a, phi, alpha,
                    "phi": m.phi,
                    "n": m.n,
                    "L": p,
-                   "L": m.L,
+                   "L": m.P,
                    "birth rate": m.r_b,
                    "savings rate": m.s,
                    "clean capital depreciation rate": m.d_c,
@@ -301,7 +300,7 @@ def run_experiment(argv):
     conditions for transition in run function.
     """
 
-    respath = os.path.dirname(os.path.realpath(__file__)) + "/output_data"
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/divestdata"
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":
