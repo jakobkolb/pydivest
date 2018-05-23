@@ -197,9 +197,13 @@ class Integrate_Equations:
         # Dynamic equations for the economic variables depending on n,
         # the fraction of savings going into the clean sector
 
-        subs5 = {dKc: n * rs * (rc * Kc + rd * Kd + w * L) - delta * Kc,
-                 dKd: - delta * Kd + (1 - n) * rs * (rc * Kc + rd * Kd + w * L),
-                 dC: bc * Lc ** pi * Kc ** kappac * C ** xi - delta * C,
+        # ToDo: find better fix.
+        # Hacky lower bound for Capital and Knowledge to prevent breakdown of solver in long runs.
+        lb = 1e-9
+
+        subs5 = {dKc: n * rs * (rc * Kc + rd * Kd + w * L) - delta * (Kc - lb),
+                 dKd: - delta * (Kd - lb) + (1 - n) * rs * (rc * Kc + rd * Kd + w * L),
+                 dC: bc * Lc ** pi * Kc ** kappac * C ** xi - delta * (C - lb),
                  dG: -R}
 
         # For the case of infinite fossil resources, we copy the above dynamic equations and
@@ -383,8 +387,6 @@ class Integrate_Equations:
         rc = float(self.dependent_vars['rc'].subs(subs_ini))
         rd = float(self.dependent_vars['rd'].subs(subs_ini))
 
-        print('rc = {}, rd = {}'.format(rc, rd))
-
         n = self.var_symbols[4]
 
         # set n and switches according to capital returns
@@ -455,6 +457,8 @@ class Integrate_Equations:
 
         # Define the problem for Assimulo with Y0 and Yd0
         def prep_rhs(t, Y, Yd, sw):
+            if self.test:
+                print('t = {}, Y = {}'.format(t, Y))
 
             # ToDo: Cleanup
             if self.lambdify:
@@ -674,10 +678,6 @@ class Integrate_Equations:
 
         return 1
 
-    def get_aggregate_trajectory(self):
-
-        return self.m_trajectory
-
     def get_unified_trajectory(self):
         """calculates and returns a unified output trajectory in terms of per capita variables.
         
@@ -728,6 +728,22 @@ class Integrate_Equations:
                 data[i, :] = [var.subs(sbs) for var in var_expressions]
 
         return pd.DataFrame(index=t_values, columns=columns, data=data)
+
+    def get_aggregate_trajectory(self):
+        """return a mock aggregate trajectory with correct shape but containing zeros"""
+
+        columns = ['x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d', 'C', 'G']
+        index = self.m_trajectory.index
+
+        return pd.DataFrame(0, index=index, columns=columns)
+
+    def get_mean_trajectory(self):
+        """return a mock mean trajectory with correct shape but containing zeros"""
+
+        columns = ['x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c', 'g']
+        index = self.m_trajectory.index
+
+        return pd.DataFrame(0, index=index, columns=columns)
 
 
 if __name__ == "__main__":

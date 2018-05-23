@@ -14,20 +14,23 @@ try:
 except ImportError:
     import pickle as cp
 import getpass
+import glob
 import itertools as it
-import os
 import sys
 import time
+import types
+import os
 
 import networkx as nx
 import numpy as np
 import pandas as pd
-from pymofa.experiment_handling \
-    import experiment_handling, even_time_series_spacing
+import scipy.stats as st
 
 from pydivest.divestvisuals.data_visualization \
     import plot_amsterdam, plot_trajectories
 from pydivest.micro_model import divestmentcore as model
+from pymofa.experiment_handling \
+    import experiment_handling, even_time_series_spacing
 
 
 def RUN_FUNC(eps, phi, ffh, test, filename):
@@ -57,7 +60,7 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     # Make different types of decision makers. Cues are
 
     if ffh:
-        possible_cue_orders = [[2, 3],  # short term investor
+        possible_opinions = [[2, 3],  # short term investor
                              [3, 2],  # long term investor
                              [4, 2],  # short term herder
                              [4, 3],  # trending herder
@@ -66,14 +69,14 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
                              [1],  # gutmensch
                              [0]]  # redneck
     else:
-        possible_cue_orders = [[1], [0]]
+        possible_opinions = [[1], [0]]
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'i_phi': phi, 'i_tau': 1.,
+    input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
                     'eps': eps, 'b_d': 1.5, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,  # alpha^2 * e
-                    'possible_cue_orders': possible_cue_orders,
+                    'possible_que_orders': possible_opinions,
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 1600.,
                     'campaign': False, 'learning': True,
@@ -97,7 +100,7 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
 
     # opinions and investment
 
-    opinions = [np.random.randint(0, len(possible_cue_orders))
+    opinions = [np.random.randint(0, len(possible_opinions))
                 for x in range(n)]
     clean_investment = np.ones(n) * 50. / float(n)
     dirty_investment = np.ones(n) * 50. / float(n)
@@ -118,7 +121,7 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
         "parameters": pd.Series({"tau": m.tau,
                                  "phi": m.phi,
                                  "n": m.n,
-                                 "L": m.L,
+                                 "L": m.P,
                                  "savings rate": m.s,
                                  "clean capital depreciation rate": m.d_c,
                                  "dirty capital depreciation rate": m.d_d,
@@ -211,7 +214,7 @@ def run_experiment(argv):
     """
     set input/output paths
     """
-    respath = os.path.dirname(os.path.realpath(__file__)) + "/output_data"
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/divestdata"
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":
@@ -247,7 +250,7 @@ def run_experiment(argv):
     eps, phi = [0., 0.5], [.7, .9]
 
     if ffh:
-        possible_cue_orders = [[2, 3],  # short term investor
+        possible_opinions = [[2, 3],  # short term investor
                              [3, 2],  # long term investor
                              [4, 2],  # short term herder
                              [4, 3],  # trending herder
@@ -256,9 +259,9 @@ def run_experiment(argv):
                              [1],  # gutmensch
                              [0]]  # redneck
     else:
-        possible_cue_orders = [[1], [0]]
+        possible_opinions = [[1], [0]]
 
-    cue_list = [str(o) for o in possible_cue_orders]
+    cue_list = [str(o) for o in possible_opinions]
 
     if test:
         param_combs = list(it.product(eps, phi, [ffh], [test]))

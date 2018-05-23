@@ -6,29 +6,24 @@ From these trajectories, I will calculate the distance
 The variable Parameters are tau and phi.
 """
 
-# TODO: Find a measure that allows to compare trajectories in one real number,
-# such that I can produce heat map plots for the parameter dependency of the
-# quality of the approximation.
-
-
 import getpass
 import itertools as it
 import os
-import pickle as cp
 import sys
-import time
 
 import networkx as nx
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
 
-from pydivest.macro_model import integrate_equations_aggregate as aggregate_macro_model
-from pydivest.macro_model import integrate_equations_mean as mean_macro_model
-from pydivest.micro_model import divestmentcore as micro_model
+from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean
+from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
+from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as IntegrateEquationsRep
+from pydivest.micro_model.divestmentcore import DivestmentCore
 
 
-def RUN_FUNC(tau, phi, eps, approximate, test, filename):
+def RUN_FUNC(tau, phi, eps, approximate, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -56,14 +51,14 @@ def RUN_FUNC(tau, phi, eps, approximate, test, filename):
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'i_phi': phi, 'i_tau': tau,
+    input_params = {'b_c': 1., 'phi': phi, 'tau': tau,
                     'eps': eps, 'b_d': 1.25, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,
                     'possible_cue_orders': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
-                    'interaction': 1, 'test': test}
+                    'interaction': 1, 'test': False}
 
     # investment_decisions:
     nopinions = [100, 100]
@@ -89,88 +84,63 @@ def RUN_FUNC(tau, phi, eps, approximate, test, filename):
 
     # initializing the model
     if approximate == 1:
-        m = micro_model.DivestmentCore(*init_conditions, **input_params)
+        m = DivestmentCore(*init_conditions, **input_params)
     elif approximate == 2:
-        m = mean_macro_model.Integrate_Equations(*init_conditions, **input_params)
+        m = IntegrateEquationsMean(*init_conditions, **input_params)
     elif approximate == 3:
-        m = aggregate_macro_model.Integrate_Equations(*init_conditions, **input_params)
+        m = IntegrateEquationsRep(*init_conditions, **input_params)
+    elif approximate == 4:
+        m = IntegrateEquationsAggregate(*init_conditions, **input_params)
     else:
-        raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
+        raise ValueError('approximate must be in [1, 2, 3, 4] but is {}'.format(approximate))
 
-    # storing initial conditions and parameters
-
-    res = {
-        "initials": pd.DataFrame({"Investment decisions": investment_decisions,
-                                  "Investment clean": m.investment_clean,
-                                  "Investment dirty": m.investment_dirty}),
-        "parameters": pd.Series({"i_tau": m.tau,
-                                 "i_phi": m.phi,
-                                 "N": m.n,
-                                 "L": m.L,
-                                 "savings rate": m.s,
-                                 "clean capital depreciation rate": m.d_c,
-                                 "dirty capital depreciation rate": m.d_d,
-                                 "resource extraction efficiency": m.b_r0,
-                                 "Solov residual clean": m.b_c,
-                                 "Solov residual dirty": m.b_d,
-                                 "pi": m.pi,
-                                 "kappa_c": m.kappa_c,
-                                 "kappa_d": m.kappa_d,
-                                 "xi": m.xi,
-                                 "resource efficiency": m.e,
-                                 "epsilon": m.eps,
-                                 "initial resource stock": m.G_0,
-                                 "interaction": 2})}
-
-    # run the model
-    t_start = time.clock()
+    # THIS TURNED OUT TO BE TROUBLE! SINCE THE EQUILIBRIUM STATE APPARENTLY DEPENDS ON TAU
+    # (even though i'm sure it is not supposed to.)
 
     # equilibration phase with small tau
     # to reach equilibrium distribution of
     # investment decisions
-    t_max = 50 #if not test else 2
+    t_eq = 1000 if not test else 10
+    t_max = t_eq
+    if hasattr(m, 'trj_output_window'):
+        m.trj_output_window = [t_eq, np.float('inf')]
     m.R_depletion = False
-    m.tau = 0.1
+    m.set_parameters()
     m.run(t_max=t_max)
 
+    # ONLY KEEPING THIS.
     # intermediate phase with original tau but still no resource depletion
     # to verify that the equilibrium distribution of investment decisions
     # is in fact independent from tau
 
-    t_max += 400 #if not test else 2
-    m.R_depletion = False
+    t_max += 200 if not test else 2
     m.tau = tau
-    if approximate in [2, 3]:
-        m.set_parameters()
+    m.set_parameters()
     m.run(t_max=t_max)
 
     # transition phase with resource depletion
 
-    t_max += 600 if not test else 4
+    t_max += 600 if not test else 6
     m.R_depletion = True
+    m.set_parameters()
     exit_status = m.run(t_max=t_max)
-
-    res["runtime"] = time.clock() - t_start
 
     # store data in case of successful run
     if exit_status in [0, 1]:
-        if approximate == 1:
-            res['mean_macro_trajectory'] = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
-            res['aggregate_macro_trajectory'] = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
-        elif approximate == 2:
-            res['mean_macro_trajectory'] = m.get_mean_trajectory()
-        elif approximate == 3:
-            res['aggregate_macro_trajectory'] = m.get_aggregate_trajectory()
+        df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, t_eq, t_max)
+        df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, t_eq, t_max)
 
-    # save data
-    with open(filename, 'wb') as dumpfile:
-        cp.dump(res, dumpfile)
-    try:
-        np.load(filename)
-    except IOError:
-        print("writing results failed for " + filename)
+        for c in df2.columns:
+            if c in df1.columns:
+                df2.drop(c, axis=1, inplace=True)
 
-    return exit_status
+        df_out = pd.concat([df1, df2], axis=1)
+        df_out.index.name = 'tstep'
+    else:
+        df_out = None
+
+    return exit_status, df_out
+
 
 # get sub experiment and mode from command line
 
@@ -235,7 +205,7 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    sub_experiment = ['micro', 'mean', 'aggregate'][approximate - 1]
+    sub_experiment = ['micro', 'mean', 'representative'][approximate - 1]
     folder = 'P3'
 
     # make sure, testing output goes to its own folder:
@@ -244,10 +214,10 @@ def run_experiment(argv):
 
     SAVE_PATH_RAW = \
         "{}/{}{}/{}/" \
-        .format(tmppath, test_folder, folder, sub_experiment)
+            .format(tmppath, test_folder, folder, sub_experiment)
     SAVE_PATH_RES = \
         "{}/{}{}/{}/" \
-        .format(respath, test_folder, folder, sub_experiment)
+            .format(respath, test_folder, folder, sub_experiment)
     """
     create parameter combinations and index
     """
@@ -262,65 +232,82 @@ def run_experiment(argv):
     else:
         PARAM_COMBS = list(it.product(taus, phis, eps, [approximate], [test]))
 
-    INDEX = {0: "tau", 1: "phi", 2: "eps"}
-
-    """
-    create names and dicts of callables for post processing
-    """
-
-    NAME1 = 'mean_trajectory'
-    EVA1 = {"mean_trajectory":
-            lambda fnames: pd.concat([np.load(f)["mean_macro_trajectory"]
-                                      for f in fnames]).groupby(
-                    level=0).mean(),
-            "sem_trajectory":
-            lambda fnames: pd.concat([np.load(f)["mean_macro_trajectory"]
-                                      for f in fnames]).groupby(level=0).std(),
-            }
-    NAME2 = 'aggregate_trajectory'
-    EVA2 = {"mean_trajectory":
-            lambda fnames: pd.concat([np.load(f)["aggregate_macro_trajectory"]
-                                      for f in fnames]).groupby(
-                    level=0).mean(),
-            "sem_trajectory":
-            lambda fnames: pd.concat([np.load(f)["aggregate_macro_trajectory"]
-                                      for f in fnames]).groupby(level=0).std(),
-            }
-
     """
     run computation and/or post processing and/or plotting
     """
 
-    # cluster mode: computation and post processing
+    # Create dummy runfunc output to pass its shape to experiment handle
+
+    try:
+        if not Path(SAVE_PATH_RAW).exists():
+            Path(SAVE_PATH_RAW).mkdir(parents=True, exist_ok=True)
+        run_func_output = pd.read_pickle(SAVE_PATH_RAW + 'rfof.pkl')
+    except:
+        params = list(PARAM_COMBS[0])
+        params[-1] = True
+        run_func_output = RUN_FUNC(*params)[1]
+        with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
+            pd.to_pickle(run_func_output, dmp)
+
+    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
+
+    # initialize computation handle
+    compute_handle = experiment_handling(run_func=RUN_FUNC,
+                                         runfunc_output=run_func_output,
+                                         sample_size=SAMPLE_SIZE,
+                                         parameter_combinations=PARAM_COMBS,
+                                         path_raw=SAVE_PATH_RAW
+                                         )
+
+    # define eva functions
+
+    def mean(tau, phi, eps, approximate, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = 'tau={} & phi={} & eps={} & approximate={} & test={}'.format(tau, phi, eps, approximate, test)
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat", where=query)
+
+        return 1, trj.groupby(level='tstep').mean()
+
+    def std(tau, phi, eps, approximate, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = 'tau={} & phi={} & eps={} & approximate={} & test={}'.format(tau, phi, eps, approximate, test)
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat", where=query)
+
+        df_out = trj.groupby(level='tstep').std()
+
+        return 1, df_out
+
+    eva_1_handle = experiment_handling(run_func=mean,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=PARAM_COMBS,
+                                       path_raw=SAVE_PATH_RES + '/mean.h5'
+                                       )
+    eva_2_handle = experiment_handling(run_func=std,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=PARAM_COMBS,
+                                       path_raw=SAVE_PATH_RES + '/std.h5'
+                                       )
+
     if mode == 0:
-        sys.stdout.flush()
-        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
-        handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
-                                     SAVE_PATH_RAW, SAVE_PATH_RES)
-        handle.compute(RUN_FUNC)
-
+        compute_handle.compute()
         return 1
-
-    # Post processing
-    if mode == 1:
-        sys.stdout.flush()
-        SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 3
-
-        handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
-                                     SAVE_PATH_RAW, SAVE_PATH_RES)
-
-        if approximate == 1:
-            handle.resave(EVA1, NAME1)
-            handle.resave(EVA2, NAME2)
-        elif approximate == 2:
-            handle.resave(EVA1, NAME1)
-        elif approximate == 3:
-            handle.resave(EVA2, NAME2)
-
+    elif mode == 1:
+        eva_1_handle.compute()
+        eva_2_handle.compute()
         return 1
-
-    # in case nothing happened:
-    return 0
+    else:
+        # in case nothing happened:
+        return 0
 
 
 if __name__ == "__main__":
