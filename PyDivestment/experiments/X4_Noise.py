@@ -70,7 +70,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
 
     # input parameters
 
-    input_params = {'i_tau': tau, 'i_phi': phi, 'eps': eps,
+    input_params = {'tau': tau, 'phi': phi, 'eps': eps,
                     'L': P, 'b_d': b_d, 'b_r0': b_R0,
                     'e': e, 'd_c': d_c, 'test': bool(test)}
 
@@ -98,7 +98,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
         "parameters": pd.Series({"tau": m.tau,
                                  "phi": m.phi,
                                  "n": m.n,
-                                 "L": m.L,
+                                 "L": m.P,
                                  "birth rate": m.r_b,
                                  "savings rate": m.s,
                                  "clean capital depreciation rate": m.d_c,
@@ -178,16 +178,16 @@ folder = 'X4Noise' if noise else 'X4NoNoise'
 
 # check if cluster or local
 if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW = "/L/tmp/kolb/Divest_Experiments/output_data/" \
+    SAVE_PATH_RAW = "/L/tmp/kolb/Divest_Experiments/divestdata/" \
                     + folder + "/raw_data" + '_' + sub_experiment + '/'
-    SAVE_PATH_RES = "/home/kolb/Divest_Experiments/output_data/" \
+    SAVE_PATH_RES = "/home/kolb/Divest_Experiments/divestdata/" \
                     + folder + "/results" + '_' + sub_experiment + '/'
 elif getpass.getuser() == "jakob":
     SAVE_PATH_RAW = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/output_data/" \
+        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/" \
         + folder + "/raw_data" + '_' + sub_experiment + '/'
     SAVE_PATH_RES = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/output_data/" \
+        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/" \
         + folder + "/results" + '_' + sub_experiment + '/'
 
 taus = [round(x, 5) for x in list(np.linspace(0.0, 1.0, 11))[1:-1]]

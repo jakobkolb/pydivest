@@ -5,22 +5,21 @@ Compare Trajectory from micro simulation for new and old interaction between hou
 import getpass
 import itertools as it
 import os
-import pickle as cp
 import sys
 import time
 
 import networkx as nx
 import numpy as np
 import pandas as pd
+from pathlib import Path
 from pymofa.experiment_handling import experiment_handling, \
-    even_time_series_spacing
+even_time_series_spacing
 
-from pydivest.micro_model import divestmentcore as micro_model
+from pydivest.micro_model.divestmentcore import DivestmentCore as micro
+from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean as mean
 
-test = False
 
-
-def RUN_FUNC(b_d, phi, interaction, filename):
+def RUN_FUNC(interaction, phi, b_d, model, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -46,17 +45,17 @@ def RUN_FUNC(b_d, phi, interaction, filename):
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'i_phi': phi, 'i_tau': 1.,
+    input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
                     'eps': 0.05, 'b_d': b_d, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,
                     'possible_cue_orders': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
                     'campaign': False, 'learning': True,
-                    'interaction': interaction}
+                    'interaction': interaction, 'test': test}
 
     # investment_decisions:
-    nopinions = [100, 100]
+    nopinions = [50, 50]
 
     # network:
     N = sum(nopinions)
@@ -77,61 +76,39 @@ def RUN_FUNC(b_d, phi, interaction, filename):
     init_conditions = (adjacency_matrix, investment_decisions,
                        clean_investment, dirty_investment)
 
-    m = micro_model.DivestmentCore(*init_conditions, **input_params)
-    m.init_switchlist()
+    if model == 1:
+        m = micro(*init_conditions, **input_params)
+    elif model == 2:
+        m = mean(*init_conditions, **input_params)
+    else:
+        raise ValueError(f'model needs to be in [1, 2] but is {model}')
 
-    # storing initial conditions and parameters
-
-    res = {
-        "initials": pd.DataFrame({"Investment decisions": investment_decisions,
-                                  "Investment clean": m.investment_clean,
-                                  "Investment dirty": m.investment_dirty}),
-        "parameters": pd.Series({"tau": m.tau,
-                                 "phi": m.phi,
-                                 "N": m.n,
-                                 "L": m.L,
-                                 "savings rate": m.s,
-                                 "clean capital depreciation rate": m.d_c,
-                                 "dirty capital depreciation rate": m.d_d,
-                                 "resource extraction efficiency": m.b_r0,
-                                 "Solov residual clean": m.b_c,
-                                 "Solov residual dirty": m.b_d,
-                                 "pi": m.pi,
-                                 "kappa_c": m.kappa_c,
-                                 "kappa_d": m.kappa_d,
-                                 "xi": m.xi,
-                                 "resource efficiency": m.e,
-                                 "epsilon": m.eps,
-                                 "initial resource stock": m.G_0})}
-
-    # run the model
-    t_start = time.clock()
-
-    t_max = 300 if not test else 3
+    t_max = 300 if not test else 20
     m.R_depletion = False
     m.run(t_max=t_max)
 
-    t_max += 600 if not test else 6
+    t_max += 600 if not test else 1
     m.R_depletion = True
+    m.set_parameters()
     exit_status = m.run(t_max=t_max)
-
-    res["runtime"] = time.clock() - t_start
 
     # store data in case of successful run
     if exit_status in [0, 1]:
         # interpolate m_trajectory to get evenly spaced time series.
-        res["macro_trajectory"] = \
-            even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+        df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+        df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
 
-    # save data
-    with open(filename, 'wb') as dumpfile:
-        cp.dump(res, dumpfile)
-    try:
-        np.load(filename)
-    except IOError:
-        print("writing results failed for " + filename)
+        for c in df1.columns:
+            if c in df2.columns:
+                df2.drop(c, axis=1, inplace=True)
 
-    return exit_status
+        df_out = pd.concat([df1, df2], axis=1)
+
+        df_out.index.name = 'tstep'
+    else:
+        df_out = None
+
+    return exit_status, df_out
 
 
 # get sub experiment and mode from command line
@@ -168,8 +145,6 @@ def run_experiment(argv):
     [test, mode, micro/macro]
     """
 
-    global test
-
     # switch testing mode
     if len(argv) > 1:
         test = bool(int(argv[1]))
@@ -180,14 +155,6 @@ def run_experiment(argv):
         mode = int(argv[2])
     else:
         mode = 0
-    if len(argv) > 3:
-        job_id = int(argv[3])
-    else:
-        job_id = 1
-    if len(argv) > 4:
-        max_id = int(argv[4])
-    else:
-        max_id = 1
 
     """
     set input/output paths
@@ -201,8 +168,7 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-
-    folder = 'P1_compare_interaction'
+    folder = 'P1'
 
     # make sure, testing output goes to its own folder:
 
@@ -210,90 +176,101 @@ def run_experiment(argv):
 
     save_path_raw = \
         "{}/{}{}/" \
-        .format(tmppath, test_folder, folder)
+            .format(tmppath, test_folder, folder)
     save_path_res = \
         "{}/{}{}/" \
-        .format(respath, test_folder, folder)
+            .format(respath, test_folder, folder)
 
     """
     create parameter combinations and index
     """
 
-    phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
-    b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
+    phis = [round(x, 2) for x in list(np.linspace(0.0, 0.9, 20))]
+    b_ds = [round(x, 2) for x in list(np.linspace(1., 1.5, 5))]
     interactions = [0, 1, 2]
-    b_d, phi, interaction = [1.2, 1.4], [.5, .8], [0, 1, 2]
+    model = [1, 2]
+    b_d, phi, interaction = [1.25], [.5], [0, 1, 2]
 
     if test:
-        param_combs = list(it.product(interaction, phi, b_d))
+        param_combs = list(it.product(interaction, phi, b_d, model, [test]))
     else:
-        param_combs = list(it.product(interactions, phis, b_ds))
-
-    index = {0: "interaction", 1: "phi", 2: "b_d"}
-
-    """
-    create names and dicts of callables for post processing
-    """
-
-    name = 'interaction_trajectory'
-
-    name1 = name + '_trajectory'
-    eva1 = {"mean_trajectory":
-            lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
-                                      for f in fnames]).groupby(
-                    level=0).mean(),
-            "sem_trajectory":
-            lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
-                                      for f in fnames]).groupby(level=0).std(),
-            }
+        param_combs = list(it.product(interactions, phis, b_ds, model, [test]))
 
     """
     run computation and/or post processing and/or plotting
     """
+    # Create dummy runfunc output to pass its shape to experiment handle
+    try:
+        if not Path(save_path_raw).exists():
+            Path(save_path_raw).mkdir()
+        run_func_output = pd.read_pickle(save_path_raw + 'rfof.pkl')
+    except:
+        params = list(param_combs[0])
+        params[-1] = True
+        run_func_output = RUN_FUNC(*params)[1]
+        with open(save_path_raw+'rfof.pkl', 'wb') as dmp:
+            pd.to_pickle(run_func_output, dmp)
 
-    # calculate (splitting parameter combinations between threads)
+    sample_size = 100 if not test else 3
+
+    # initialize computation handle
+    compute_handle = experiment_handling(run_func=RUN_FUNC,
+                                         runfunc_output=run_func_output,
+                                         sample_size=sample_size,
+                                         parameter_combinations=param_combs,
+                                         path_raw=save_path_raw
+                                         )
+
+    # define eva functions
+
+    def mean(interaction, phi, b_d, model, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = 'b_d={} & phi={} & interaction={} & model={} & test={}'.format(b_d, phi, interaction, model, test)
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat", where=query)
+
+        return 1, trj.groupby(level='tstep').mean()
+
+    def std(interaction, phi, b_d, model, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = 'b_d={} & phi={} & interaction={} & model={} & test={}'.format(b_d, phi, interaction, model, test)
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat", where=query)
+
+        return 1, trj.groupby(level='tstep').std()
+
+    eva_1_handle = experiment_handling(run_func=mean,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=param_combs,
+                                       path_raw=save_path_res + '/mean.h5'
+                                       )
+    eva_2_handle = experiment_handling(run_func=std,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=param_combs,
+                                       path_raw=save_path_res + '/std.h5'
+                                       )
+
     if mode == 0:
-        print('cluster mode')
-        sys.stdout.flush()
-
-        if len(param_combs) % max_id != 0:
-            print('number of jobs ({}) has to be multiple of max_id ({})!!'.format(len(param_combs), max_id))
-            exit(-1)
-
-        # devide parameter combination into equally sized chunks.
-        cl = int(len(param_combs) / max_id)
-        i = (job_id - 1) * cl
-        j = job_id * cl
-
-        sample_size = 100 if not test else 3
-
-        handle = experiment_handling(sample_size=sample_size,
-                                     parameter_combinations=param_combs[i:j],
-                                     index=index,
-                                     path_raw=save_path_raw,
-                                     path_res=save_path_res,
-                                     use_kwargs=True)
-        handle.compute(RUN_FUNC)
-
+        # computation, parameters split between threads
+        compute_handle.compute()
         return 1
-
-    # post processing (all parameter combinations on one thread)
-    if mode == 1:
-        sample_size = 100 if not test else 3
-
-        handle = experiment_handling(sample_size=sample_size,
-                                     parameter_combinations=param_combs,
-                                     index=index,
-                                     path_raw=save_path_raw,
-                                     path_res=save_path_res,
-                                     use_kwargs=True)
-        handle.resave(eva1, name1)
-
-
+    elif mode == 1:
+        # post processing (all parameter combinations on one thread)
+        print('post processing')
+        eva_1_handle.compute()
+        eva_2_handle.compute()
         return 1
-
-    # in case nothing happened:
-    return 0
+    else:
+        # in case nothing happened:
+        return 0
 
 
 if __name__ == "__main__":

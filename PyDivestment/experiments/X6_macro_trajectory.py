@@ -4,7 +4,7 @@ This experiment is meant to create trajectories of macroscopic variables from
 2) the analytic macro model
 that can be compared to evaluate the validity and quality of the analytic
 approximation.
-The variable Parameters are b_c and phi.
+The variable Parameters are b_d and phi.
 """
 
 import getpass
@@ -17,12 +17,12 @@ import time
 import networkx as nx
 import numpy as np
 import pandas as pd
-from pymofa.experiment_handling import experiment_handling, \
-    even_time_series_spacing
 
 from pydivest.divestvisuals.data_visualization import plot_trajectories
-from pydivest.macro_model import integrate_equations_mean as macro_model
-from pydivest.micro_model import divestmentcore as micro_model
+from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean
+from pydivest.micro_model.divestmentcore import DivestmentCore
+from pymofa.experiment_handling import experiment_handling, \
+    even_time_series_spacing
 
 
 def RUN_FUNC(b_d, phi, approximate, test, filename):
@@ -51,14 +51,13 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'i_phi': phi, 'i_tau': 1.,
+    input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
                     'eps': 0.05, 'b_d': b_d, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,
-                    'possible_cue_orders': [[0], [1]],
+                    'possible_que_orders': [[0], [1]],
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 800.,
-                    'campaign': False, 'learning': True,
-                    'test': test, 'interaction': 0}
+                    'campaign': False, 'learning': True}
 
     # investment_decisions:
     nopinions = [100, 100]
@@ -85,55 +84,25 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     # initializing the model
     print('approximate', approximate)
     if approximate:
-        m = macro_model.Integrate_Equations(*init_conditions, **input_params)
+        m = IntegrateEquationsMean(*init_conditions, **input_params)
     else:
-        m = micro_model.DivestmentCore(*init_conditions, **input_params)
-        m.init_switchlist()
+        m = DivestmentCore(*init_conditions, **input_params)
 
-    # storing initial conditions and parameters
-
-    res = {
-        "initials": pd.DataFrame({"Investment decisions": investment_decisions,
-                                  "Investment clean": m.investment_clean,
-                                  "Investment dirty": m.investment_dirty}),
-        "parameters": pd.Series({"tau": m.tau,
-                                 "phi": m.phi,
-                                 "N": m.n,
-                                 "L": m.L,
-                                 "savings rate": m.s,
-                                 "clean capital depreciation rate": m.d_c,
-                                 "dirty capital depreciation rate": m.d_d,
-                                 "resource extraction efficiency": m.b_r0,
-                                 "Solov residual clean": m.b_c,
-                                 "Solov residual dirty": m.b_d,
-                                 "pi": m.pi,
-                                 "kappa_c": m.kappa_c,
-                                 "kappa_d": m.kappa_d,
-                                 "xi": m.xi,
-                                 "resource efficiency": m.e,
-                                 "epsilon": m.eps,
-                                 "initial resource stock": m.G_0})}
-
-    # run the model
-    t_start = time.clock()
-
-    t_max = 200 if not test else 1
+    t_max = 200 if not test else 50
     m.R_depletion = False
     m.run(t_max=t_max)
 
-    t_max += 600 if not test else 1
+    t_max += 400 if not test else 1
     m.R_depletion = True
     exit_status = m.run(t_max=t_max)
 
-    res["runtime"] = time.clock() - t_start
+    res = {}
 
     # store data in case of successful run
     if exit_status in [0, 1]:
         # interpolate m_trajectory to get evenly spaced time series.
         res["macro_trajectory"] = \
             even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
-        if not approximate:
-            res["switchlist"] = m.get_switch_list()
 
     # save data
     with open(filename, 'wb') as dumpfile:
@@ -200,7 +169,7 @@ def run_experiment(argv):
     set input/output paths
     """
 
-    respath = os.path.dirname(os.path.realpath(__file__)) + "/../output_data"
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/output_data"
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":
@@ -228,7 +197,7 @@ def run_experiment(argv):
 
     phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
     b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
-    b_d, phi = [1.2], [.8]
+    b_d, phi, exact = [1.2], [.8], [False]
 
     if test:
         PARAM_COMBS = list(it.product(b_d, phi, [bool(approximate)], [test]))
@@ -241,7 +210,7 @@ def run_experiment(argv):
     create names and dicts of callables for post processing
     """
 
-    NAME = 'b_d_scan_' + sub_experiment + '_trajectory'
+    NAME = 'b_c_scan_' + sub_experiment + '_trajectory'
 
     NAME1 = NAME + '_trajectory'
     EVA1 = {"mean_trajectory":
@@ -252,12 +221,6 @@ def run_experiment(argv):
             lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
                                       for f in fnames]).groupby(level=0).std()
             }
-
-    NAME2 = NAME + '_switchlist'
-    CF2 = {"switching_capital":
-           lambda fnames: pd.concat([np.load(f)["switchlist"]
-                                     for f in fnames]).sortlevel(level=0)
-           }
 
     """
     run computation and/or post processing and/or plotting
@@ -272,8 +235,6 @@ def run_experiment(argv):
                                      SAVE_PATH_RAW, SAVE_PATH_RES)
         handle.compute(RUN_FUNC)
         handle.resave(EVA1, NAME1)
-        # if approximate == 0:
-        #     handle.collect(CF2, NAME2)
 
         return 1
 
