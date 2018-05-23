@@ -115,8 +115,8 @@ class CalcRhs:
             s.tanh(Wc - Wd) + 1)  # dirty investor imitates d -> c
 
     # Noise Events
-    p5 = epsilon * (1 - phi) * phi * (1. / 2) * Nc / N  # c -> d
-    p6 = epsilon * (1 - phi) * phi * (1. / 2) * Nd / N  # d -> c
+    p5 = epsilon * (1 - phi) * (1. / 2) * Nc / N  # c -> d
+    p6 = epsilon * (1 - phi) * (1. / 2) * Nd / N  # d -> c
     p7 = epsilon * phi * Nc / N * (2 * cc) / (2 * cc + cd) * Nd / N  # c-c -> c-d
     p8 = epsilon * phi * Nc / N * cd / (2 * cc + cd) * Nc / N  # c-d -> c-c
     p9 = epsilon * phi * Nd / N * (2 * dd) / (2 * dd + cd) * Nc / N  # d-d -> d-c
