@@ -72,4 +72,3 @@ for interaction in [1, 2]:
         print(max_dif)
         assert max_dif < 1e-3, 'failed at {} with interaction={}'\
             .format(c, interaction)
-
