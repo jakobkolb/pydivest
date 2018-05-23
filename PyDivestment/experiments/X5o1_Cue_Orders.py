@@ -6,7 +6,7 @@ standard values or determined by the following timescales:
 1) capital accumulation in the dirty sector,
     t_d = 1/(d_c*(1-kappa_c))
 2) depletion of the fossil resource and
-    t_G = G_0*e*d_c/(P*s*b_d**2)
+    t_G = G_0*e*d_c/(L*s*b_d**2)
 3) opinion spreading in the adaptive voter model
    given one opinion dominates the other.
     t_a = tau*(1-phi)
@@ -31,25 +31,28 @@ try:
 except ImportError:
     import pickle as cp
 import getpass
+import glob
 import itertools as it
 import sys
 import time
-from random import shuffle
+import types
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 import scipy.stats as st
+
+from random import shuffle
+
+from pydivest.divestvisuals.data_visualization \
+    import plot_obs_grid, plot_tau_phi, tau_phi_final
+from pydivest.micro_model import divestmentcore as model
 from pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
 
-from pydivest.divestvisuals.data_visualization \
-    import plot_obs_grid
-from pydivest.micro_model import divestmentcore as model
-
 
 def RUN_FUNC(t_G, nopinions, alpha,
-             possible_cue_orders, eps, avm, test, filename):
+             possible_opinions, eps, avm, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -74,7 +77,7 @@ def RUN_FUNC(t_G, nopinions, alpha,
         that sets the share of the initial
         resource G_0 that can be harvested
         economically.
-    possible_cue_orders : list of list of integers
+    possible_que_orders : list of list of integers
         the set of cue orders that are allowed in the
         model. investment_decisions determine the individual cue
         order, that a household uses.
@@ -114,8 +117,8 @@ def RUN_FUNC(t_G, nopinions, alpha,
     # input parameters
 
     input_params = {
-        'possible_cue_orders': possible_cue_orders,
-            'i_tau': tau, 'i_phi': phi, 'eps': eps,
+            'possible_que_orders': possible_opinions,
+            'tau': tau, 'phi': phi, 'eps': eps,
         'L': P, 'b_d': b_d, 'b_r0': b_R0, 'G_0': G_0,
             'e': e, 'd_c': d_c, 'test': bool(test)}
 
@@ -147,14 +150,14 @@ def RUN_FUNC(t_G, nopinions, alpha,
     res["initials"] = {
             "adjacency matrix": adjacency_matrix,
         "investment_decisions": opinions,
-        "possible investment_decisions": possible_cue_orders}
+        "possible investment_decisions": possible_opinions}
 
     res["parameters"] = \
         pd.Series({"tau": m.tau,
                    "phi": m.phi,
                    "n": m.n,
                    "L": p,
-                   "L": m.L,
+                   "L": m.P,
                    "birth rate": m.r_b,
                    "savings rate": m.s,
                    "clean capital depreciation rate": m.d_c,
@@ -227,17 +230,17 @@ folder = 'X5.1_Cue_Orders'
 # check if cluster or local
 if getpass.getuser() == "kolb":
     SAVE_PATH_RAW = \
-        "/L/tmp/kolb/Divest_Experiments/output_data/" \
+        "/L/tmp/kolb/Divest_Experiments/divestdata/" \
         + folder + "/raw_data"
     SAVE_PATH_RES =\
-        "/home/kolb/Divest_Experiments/output_data/"\
+        "/home/kolb/Divest_Experiments/divestdata/"\
         + folder + "/results"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_RAW = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/output_data/"\
+        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
         + folder + "/raw_data"
     SAVE_PATH_RES = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/output_data/"\
+        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
         + folder + "/results"
 
 """

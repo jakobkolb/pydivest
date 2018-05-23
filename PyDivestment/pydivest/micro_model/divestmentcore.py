@@ -1,12 +1,12 @@
 import datetime
-import sys
-import traceback
 from itertools import chain
 from random import shuffle
 
-import networkx as nx
 import numpy as np
 import pandas as pd
+import traceback
+import sys
+import networkx as nx
 from scipy.integrate import odeint
 from scipy.sparse.csgraph import connected_components
 from scipy.stats import linregress
@@ -17,93 +17,89 @@ class DivestmentCore:
                  investment_clean=None, investment_dirty=None,
                  possible_cue_orders=None,
                  investment_decisions=None,
-                 i_tau=0.8, i_phi=.7, eps=0.05,
+                 tau=0.8, phi=.7, eps=0.05,
                  L=100., G_0=3000, C=1.,
                  b_c=1., b_d=1.5, s=0.23, d_c=0.06,
                  b_r0=1., e=10,
                  xi=1./8., pi=1./2., kappa_c=1./2., kappa_d=1./2.,
-                 resource_depletion=True, test=False,
+                 R_depletion=True, test=False,
                  beta=0.06, learning=False,
                  campaign=False, interaction=1, crs=True, **kwargs):
+
         """
 
-                Parameters
-                ----------
-                adjacency: ndarray
-                    Acquaintance matrix between the households. Has to be symmetric unweighted and without self loops.
-                possible_cue_orders: list
-                    A list of possible cue orders. Cue orders are integers that have to be implemented in the dict of
-                    possible cues with their respective callables in the init.
-                opinions: list
-                    A list, specifying for each household a cue order of the above
-                investment_clean: list
-                    Initial household endowments in the clean sector
-                investment_dirty: list
-                    Initial household endowments in the dirty sector
-                investment_decisions: list
-                    Initial investment decisions of households. Will be updated 
-                    from their actual heuristic decision making during initialization
-                tau: float
-                    Mean waiting time between household opinion updates
-                phi: float
-                    Rewiring probability in the network adaptation process
-                eps: float
-                    fraction of exploration events (noise) in the opinion formation process
-                L: float
-                    Total labor (fixed)
-                G_0: float
-                    Total initial resource stock
-                C: float
-                    Total initial knowledge stock
-                b_c: float
-                    Solow residual of the production function of the clean sector
-                b_d: float
-                    Solow residual of the production function of the dirty sector
-                s: float
-                    Savings rate of the households
-                d_c: float
-                    Capital depreciation rate
-                b_r0: float
-                    Resource cost factor
-                e: float
-                    Resource efficiency in the dirty sector
-                resource_depletion: bool
-                    Switch to turn resource depreciation on or off
-                test: bool
-                    switch for verbose output for debugging
-                beta: float
-                    Knowledge depreciation (forgetting) rate in the clean sector
-                xi: float
-                    Elasticity of knowledge stock in the production process in the clean sector
-                learning: bool
-                    Switch to toggle learning in the clean sector. 
-                    If False, the knowledge stock is set to 1 and its dynamics are turned off.
-                campaign: bool
-                    Switch to toggle separate treatment of zealots (campaigners) in the model, such that they do not immiatate 
-                    other households decisions.
-                interaction: int
-                    Switch for different imitation probabilities.
-                    if 0: tanh(Wi-Wj) interaction,
-                    if 1: interaction as in Traulsen, 2010 but with relative differences
-                    if 2: (Wi-Wj)/(Wi+Wj) interaction.
-                t_trend: float
-                    length of running window average that chartes use to predict trends
-                """
-
-        if test:
-            print('micro model')
+        Parameters
+        ----------
+        adjacency: np.ndarray
+            Acquaintance matrix between the households. Has to be symmetric unweighted and without self loops.
+        possible_cue_orders: list
+            A list of possible cue orders. Cue orders are integers that have to be implemented in the dict of
+            possible cues with their respective callables in the init.
+        opinions: list[int]
+            A list, specifying for each household a cue order of the above
+        investment_clean: list[float]
+            Initial household endowments in the clean sector
+        investment_dirty: list[float]
+            Initial household endowments in the dirty sector
+        investment_decisions: list[int]
+            Initial investment decisions of households. Will be updated
+            from their actual heuristic decision making during initialization
+        tau: float
+            Mean waiting time between household opinion updates
+        phi: float
+            Rewiring probability in the network adaptation process
+        eps: float
+            fraction of exploration events (noise) in the opinion formation process
+        L: float
+            Total labor (fixed)
+        G_0: float
+            Total initial resource stock
+        C: float
+            Total initial knowledge stock
+        b_c: float
+            Solow residual of the production function of the clean sector
+        b_d: float
+            Solow residual of the production function of the dirty sector
+        s: float
+            Savings rate of the households
+        d_c: float
+            Capital depreciation rate
+        b_r0: float
+            Resource cost factor
+        e: float
+            Resource efficiency in the dirty sector
+        R_depletion: bool
+            Switch to turn resource depreciation on or off
+        test: bool
+            switch for verbose output for debugging
+        beta: float
+            Knowledge depreciation (forgetting) rate in the clean sector
+        pi: float
+            labor elasticity (equal in both sectors)
+        kappa_c: float
+            capital elasticity in the clean sector. Discarted, if crs is True
+        kappa_d: float
+            capital elasticity in the dirty sector. Discarted, if crs is True
+        xi: float
+            Elasticity of knowledge stock in the production process in the clean sector
+        learning: bool
+            Switch to toggle learning in the clean sector.
+            If False, the knowledge stock is set to 1 and its dynamics are turned off.
+        campaign: bool
+            Switch to toggle separate treatment of zealots (campaigners) in the model, such that they do not immiatate
+            other households decisions.
+        interaction: int
+            Switch for different imitation probabilities.
+            if 0: tanh(Wi-Wj) interaction,
+            if 1: interaction as in Traulsen, 2010 but with relative differences
+            if 2: (Wi-Wj)/(Wi+Wj) interaction.
+        t_trend: float
+            length of running window average that chartes use to predict trends
+        """
 
         # Modes:
         #  1: only economy,
         #  2: economy + opinion formation + decision making,
-
-        self.mode = 2
-
-        # if 0: tanh(Wi-Wj) interaction,
-        # if 1: interaction as in Traulsen, 2010 but with relative differences
-        # if 2: (Wi-Wj)/(Wi+Wj) interaction.
-
-        self.interaction = interaction
 
         if possible_cue_orders is None:
             possible_cue_orders = [[0], [1]]
@@ -114,6 +110,21 @@ class DivestmentCore:
             if p not in [[0], [1]]:
                 self.heuristic_decision_making = True
 
+        self.mode = 2
+
+        # Agent Interactions:
+        #  if 0: tanh(Wi-Wj) interaction,
+        #  if 1: interaction as in Traulsen, 2010 but with relative differences
+        #  if 2: (Wi-Wj)/(Wi+Wj) interaction.
+
+        self.interaction = interaction
+
+        # trajectory output time window
+        if 'trj_output_window' in kwargs.keys():
+            print('found trj_output_window')
+            self.trj_output_window = kwargs['trj_output_window']
+        else:
+            self.trj_output_window = [0, np.float('inf')]
 
         # General Parameters
 
@@ -122,12 +133,11 @@ class DivestmentCore:
         # toggle e_trajectory output
         self.e_trajectory_output = True
         self.m_trajectory_output = True
-        self.a_trajectory_output = True
         self.switchlist_output = False
         # toggle whether to run full time or only until consensus
         self.run_full_time = True
         # toggle resource depletion
-        self.R_depletion = resource_depletion
+        self.R_depletion = R_depletion
         # toggle learning by doing
         self.learning = learning
         # toggle campaigning
@@ -139,7 +149,7 @@ class DivestmentCore:
         # General Variables
 
         # System Time
-        self.t = 0.
+        self.t = 0
         # Step counter for output
         self.steps = 0
         # eps == 0: 0 for no consensus, 1 consensus
@@ -174,14 +184,16 @@ class DivestmentCore:
         # Household parameters
 
         # mean waiting time between social updates
-        self.tau = i_tau
+        self.tau = tau
         # rewiring probability for adaptive voter model
-        self.phi = i_phi
+        self.phi = phi
         # percentage of rewiring and imitation events that are noise
         self.eps = eps
 
         # number of households
         self.n = adjacency.shape[0]
+        # birth rate for household members
+        self.r_b = 0.
         # percentage of income saved
         self.s = s
 
@@ -207,10 +219,10 @@ class DivestmentCore:
         self.neighbors = adjacency
         # to select random investment_decisions,
         # all possible investment_decisions must be known
-        self.possible_cue_orders = possible_cue_orders
+        self.possible_que_orders = possible_cue_orders
         # investment_decisions as indices of possible_cue_orders
         self.opinions = np.array(opinions)
-        # to keep track of the current ratio of investment_decisions
+        # to keep track of the current ration of investment_decisions
         self.clean_opinions = np.zeros((len(possible_cue_orders)))
         self.dirty_opinions = np.zeros((len(possible_cue_orders)))
 
@@ -222,7 +234,7 @@ class DivestmentCore:
                 i = np.append(i, [j])
         self.opinion_state = [n[list(i).index(j)]
                               if j in i else 0
-                              for j in range(len(self.possible_cue_orders))]
+                              for j in range(len(self.possible_que_orders))]
 
         # to keep track of investment decisions.
         self.decision_state = 0.
@@ -236,7 +248,7 @@ class DivestmentCore:
             self.investment_decisions = investment_decisions
 
         # members of ALL household = population   
-        self.L = L
+        self.P = L
 
         # household investment in dirty capital
         if investment_dirty is None:
@@ -341,13 +353,13 @@ class DivestmentCore:
         x0 = np.fromiter(chain.from_iterable([
             list(self.investment_clean),
             list(self.investment_dirty),
-            [self.L, self.G, self.C]]), dtype='float')
+            [self.P, self.G, self.C]]), dtype='float')
 
         [x0, x1], self.db_out = odeint(self.economy_dot_leontief, x0, dt, full_output=True)
 
         self.investment_clean = x1[0:self.n]
         self.investment_dirty = x1[self.n:2 * self.n]
-        self.L = x1[-3]
+        self.P = x1[-3]
         self.G = x1[-2]
         self.C = x1[-1]
 
@@ -355,21 +367,9 @@ class DivestmentCore:
             self.init_economic_trajectory()
         if self.m_trajectory_output:
             self.init_mean_trajectory()
-        if self.a_trajectory_output:
             self.init_aggregate_trajectory()
         if self.switchlist_output:
             self.init_switchlist()
-
-    @staticmethod
-    def progress(count, total, status=''):
-        bar_len = 60
-        filled_len = int(round(bar_len * count / float(total)))
-
-        percents = round(100.0 * count / float(total), 1)
-        bar = '=' * filled_len + '-' * (bar_len - filled_len)
-
-        sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
-        sys.stdout.flush()
 
     @staticmethod
     def cue_0(i):
@@ -506,7 +506,22 @@ class DivestmentCore:
 
         return dec
 
-    def run(self, t_max=200., **kwargs):
+    def set_parameters(self):
+        """dummy function to mimic the interface of the approximation modules"""
+        pass
+
+    @staticmethod
+    def progress(count, total, status=''):
+        bar_len = 60
+        filled_len = int(round(bar_len * count / float(total)))
+
+        percents = round(100.0 * count / float(total), 1)
+        bar = '=' * filled_len + '-' * (bar_len - filled_len)
+
+        sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
+        sys.stdout.flush()
+
+    def run(self, t_max=200.):
         """
         run model for t<t_max or until consensus is reached
 
@@ -572,9 +587,9 @@ class DivestmentCore:
             'investment_decisions': self.investment_decisions,
             'investment_clean': self.investment_clean,
             'investment_dirty': self.investment_dirty,
-            'possible_cue_orders': self.possible_cue_orders,
+            'possible_que_orders': self.possible_que_orders,
             'tau': self.tau, 'phi': self.phi, 'eps': self.eps,
-            'L': self.L, 'b_c': self.b_c,
+            'L': self.P, 'r_b': self.r_b, 'b_c': self.b_c,
             'b_d': self.b_d, 's': self.s, 'd_c': self.d_c,
             'b_r0': self.b_r0, 'e': self.e, 'G_0': self.G,
             'C': self.C, 'beta': self.beta, 'xi': self.xi,
@@ -742,7 +757,7 @@ class DivestmentCore:
         self.R = R
         self.K_c = K_c
         self.K_d = K_d
-        self.L = P
+        self.P = P
         self.P_c = P_c
         self.P_d = P_d
         self.c_R = b_R * R
@@ -804,19 +819,17 @@ class DivestmentCore:
         update_time : float
             time until which system is integrated
         """
-        
+
         dt = [self.t, update_time]
         x0 = np.fromiter(chain.from_iterable([
             list(self.investment_clean),
             list(self.investment_dirty),
-            [self.L, self.G, self.C]]), dtype='float')
+            [self.P, self.G, self.C]]), dtype='float')
 
         # integrate the system unless it crashes.
         if not np.isnan(self.R):
             # with stdout_redirected():
-            [x0, x1], self.db_out = odeint(self.economy_dot_leontief, x0, dt,
-                                           mxhnil=1, full_output=True,
-                                           hmax=1.)
+            [x0, x1] = odeint(self.economy_dot_leontief, x0, dt, mxhnil=1)
         else:
             x1 = x0
 
@@ -825,7 +838,7 @@ class DivestmentCore:
         self.investment_dirty = np.where(x1[self.n:2 * self.n] > 0,
                                          x1[self.n:2 * self.n],
                                          np.zeros(self.n))
-        self.L = x1[-3]
+        self.P = x1[-3]
         self.G = x1[-2]
         self.C = x1[-1]
 
@@ -857,12 +870,13 @@ class DivestmentCore:
             * self.K_c ** self.kappa_c * self.P_c ** self.pi
         self.Y_d = self.b_d * self.K_d ** self.kappa_d * self.P_d ** self.pi
 
-        # output economic data
-        if self.e_trajectory_output:
-            self.update_economic_trajectory()
-        if self.m_trajectory_output:
-            self.update_mean_trajectory()
-            self.update_aggregate_trajectory()
+        # output economic data if t is in time window
+        if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
+            if self.e_trajectory_output:
+                self.update_economic_trajectory()
+            if self.m_trajectory_output:
+                self.update_mean_trajectory()
+                self.update_aggregate_trajectory()
 
     def find_update_candidates(self):
 
@@ -870,7 +884,7 @@ class DivestmentCore:
                          return_counts=True)
         self.opinion_state = [n[list(i).index(j)] if j in i
                               else 0
-                              for j in range(len(self.possible_cue_orders))]
+                              for j in range(len(self.possible_que_orders))]
         i = 0
         i_max = 1000 * self.n
         candidate = 0
@@ -892,12 +906,13 @@ class DivestmentCore:
             neighbors = self.neighbors[:, candidate].nonzero()[0]
 
             # noise in imitation (exploration of strategies)
+            # people trying new stuff at random
             rdn = np.random.uniform()
-            
+
             if rdn < self.eps * (1 - self.phi) and self.imitation:
                 old_opinion = self.opinions[candidate]
                 new_opinion = np.random.randint(
-                    len(self.possible_cue_orders))
+                    len(self.possible_que_orders))
                 self.opinions[candidate] = new_opinion
                 if old_opinion != new_opinion and self.switchlist_output:
                     self.save_switch(candidate, old_opinion)
@@ -961,7 +976,8 @@ class DivestmentCore:
             # if rewire
             for i in range(self.n):
                 # campaigners rewire to everybody
-                if self.campaign is True and opinion[candidate] == len(self.possible_cue_orders):
+                if (self.campaign is True and
+                            opinion[candidate] == len(self.possible_que_orders)):
                     same_unconnected[i] = 1
 
                 # everybody else rewires to people with same opinion
@@ -1005,11 +1021,11 @@ class DivestmentCore:
         cue orders (opinion) and the state of the economy
         """
 
-        self.dirty_opinions = np.zeros((len(self.possible_cue_orders)))
-        self.clean_opinions = np.zeros((len(self.possible_cue_orders)))
+        self.dirty_opinions = np.zeros((len(self.possible_que_orders)))
+        self.clean_opinions = np.zeros((len(self.possible_que_orders)))
 
         for i in range(self.n):
-            for cue in self.possible_cue_orders[self.opinions[i]]:
+            for cue in self.possible_que_orders[self.opinions[i]]:
                 decision = self.cues[cue](i)
                 if decision != -1:
                     self.investment_decisions[i] = decision
@@ -1085,7 +1101,6 @@ class DivestmentCore:
     def init_economic_trajectory(self):
         element = list(chain.from_iterable(
             [['time',
-              'R',
               'wage',
               'r_c',
               'r_d',
@@ -1097,6 +1112,7 @@ class DivestmentCore:
               'P_d',
               'L',
               'G',
+              'R',
               'C',
               'Y_c',
               'Y_d',
@@ -1109,18 +1125,32 @@ class DivestmentCore:
               'decision state',
               'G_alpha',
               'i_c'],
-             [str(x) for x in self.possible_cue_orders],
-             ['c' + str(x) for x in self.possible_cue_orders],
-             ['d' + str(x) for x in self.possible_cue_orders]]))
+             [str(x) for x in self.possible_que_orders],
+             ['c' + str(x) for x in self.possible_que_orders],
+             ['d' + str(x) for x in self.possible_que_orders]]))
         self.e_trajectory.append(element)
 
-        self.update_economic_trajectory()
+        dt = [self.t, self.t]
+        x0 = np.fromiter(chain.from_iterable([
+            list(self.investment_clean),
+            list(self.investment_dirty),
+            [self.P, self.G, self.C]]), dtype='float')
+
+        [x0, x1] = odeint(self.economy_dot_leontief, x0, dt)
+
+        self.investment_clean = x1[0:self.n]
+        self.investment_dirty = x1[self.n:2 * self.n]
+        self.P = x1[-3]
+        self.G = x1[-2]
+        self.C = x1[-1]
+
+        if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
+            self.update_economic_trajectory()
 
     def update_economic_trajectory(self):
         alpha = (self.b_r0 / self.e) ** (1. / 2.)
         element = list(chain.from_iterable(
             [[self.t,
-              self.R,
               self.w,
               self.r_c,
               self.r_d,
@@ -1130,8 +1160,9 @@ class DivestmentCore:
               self.K_d,
               self.P_c,
               self.P_d,
-              self.L,
+              self.P,
               self.G,
+              self.R,
               self.C,
               self.Y_c,
               self.Y_d,
@@ -1143,7 +1174,7 @@ class DivestmentCore:
               self.converged,
               self.decision_state,
               (self.G - alpha * self.G_0) / (self.G_0 * (1. - alpha)),
-              sum(self.income * self.investment_decisions) / sum(self.income) if sum(self.income) > 0 else 0],
+             sum(self.income * self.investment_decisions) / sum(self.income) if sum(self.income) > 0 else 0],
              self.opinion_state,
              self.clean_opinions,
              self.dirty_opinions]))
@@ -1164,11 +1195,11 @@ class DivestmentCore:
         pair based proxy.
         :return: None
         """
-        element = ['time', 'x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c',
-                   'g', 'w', 'r_c', 'r_d', 'Wc', 'Wd']
+        element = ['time', 'x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c', 'g']
         self.m_trajectory.append(element)
 
-        self.update_mean_trajectory()
+        if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
+            self.update_mean_trajectory()
 
     def update_mean_trajectory(self):
         """
@@ -1220,10 +1251,7 @@ class DivestmentCore:
         else:
             mucd = mudd = 0
 
-        Wc = mucc * self.r_c + mudc * self.r_d
-        Wd = mucd * self.r_c + mudd * self.r_d
-
-        entry = [self.t, x, y, z, mucc, mudc, mucd, mudd, self.C / n, self.G / n, self.w, self.r_c, self.r_d, Wc, Wd]
+        entry = [self.t, x, y, z, mucc, mudc, mucd, mudd, self.C / n, self.G / n]
         self.m_trajectory.append(entry)
 
     def get_mean_trajectory(self):
@@ -1245,7 +1273,8 @@ class DivestmentCore:
                    'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d']
         self.ag_trajectory.append(element)
 
-        self.update_aggregate_trajectory()
+        if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
+            self.update_aggregate_trajectory()
 
     def update_aggregate_trajectory(self):
         """
@@ -1344,7 +1373,7 @@ class DivestmentCore:
     def get_unified_trajectory(self):
         """
         Calculates unified trajectory in per capita variables
-        
+
         Returns
         -------
         Dataframe of unified per capita variables
@@ -1362,13 +1391,13 @@ class DivestmentCore:
                    'r_c', 'r_d', 'w', 'W_c', 'W_d']
         edf = self.get_economic_trajectory()
         df = pd.DataFrame(index=edf.index, columns=columns)
-        df['k_c'] = edf['K_c']/self.L
-        df['k_d'] = edf['K_d'] / self.L
-        df['l_c'] = edf['P_c'] / self.L
-        df['l_d'] = edf['P_d'] / self.L
-        df['g'] = edf['G'] / self.L
-        df['c'] = edf['C'] / self.L
-        df['r'] = edf['R'] / self.L
+        df['k_c'] = edf['K_c'] / self.P
+        df['k_d'] = edf['K_d'] / self.P
+        df['l_c'] = edf['P_c'] / self.P
+        df['l_d'] = edf['P_d'] / self.P
+        df['g'] = edf['G'] / self.P
+        df['c'] = edf['C'] / self.P
+        df['r'] = edf['R'] / self.P
         df['n_c'] = edf['[1]'] / self.n
         df['i_c'] = edf['i_c']
         df['r_c'] = edf['r_c']
@@ -1379,34 +1408,36 @@ class DivestmentCore:
 
         return df
 
+
 if __name__ == '__main__':
     """
     Perform test run and plot some output to check
     functionality
     """
-
+    import pandas as pd
+    import numpy as np
     import matplotlib.pyplot as mp
 
     output_location = 'test_output/' \
         + datetime.datetime.now().strftime("%d_%m_%H-%M-%Ss") + '_output'
 
     # Initial conditions:
-    FFH = True
+    FFH = False
 
     if FFH:
         nopinions = [10, 10, 10, 10, 10, 10, 10, 10]
-        possible_cue_orders = [[2, 3],  # short term investor
+        possible_opinions = [[2, 3],  # short term investor
                              [3, 2],  # long term investor
                              [4, 2],  # short term herder
                              [4, 3],  # trending herder
                              [4, 1],  # green conformer
                              [4, 0],  # dirty conformer
-                             [1],  # Gutmensch
+                             [1],  # gutmensch
                              [0]]  # redneck
-        input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
-                            'b_c': 1., 'i_phi': 0.8, 'e': 100,
+        input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
+                            'b_c': 1., 'phi': 0.8, 'e': 100,
                             'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
-                            'possible_cue_orders': possible_cue_orders,
+                            'possible_que_orders': possible_opinions,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
                             'campaign': False, 'learning': True}
 
@@ -1417,10 +1448,10 @@ if __name__ == '__main__':
 
         # Parameters:
 
-        input_parameters = {'i_tau': 1, 'eps': 0.01, 'b_d': 1.2,
-                            'b_c': 1., 'i_phi': 0.8, 'e': 100,
+        input_parameters = {'tau': 1, 'eps': 0.01, 'b_d': 1.2,
+                            'b_c': 1., 'phi': 0.8, 'e': 100,
                             'G_0': 800, 'b_r0': 0.1 ** 2 * 100,
-                            'possible_cue_orders': possible_cue_orders,
+                            'possible_que_orders': possible_cue_orders,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
                             'campaign': False, 'learning': True}
 
@@ -1491,7 +1522,7 @@ if __name__ == '__main__':
     df = model.get_unified_trajectory()
     print(df.columns)
     columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r', 'n_c', 'i_c',
-               'r_c', 'r_d', 'w', 'W_c', 'W_d']
+               'r_c', 'r_d', 'w']
     fig = mp.figure()
     ax1 = fig.add_subplot(221)
     df[['r_c', 'r_d']].plot(ax=ax1, style=colors)

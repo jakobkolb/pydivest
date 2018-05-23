@@ -1,17 +1,15 @@
 #!/bin/bash
 #SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
 #SBATCH --qos=short
-#SBATCH --job-name=P3_micro
-#SBATCH --output=%A_P3_micro.out
-#SBATCH --error=%A_P3_micro.err
-#SBATCH --nodes=24
+#SBATCH --job-name=P3_rep_pp
+#SBATCH --output=%A_P3_rep_pp.out
+#SBATCH --error=%A_P3_rep_pp.err
+#SBATCH --nodes=8
 #SBATCH --tasks-per-node=16
 
 
 module load hpc/2015 anaconda/2.3.0
 export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
-export OMP_NUM_THREADS=1
-
 
 echo "_______________________________________________"
 echo "SLURM JOB ID: $SLURM_JOBID"
@@ -22,8 +20,8 @@ cd ../experiments
 
 if [ ${TEST} = "test" ]; then
     echo 'testing'
-    srun -n $SLURM_NTASKS python P3_macro_trajectory_heatmap.py 1 0 1
+    srun -n $SLURM_NTASKS python P3_macro_trajectory_heatmap.py 1 1 3
 else
     echo 'production'
-    srun -n $SLURM_NTASKS python P3_macro_trajectory_heatmap.py 0 0 1
+    srun -n $SLURM_NTASKS python P3_macro_trajectory_heatmap.py 0 1 3
 fi

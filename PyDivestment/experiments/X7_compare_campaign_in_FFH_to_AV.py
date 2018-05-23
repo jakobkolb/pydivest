@@ -17,13 +17,13 @@ import time
 import networkx as nx
 import numpy as np
 import pandas as pd
-from pymofa.experiment_handling \
-    import experiment_handling, even_time_series_spacing
 
 from pydivest.divestvisuals.data_visualization \
     import plot_trajectories, plot_amsterdam
 from pydivest.micro_model \
     import divestmentcore as micro_model
+from pymofa.experiment_handling \
+    import experiment_handling, even_time_series_spacing
 
 
 def run_func(b_d, phi, ffh, test, transition, filename):
@@ -62,7 +62,7 @@ def run_func(b_d, phi, ffh, test, transition, filename):
     # 5: 'campaigner'
 
     if ffh:
-        possible_cue_orders = [[2, 3],  # short term investor
+        possible_opinions = [[2, 3],  # short term investor
                              [3, 2],  # long term investor
                              [4, 2],  # short term herder
                              [4, 3],  # trending herder
@@ -71,14 +71,14 @@ def run_func(b_d, phi, ffh, test, transition, filename):
                              [1],  # gutmensch
                              [0]]  # redneck
     else:
-        possible_cue_orders = [[1], [0]]
+        possible_opinions = [[1], [0]]
 
     # Parameters:
 
     input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
                     'eps': 0.05, 'b_d': b_d, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,  # alpha^2 * e
-                    'possible_cue_orders': possible_cue_orders,
+                    'possible_que_orders': possible_opinions,
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 1600.,
                     'campaign': False, 'learning': True,
@@ -103,7 +103,7 @@ def run_func(b_d, phi, ffh, test, transition, filename):
 
         # opinions and investment
 
-        opinions = [np.random.randint(0, len(possible_cue_orders))
+        opinions = [np.random.randint(0, len(possible_opinions))
                     for x in range(n)]
         clean_investment = np.ones(n) * 50. / float(n)
         dirty_investment = np.ones(n) * 50. / float(n)
@@ -136,8 +136,8 @@ def run_func(b_d, phi, ffh, test, transition, filename):
 
         # update input parameters where necessary
         input_params['campaign'] = True
-        input_params['possible_cue_orders'].append([5])
-        campaigner = len(input_params['possible_cue_orders']) - 1
+        input_params['possible_que_orders'].append([5])
+        campaigner = len(input_params['possible_que_orders']) - 1
 
         # make fraction of ccount households campaigners
         opinions = input_params['opinions']
@@ -171,7 +171,7 @@ def run_func(b_d, phi, ffh, test, transition, filename):
         "parameters": pd.Series({"tau": m.tau,
                                  "phi": m.phi,
                                  "N": m.n,
-                                 "L": m.L,
+                                 "L": m.P,
                                  "savings rate": m.s,
                                  "clean capital depreciation rate": m.d_c,
                                  "dirty capital depreciation rate": m.d_d,
@@ -317,7 +317,7 @@ def run_experiment(argv):
     b_d, phi = [1.75, 2.0], [.7, .8, .9]
 
     if ffh:
-        possible_cue_orders = [[2, 3],  # short term investor
+        possible_opinions = [[2, 3],  # short term investor
                              [3, 2],  # long term investor
                              [4, 2],  # short term herder
                              [4, 3],  # trending herder
@@ -326,9 +326,9 @@ def run_experiment(argv):
                              [1],  # gutmensch
                              [0]]  # redneck
     else:
-        possible_cue_orders = [[1], [0]]
+        possible_opinions = [[1], [0]]
 
-    cue_list = [str(o) for o in possible_cue_orders]
+    cue_list = [str(o) for o in possible_opinions]
     if transition and campaign:
         cue_list.append('[5]')
 
