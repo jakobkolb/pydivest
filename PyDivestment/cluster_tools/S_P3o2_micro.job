@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
 #SBATCH --qos=short
-#SBATCH --job-name=P3_micro
-#SBATCH --output=%A_P3_micro.out
-#SBATCH --error=%A_P3_micro.err
+#SBATCH --job-name=P3o2_micro
+#SBATCH --output=%A_P3o2_micro.out
+#SBATCH --error=%A_P3o2_micro.err
 #SBATCH --nodes=32
 #SBATCH --tasks-per-node=16
 
@@ -20,10 +20,5 @@ echo "_______________________________________________"
 
 cd ../experiments
 
-if [ ${TEST} = "test" ]; then
-    echo 'testing'
-    srun -n $SLURM_NTASKS python P3_macro_trajectory_heatmap.py 1 0 1
-else
-    echo 'production'
-    srun -n $SLURM_NTASKS python P3_macro_trajectory_heatmap.py 0 0 1
-fi
+srun -n $SLURM_NTASKS python P3o2_macro_trajectory_heatmap.py 0 0 1
+
