@@ -212,19 +212,20 @@ def run_experiment(argv):
     SAVE_PATH_RES = \
         "{}/{}{}/{}/" \
         .format(respath, test_folder, folder, sub_experiment)
+    print(SAVE_PATH_RES)
     """
     create parameter combinations and index
     """
 
     phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
     b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
-    eps = [0.1, 0.05, 0.01]
-    b_d, phi = [1.25], [.4]
+    epss = [0.1, 0.05, 0.01]
+    b_d, phi, eps = [1.25], [.4], [0.05]
 
     if test:
-        PARAM_COMBS = list(it.product(b_d, phi, eps, [approximate], [test]))
+        PARAM_COMBS = list(it.product(b_d, phi, eps, [approximate], [False]))
     else:
-        PARAM_COMBS = list(it.product(b_ds, phis, eps, [approximate], [test]))
+        PARAM_COMBS = list(it.product(b_ds, phis, epss, [approximate], [test]))
 
     """
     run computation and/or post processing and/or plotting
@@ -244,7 +245,7 @@ def run_experiment(argv):
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 10
+    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 30
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,

@@ -29,11 +29,14 @@ def RUN_FUNC(interaction, phi, b_d, model, test):
 
     Parameters:
     -----------
+    interaction: int
+        determines the functional form of the imitation probability between households.
+
     b_d : float > 0
         the solow residual in the dirty sector
     phi : float \in [0,1]
         the rewiring probability for the network update
-    approximate: bool
+    model: bool
         if True: run macroscopic approximation
         if False: run micro-model
     test: int \in [0,1]
