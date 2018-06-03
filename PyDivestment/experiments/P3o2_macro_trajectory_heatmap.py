@@ -27,8 +27,8 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
-    Output is saved in pickled dictionaries including the 
-    initial values, parameters and convergence state and time 
+    Output is saved in pickled dictionaries including the
+    initial values, parameters and convergence state and time
     for each run.
 
     Parameters:
@@ -94,26 +94,8 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
     else:
         raise ValueError('approximate must be in [1, 2, 3, 4] but is {}'.format(approximate))
 
-    # THIS TURNED OUT TO BE TROUBLE! SINCE THE EQUILIBRIUM STATE APPARENTLY DEPENDS ON TAU
-    # (even though i'm sure it is not supposed to.)
 
-    # equilibration phase with small tau
-    # to reach equilibrium distribution of
-    # investment decisions
-    t_eq = 1000 if not test else 10
-    t_max = t_eq
-    if hasattr(m, 'trj_output_window'):
-        m.trj_output_window = [t_eq, np.float('inf')]
-    m.R_depletion = False
-    m.set_parameters()
-    m.run(t_max=t_max)
-
-    # ONLY KEEPING THIS.
-    # intermediate phase with original tau but still no resource depletion
-    # to verify that the equilibrium distribution of investment decisions
-    # is in fact independent from tau
-
-    t_max += 200 if not test else 2
+    t_max = 200 if not test else 2
     m.tau = tau
     m.set_parameters()
     m.run(t_max=t_max)
@@ -127,8 +109,8 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
 
     # store data in case of successful run
     if exit_status in [0, 1]:
-        df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, t_eq, t_max)
-        df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, t_eq, t_max)
+        df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0, t_max)
+        df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0, t_max)
 
         for c in df2.columns:
             if c in df1.columns:
@@ -206,7 +188,7 @@ def run_experiment(argv):
         tmppath = "./"
 
     sub_experiment = ['micro', 'mean', 'representative'][approximate - 1]
-    folder = 'P3'
+    folder = 'P3o2'
 
     # make sure, testing output goes to its own folder:
 
@@ -228,7 +210,7 @@ def run_experiment(argv):
     tau, phi = [1.], [.8]
 
     if test:
-        PARAM_COMBS = list(it.product(tau, phi, eps, [approximate], [test]))
+        PARAM_COMBS = list(it.product(tau, phi, eps, [approximate], [False]))
     else:
         PARAM_COMBS = list(it.product(taus, phis, eps, [approximate], [test]))
 
@@ -299,10 +281,13 @@ def run_experiment(argv):
                                        )
 
     if mode == 0:
+        import time
+        t0 = time.clock()
         compute_handle.compute()
+        t1 = time.clock()
+        print('took {} seconds to complete'.format(t1-t0))
         return 1
     elif mode == 1:
-
         eva_1_handle.compute()
         eva_2_handle.compute()
         return 1
