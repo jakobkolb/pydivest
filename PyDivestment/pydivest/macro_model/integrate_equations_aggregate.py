@@ -109,6 +109,8 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         self.var_symbols = [self.x, self.y, self.z, self.Kcc, self.Kcd, self.Kdc, self.Kdd, self.C, self.G]
         self.var_names = ['x', 'y', 'z', 'K_c^c', 'K_c^d', 'K_d^c', 'K_d^d', 'C', 'G']
 
+        self.independent_vars = {name: symbol for name, symbol in zip(self.var_names, self.var_symbols)}
+
         # define expected wealth as expected income
         self.subs1[self.Wc] = ((self.rc * self.Kcc + self.rd * self.Kdc) / self.Nc).subs(self.subs1)
         self.subs1[self.Wd] = ((self.rc * self.Kcd + self.rd * self.Kdd) / self.Nd).subs(self.subs1)
@@ -180,6 +182,13 @@ class IntegrateEquationsAggregate(IntegrateEquations):
 
         # dictionary for final state
         self.final_state = {}
+
+    def list_initial_conditions(self):
+        values = [self.v_x, self.v_y, self.v_z,
+                  self.v_Kcc, self.v_Kcd,
+                  self.v_Kdc, self.v_Kdd,
+                  self.v_C, self.v_G]
+        return {symbol: val for symbol, val in zip(self.var_symbols, values)}
 
     def run(self, t_max=100, t_steps=500):
         """
