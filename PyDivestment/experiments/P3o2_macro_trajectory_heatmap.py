@@ -21,6 +21,7 @@ from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean
 from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
 from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as IntegrateEquationsRep
 from pydivest.micro_model.divestmentcore import DivestmentCore
+from .parameters import ExperimentDefaults
 
 
 def RUN_FUNC(tau, phi, eps, approximate, test):
@@ -51,14 +52,13 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'phi': phi, 'tau': tau,
-                    'eps': eps, 'b_d': 1.25, 'e': 100.,
-                    'b_r0': 0.1 ** 2 * 100.,
-                    'possible_cue_orders': [[0], [1]],
-                    'xi': 1. / 8., 'beta': 0.06,
-                    'L': 100., 'C': 100., 'G_0': 800.,
-                    'campaign': False, 'learning': True,
-                    'interaction': 1, 'test': False}
+    ed = ExperimentDefaults()
+    input_params = ed.input_params
+
+    input_params['phi'] = phi
+    input_params['tau'] = tau
+    input_params['eps'] = eps
+    input_params['test'] = test
 
     # investment_decisions:
     nopinions = [50, 50]
