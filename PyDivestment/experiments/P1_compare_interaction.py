@@ -17,6 +17,7 @@ even_time_series_spacing
 
 from pydivest.micro_model.divestmentcore import DivestmentCore as micro
 from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean as mean
+from .parameters import ExperimentDefaults
 
 
 def RUN_FUNC(interaction, phi, b_d, model, test):
@@ -48,14 +49,13 @@ def RUN_FUNC(interaction, phi, b_d, model, test):
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
-                    'eps': 0.05, 'b_d': b_d, 'e': 100.,
-                    'b_r0': 0.1 ** 2 * 100.,
-                    'possible_cue_orders': [[0], [1]],
-                    'xi': 1. / 8., 'beta': 0.06,
-                    'L': 100., 'C': 100., 'G_0': 800.,
-                    'campaign': False, 'learning': True,
-                    'interaction': interaction, 'test': test}
+    ed = ExperimentDefaults()
+    input_params = ed.input_params
+
+    input_params['phi'] = phi
+    input_params['b_d'] = b_d
+    input_params['interaction'] = interaction
+    input_params['test'] = test
 
     # investment_decisions:
     nopinions = [50, 50]
@@ -188,7 +188,7 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    phis = [round(x, 2) for x in list(np.linspace(0.0, 0.9, 20))]
+    phis = [round(x, 2) for x in list(np.linspace(0.0, 1., 21))]
     b_ds = [round(x, 2) for x in list(np.linspace(1., 1.5, 5))]
     interactions = [0, 1, 2]
     model = [1, 2]

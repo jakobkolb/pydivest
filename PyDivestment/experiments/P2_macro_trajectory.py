@@ -22,6 +22,7 @@ from pymofa.experiment_handling import experiment_handling, even_time_series_spa
 from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean
 from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
 from pydivest.micro_model.divestmentcore import DivestmentCore
+from parameters import ExperimentDefaults
 
 
 def RUN_FUNC(b_d, phi, eps, approximate, test):
@@ -52,14 +53,13 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
-                    'eps': eps, 'b_d': b_d, 'e': 100.,
-                    'b_r0': 0.1 ** 2 * 100.,
-                    'possible_cue_orders': [[0], [1]],
-                    'xi': 1. / 8., 'beta': 0.06,
-                    'L': 100., 'C': 100., 'G_0': 800.,
-                    'campaign': False, 'learning': True,
-                    'interaction': 1, 'test': test}
+    ed = ExperimentDefaults()
+    input_params = ed.input_params
+
+    input_params['phi'] = phi
+    input_params['b_d'] = b_d
+    input_params['eps'] = eps
+    input_params['test'] = test
 
     # investment_decisions:
     nopinions = [100, 100]
