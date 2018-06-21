@@ -366,14 +366,60 @@ class IntegrateEquations:
                       self.Z: self.N * self.k * self.z,
                       self.K: self.N * self.k}
 
-        # Define interaction terms depending on value of interaction
+        # Define interaction terms depending on value of interaction.
+        # Interaction terms are given by the expected value of the
+        # micro interaction terms which is calculated by taking the expected value
+        # of their taylor expansion up to linear terms. The expansion is done around
+        # half of the capital values that would be expected for full clean and full dirty
+        # economy respectively, hoping to get a decent approximation in the entire
+        # reachable phase space.
+
+        # equilibrium clean capital in full clean economy:
+        Kc_star = (self.rs **(1 - self.xi)
+                   * self.bc/self.delta
+                   * self.P**self.pi
+                   )**(1./(1.-self.kappac - self.xi))
+        # equilibrium knowledge stock in full clean economy:
+        C_star = (self.rs**self.kappac
+                  * self.bc/self.delta
+                  * self.P**self.pi
+                  )**(1./(1. - self.kappac - self.xi))
+        # equilibrium dirty capital in full dirty economy:
+        Kd_star = (self.rs * self.bc/self.delta
+                   * (1. - self.bR/self.e)
+                   * (self.kappad + self.pi)
+                   * self.P**self.pi
+                   )**(1./(1 - self.kappad))
+
+        # expected income in full clean and full dirty economy
+
+        # Wd* = w P + r_c * K_c*
+        Wd_star = self.bd * (self.kappad + self.pi) * (1. - self.bR/self.e) * self.P ** self.pi * Kd_star ** self.kappad
+        # Wd* = w P + r_d * K_d*
+        Wc_star = self.bc * (self.kappac + self.pi) * self.P**self.pi * Kc_star**self.kappac * C_star**self.xi
+
+        # normalized difference in clean and dirty income for half of the max expected income:
+        Wcd_star = (Wc_star - Wd_star)/(Wc_star + Wd_star)
+        Wdc_star = (Wd_star - Wc_star)/(Wc_star + Wd_star)
+
+        Wij0, Wji0, Wi0, Wj0, Wi, Wj = sp.symbols('W_ij0 W_ji0 W_i0 W_j0 Wi Wj')
 
         if interaction == 0:
             self.subs1[self.Pcd] = (1./2.*(self.Wd - self.Wc + 1))
             self.subs1[self.Pdc] = (1./2.*(self.Wc - self.Wd + 1))
         elif interaction == 1:
-            self.subs1[self.Pcd] = (1. / (1 + sp.exp(- 8. * (self.Wd - self.Wc) / (self.Wc + self.Wd))))
-            self.subs1[self.Pdc] = (1. / (1 + sp.exp(- 8. * (self.Wc - self.Wd) / (self.Wc + self.Wd))))
+            # write down taylor expansion of Pcd = 1/(1+exp(8(Wc - Wd)/(Wc + Wd)))
+            Pij = (1. / (1 + sp.exp(8. * Wij0)))
+            diPij =   sp.exp(8. * Wij0) / (1. + sp.exp(8. * Wij0)) * 16. * Wj0 / (Wi0 + Wj0) ** 2.
+            djPij = - sp.exp(8. * Wij0) / (1. + sp.exp(8. * Wij0)) * 16. * Wi0 / (Wi0 + Wj0) ** 2.
+            texpPij = Pij + diPij * (Wi - Wi0/2.) + djPij * (Wj - Wj0/2.)
+            icjd = {Wij0: Wcd_star, Wi0: Wc_star, Wj0: Wd_star, Wi: self.Wc, Wj: self.Wd}
+            idjc = {Wij0: Wdc_star, Wi0: Wd_star, Wj0: Wc_star, Wi: self.Wd, Wj: self.Wc}
+            self.subs1[self.Pcd] = texpPij.subs(icjd)
+            self.subs1[self.Pdc] = texpPij.subs(idjc)
+            # Old:
+            # self.subs1[self.Pcd] = 1./(1 + sp.exp(- 8. * (self.Wd - self.Wc)/(self.Wc + self.Wd)))
+            # self.subs1[self.Pdc] = 1./(1 + sp.exp(- 8. * (self.Wc - self.Wd)/(self.Wc + self.Wd)))
         elif interaction == 2:
             self.subs1[self.Pcd] = ((1. / 2.) * ((self.Wd - self.Wc) / (self.Wd + self.Wc) + 1.))
             self.subs1[self.Pdc] = ((1. / 2.) * ((self.Wc - self.Wd) / (self.Wd + self.Wc) + 1.))
@@ -381,8 +427,7 @@ class IntegrateEquations:
             raise ValueError('interaction must be in [0, 1, 2] but is {}'.format(interaction))
 
         # Define list of dependent and independent variables to calculate and save their values.
-        self.independent_vars = {'x': self.x, 'y': self.y, 'z': self.z,
-                                 'R': self.R}
+        self.independent_vars = {'x': self.x, 'y': self.y, 'z': self.z}
         # Define list of dependent and independent variables to calculate and save their values.
         self.dependent_vars_raw = {'w': self.w, 'rc': self.rc, 'rd': self.rd,
                                    'R': self.R, 'Kd': self.Kd, 'Kc': self.Kc,
@@ -411,16 +456,18 @@ class IntegrateEquations:
                 .subs(self.subs2).subs(self.subs3) \
                 .subs(self.subs1).subs(self.subs4).subs({self.N: 1})
 
-    def set_parameters(self):
-        """(re)set parameter values in rhs and dependent expressions"""
-
+    def list_parameters(self):
         # link parameter symbols to values,
         self.param_values = [self.p_b_c, self.p_b_d, self.p_b_r0, self.p_e, self.p_s, self.p_d_c, self.p_pi,
                              self.p_kappa_c, self.p_kappa_d, self.p_xi, self.p_g_0, self.p_l, self.p_G_0, self.p_P,
                              self.p_eps, self.p_phi, self.p_tau, self.p_k, 1.]
 
-        self.subs_params = {symbol: value for symbol, value
-                            in zip(self.param_symbols, self.param_values)}
+        return {symbol: value for symbol, value in zip(self.param_symbols, self.param_values)}
+
+    def set_parameters(self):
+        """(re)set parameter values in rhs and dependent expressions"""
+
+        self.subs_params = self.list_parameters()
 
         if self.p_test:
             print('resetting parameter values to')
@@ -437,6 +484,8 @@ class IntegrateEquations:
             self.dependent_vars[key] = self.dependent_vars_raw[key].subs(self.subs_params)
         if self.p_test:
             print('sucessfull')
+
+
 
     def dot_rhs(self, values, t):
         """
