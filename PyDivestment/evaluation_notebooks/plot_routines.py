@@ -246,3 +246,6 @@ class plot_routines(object):
         to index the axis list, one might use grid_index - 1
         """
         return col + 1 + row * n_cols
+
+    def plot_L2_distance(self, selector: dict):
+        pass
