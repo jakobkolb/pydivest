@@ -12,13 +12,13 @@ import pandas as pd
 import sympy as sp
 from sympy import lambdify
 
-try:
-    from assimulo.problem import Implicit_Problem
-    from assimulo.solvers import IDA
-except ImportError:
-    print('assimulo not available. Running model impossible.')
-    Implicit_Problem = None
-    IDA = None
+
+from assimulo.problem import Implicit_Problem
+from assimulo.solvers import IDA
+# except ImportError:
+#     print('assimulo not available. Running model impossible.')
+#     Implicit_Problem = None
+#     IDA = None
 from scipy.optimize import root
 
 

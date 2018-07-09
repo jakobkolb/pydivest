@@ -19,7 +19,7 @@ from pymofa.experiment_handling import experiment_handling, even_time_series_spa
 
 from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean
 from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
-# from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as IntegrateEquationsRep
+from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as IntegrateEquationsRep
 from pydivest.micro_model.divestmentcore import DivestmentCore
 from parameters import ExperimentDefaults
 
@@ -100,7 +100,7 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
     # equilibration phase with small tau
     # to reach equilibrium distribution of
     # investment decisions
-    t_eq = 1000 if not test else 10
+    t_eq = 1000 #if not test else 10
     t_max = t_eq
     if hasattr(m, 'trj_output_window'):
         m.trj_output_window = [t_eq, np.float('inf')]
@@ -113,22 +113,27 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
     # to verify that the equilibrium distribution of investment decisions
     # is in fact independent from tau
 
-    t_max += 200 if not test else 2
+    t_max += 300 #if not test else 2
     m.tau = tau
     m.set_parameters()
     m.run(t_max=t_max)
 
     # transition phase with resource depletion
 
-    t_max += 600 if not test else 6
+    t_max += 600 #if not test else 6
     m.R_depletion = True
     m.set_parameters()
     exit_status = m.run(t_max=t_max)
 
     # store data in case of successful run
     if exit_status in [0, 1]:
-        df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, t_eq, t_max)
-        df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, t_eq, t_max)
+        if approximate in [0, 1, 4]:
+            df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, t_eq, t_max)
+            df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, t_eq, t_max)
+        else:
+            df2 = even_time_series_spacing(m.get_mean_trajectory(), 201, t_eq, t_max)
+            df1 = even_time_series_spacing(m.get_unified_trajectory(), 201, t_eq, t_max)
+
 
         for c in df2.columns:
             if c in df1.columns:
@@ -228,7 +233,7 @@ def run_experiment(argv):
     tau, phi = [1.], [.8]
 
     if test:
-        PARAM_COMBS = list(it.product(tau, phi, eps, [approximate], [test]))
+        PARAM_COMBS = list(it.product(tau, phi, [0.05], [approximate], [test]))
     else:
         PARAM_COMBS = list(it.product(taus, phis, eps, [approximate], [test]))
 

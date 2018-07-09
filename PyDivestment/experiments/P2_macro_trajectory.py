@@ -21,6 +21,7 @@ from pymofa.experiment_handling import experiment_handling, even_time_series_spa
 
 from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean
 from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
+from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as IntegrateEquationsRep
 from pydivest.micro_model.divestmentcore import DivestmentCore
 from parameters import ExperimentDefaults
 
@@ -90,10 +91,12 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
         m = IntegrateEquationsMean(*init_conditions, **input_params)
     elif approximate == 3:
         m = IntegrateEquationsAggregate(*init_conditions, **input_params)
+    elif approximate == 4:
+        m = IntegrateEquationsRep(*init_conditions, **input_params)
     else:
-        raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
+        raise ValueError('approximate must be in [1, 2, 3, 4] but is {}'.format(approximate))
 
-    t_max = 400 if not test else 2
+    t_max = 300 if not test else 2
     m.R_depletion = False
     m.run(t_max=t_max)
 
@@ -115,8 +118,12 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
             df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
             df2 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
             df3 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
+        elif approximate == 4:
+            df1 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
+            df2 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+            df3 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
         else:
-            raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
+            raise ValueError('approximate must be in [1, 2, 3, 4] but is {}'.format(approximate))
 
         for c in df1.columns:
             if c in df2.columns:
@@ -199,7 +206,7 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    sub_experiment = ['micro', 'mean', 'aggregate'][approximate - 1]
+    sub_experiment = ['micro', 'mean', 'aggregate', 'representative'][approximate - 1]
     folder = 'P2'
 
     # make sure, testing output goes to its own folder:
