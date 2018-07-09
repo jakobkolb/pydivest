@@ -410,8 +410,8 @@ class IntegrateEquations:
         elif interaction == 1:
             # write down taylor expansion of Pcd = 1/(1+exp(8(Wc - Wd)/(Wc + Wd)))
             Pij = (1. / (1 + sp.exp(8. * Wij0)))
-            diPij =   sp.exp(8. * Wij0) / (1. + sp.exp(8. * Wij0)) * 16. * Wj0 / (Wi0 + Wj0) ** 2.
-            djPij = - sp.exp(8. * Wij0) / (1. + sp.exp(8. * Wij0)) * 16. * Wi0 / (Wi0 + Wj0) ** 2.
+            diPij = - sp.exp(8. * Wij0) / (1. + sp.exp(8. * Wij0))**2. * 16. * Wj0 / (Wi0 + Wj0) ** 2.
+            djPij =   sp.exp(8. * Wij0) / (1. + sp.exp(8. * Wij0))**2. * 16. * Wi0 / (Wi0 + Wj0) ** 2.
             texpPij = Pij + diPij * (Wi - Wi0/2.) + djPij * (Wj - Wj0/2.)
             icjd = {Wij0: Wcd_star, Wi0: Wc_star, Wj0: Wd_star, Wi: self.Wc, Wj: self.Wd}
             idjc = {Wij0: Wdc_star, Wi0: Wd_star, Wj0: Wc_star, Wi: self.Wd, Wj: self.Wc}

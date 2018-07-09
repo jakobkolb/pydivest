@@ -17,7 +17,7 @@ even_time_series_spacing
 
 from pydivest.micro_model.divestmentcore import DivestmentCore as micro
 from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean as mean
-from .parameters import ExperimentDefaults
+from parameters import ExperimentDefaults
 
 
 def RUN_FUNC(interaction, phi, b_d, model, test):
@@ -86,11 +86,11 @@ def RUN_FUNC(interaction, phi, b_d, model, test):
     else:
         raise ValueError(f'model needs to be in [1, 2] but is {model}')
 
-    t_max = 300 if not test else 20
+    t_max = 300 if not test else 300
     m.R_depletion = False
     m.run(t_max=t_max)
 
-    t_max += 600 if not test else 1
+    t_max += 600 if not test else 600
     m.R_depletion = True
     m.set_parameters()
     exit_status = m.run(t_max=t_max)
@@ -192,7 +192,7 @@ def run_experiment(argv):
     b_ds = [round(x, 2) for x in list(np.linspace(1., 1.5, 5))]
     interactions = [0, 1, 2]
     model = [1, 2]
-    b_d, phi, interaction = [1.25], [.5], [0, 1, 2]
+    b_d, phi, interaction = [1.25], [.5], [0, 1]
 
     if test:
         param_combs = list(it.product(interaction, phi, b_d, model, [test]))
@@ -214,7 +214,7 @@ def run_experiment(argv):
         with open(save_path_raw+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    sample_size = 100 if not test else 3
+    sample_size = 100 if not test else 30
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,
