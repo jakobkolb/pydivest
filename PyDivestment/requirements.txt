@@ -7,17 +7,14 @@ cycler==0.10.0
 decorator==4.0.11
 dill==0.2.6
 matplotlib==2.0.2
-mayasim==0.0.1
 mccabe==0.6.1
 mpi4py==3.0.0
-mpmath==1.0.0
 networkx==1.11
 numexpr==2.6.5
 numpy==1.13.1
 pandas==0.20.3
 py==1.4.34
 pycodestyle==2.3.1
-pydivest==0.0.1
 pydocstyle==2.1.0
 pyflakes==1.6.0
 pylama==7.4.3
