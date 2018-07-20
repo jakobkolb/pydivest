@@ -356,7 +356,6 @@ class Integrate_Equations:
     def _find_n(self, Y):
         subs_ini = {symbol: value for symbol, value in zip(self.var_symbols[:4], Y[:4])}
         n = self.var_symbols[4]
-        print(subs_ini)
         if self.R_depletion:
             fun2 = lambdify(n, self.drdiff.subs(subs_ini))
         else:
@@ -457,10 +456,10 @@ class Integrate_Equations:
 
         # Define the problem for Assimulo with Y0 and Yd0
         def prep_rhs(t, Y, Yd, sw):
-            if self.test:
-                print('t = {}, Y = {}'.format(t, Y))
+            # if self.test:
+            #     print('t = {}, Y = {}'.format(t, Y))
 
-            print('t = {}, Y = {}'.format(t, Y))
+            # print('t = {}, Y = {}'.format(t, Y))
 
             # ToDo: Cleanup
             if self.lambdify:

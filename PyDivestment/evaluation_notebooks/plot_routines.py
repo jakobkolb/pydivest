@@ -11,7 +11,7 @@ class plot_routines(object):
 
     def __init__(self, micro_path='', macro_path='', rep_path=None,
                  micro_selector='', macro_selector='', rep_selector='',
-                 table='dat'):
+                 table='dat', toffset=0):
         with pd.HDFStore(micro_path + 'mean.h5') as store:
             self.micro_mean = store.select(table, micro_selector)
         with pd.HDFStore(micro_path + 'std.h5') as store:
@@ -41,7 +41,8 @@ class plot_routines(object):
             except:
                 d.index = d.index.droplevel(['model', 'test', 'sample'])
             tvals = d.index.levels[3].values
-            t0 = tvals[0]
+            print(tvals)
+            t0 = tvals[0] + toffset
             new_times = {t: t-t0 for t in tvals}
             d.rename(mapper=new_times,
                      axis='index',
@@ -203,6 +204,7 @@ class plot_routines(object):
             if j == 1:
                 # clone axis for plot of knowledge stock
                 c_ax = axes[ax_id].twinx()
+                c_ax.set_xlim([tmin, tmax])
                 ldp[0][variables[0]] \
                     .plot(
                     ax=axes[ax_id],
@@ -260,9 +262,9 @@ class plot_routines(object):
                 gArtist = plt.Line2D((0, 1), (0, 0), color=self.colors[1])
                 cArtist = plt.Line2D((0, 1), (0, 0), color=self.colors[0])
                 patches = [cArtist, gArtist]
-            if j is 0:
-                ax.set_xticklabels([])
-                ax.set_xlabel('')
+            # if j is 0:
+            #     ax.set_xticklabels([])
+            #     ax.set_xlabel('')
             else:
                 ax.set_xlabel('t')
             lg = ax.legend(patches[:k], labels[:k],

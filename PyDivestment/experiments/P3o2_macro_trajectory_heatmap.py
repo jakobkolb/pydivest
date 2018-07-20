@@ -110,23 +110,16 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
         if approximate in [0, 1, 4]:
             df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0, t_max)
             df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0, t_max)
-            df3 = even_time_series_spacing(m.get_economic_trajectory(), 201, 0, t_max)
         else:
             df2 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0, t_max)
             df1 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0, t_max)
-            df3 = even_time_series_spacing(m.get_economic_trajectory(), 201, 0, t_max)
 
         for c in df1.columns:
             if c in df2.columns:
                 df2.drop(c, axis=1, inplace=True)
 
-        df_tmp = pd.concat([df1, df2], axis=1)
+        df_out = pd.concat([df1, df2], axis=1)
 
-        for c in df_tmp.columns:
-            if c in df3.columns:
-                df_tmp.drop(c, axis=1, inplace=True)
-
-        df_out = pd.concat([df3, df_tmp], axis=1)
         df_out.index.name = 'tstep'
     else:
         df_out = None
