@@ -24,7 +24,7 @@ from pydivest.micro_model.divestmentcore import DivestmentCore
 from parameters import ExperimentDefaults
 
 
-def RUN_FUNC(tau, phi, eps, approximate, test):
+def RUN_FUNC(tau, phi, G_0, approximate, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -38,9 +38,8 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
         the frequency of social interactions
     phi : float \in [0,1]
         the rewiring probability for the network update
-    eps : float
-        the fraction of opinion formation events that is random
-    approximate: bool
+    G_0: float
+        initial value of the fossil resource stock
         if True: run macroscopic approximation
         if False: run micro-model
     test: int \in [0,1]
@@ -57,8 +56,8 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
 
     input_params['phi'] = phi
     input_params['tau'] = tau
-    input_params['eps'] = eps
     input_params['test'] = test
+    input_params['G_0'] = G_0
 
     # investment_decisions:
     nopinions = [50, 50]
@@ -216,13 +215,13 @@ def run_experiment(argv):
 
     phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 21))]
     taus = [round(x, 5) for x in list(np.linspace(.5, 10., 20))]
-    eps = [0.05, 0.01]
+    G_0s = [800., 1200., 1600.]
     tau, phi = [1.], [.4]
 
     if test:
-        PARAM_COMBS = list(it.product(tau, phi, [0.05], [approximate], [test]))
+        PARAM_COMBS = list(it.product(tau, phi, [1600], [approximate], [test]))
     else:
-        PARAM_COMBS = list(it.product(taus, phis, eps, [approximate], [test]))
+        PARAM_COMBS = list(it.product(taus, phis, G_0s, [approximate], [test]))
 
     """
     run computation and/or post processing and/or plotting

@@ -18,4 +18,4 @@ echo "_______________________________________________"
 
 cd ../experiments
 
-srun -n $SLURM_NTASKS python P3o2_macro_trajectory_heatmap.py 0 1 3
+srun -n $SLURM_NTASKS python P3o2_macro_trajectory_heatmap.py 0 0 3
