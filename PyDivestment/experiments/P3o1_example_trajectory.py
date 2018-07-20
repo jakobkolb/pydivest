@@ -198,7 +198,7 @@ def run_experiment(argv):
         tmppath = "./"
 
     sub_experiment = ['micro', 'mean', 'representative'][approximate - 1]
-    folder = 'P3o2'
+    folder = 'P3o1'
 
     # make sure, testing output goes to its own folder:
 
