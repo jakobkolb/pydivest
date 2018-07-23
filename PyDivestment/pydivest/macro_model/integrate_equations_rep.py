@@ -36,9 +36,6 @@ class Integrate_Equations:
         # set debug flag
         self.test = test
 
-        # use lambdify to speed up evaluation of rhs of the system
-        self.lambdify = True
-
         # report unnecessary keyword arguments
         if len(kwargs.keys()) > 0 and self.test:
             print('got superfluous keyword arguments')
@@ -314,25 +311,16 @@ class Integrate_Equations:
         self.drdiff = self.drdiff_raw.subs(subs_params)
         self.drdiff_g_const = self.drdiff_g_const_raw.subs(subs_params)
 
-        if self.lambdify:
-            # replace parameters in righthandsides
-            for key, rhs in self.righthandsides_raw.items():
-                self.righthandsides[key] = rhs.subs(subs_params)
 
-            # lambdify rhs expressions
-            if self.test:
-                print('lambdify rhs expressions')
-            for key, rhs in self.righthandsides.items():
-                self.righthandsides_lambda[key] = [lambdify(tuple(self.var_symbols), r_i) for r_i in rhs]
-        else:
-            # ToDo: cleanup
-            self.rhs_1 = self.rhs_1_raw.subs(subs_params)
-            self.rhs_2 = self.rhs_2_raw.subs(subs_params)
-            self.rhs_3 = self.rhs_3_raw.subs(subs_params)
-            self.rhs_4 = self.rhs_4_raw.subs(subs_params)
-            self.rhs_5 = self.rhs_5_raw.subs(subs_params)
-            self.rhs_6 = self.rhs_6_raw.subs(subs_params)
-            self.rhs_7 = self.rhs_7_raw.subs(subs_params)
+        # replace parameters in righthandsides
+        for key, rhs in self.righthandsides_raw.items():
+            self.righthandsides[key] = rhs.subs(subs_params)
+
+        # lambdify rhs expressions
+        if self.test:
+            print('lambdify rhs expressions')
+        for key, rhs in self.righthandsides.items():
+            self.righthandsides_lambda[key] = [lambdify(tuple(self.var_symbols), r_i) for r_i in rhs]
 
         # replace parameter symbols in raw independent variables.
         for key in self.dependent_vars_raw.keys():
@@ -405,112 +393,58 @@ class Integrate_Equations:
 
         subs_ini[n] = n_val
 
-        # ToDo: Cleanup
-        if self.lambdify:
-            Y = [subs_ini[symbol] for name, symbol in self.independent_vars.items()]
-            # calculate Yd0 from rhs according to switches
-            if self.sw0[0]:
-                if self.R_depletion:
-                    rhs_select = 1
-                else:
-                    rhs_select = 2
-            elif self.sw0[1]:
-                if self.R_depletion:
-                    rhs_select = 3
-                else:
-                    rhs_select = 4
-            elif self.sw0[2]:
-                if self.R_depletion:
-                    rhs_select = 5
-                else:
-                    rhs_select = 6
+        Y = [subs_ini[symbol] for name, symbol in self.independent_vars.items()]
+        # calculate Yd0 from rhs according to switches
+        if self.sw0[0]:
+            if self.R_depletion:
+                rhs_select = 1
             else:
-                raise ValueError("one of the entries of sw0 has to be true.")
-            Yd0 = np.asarray([rhs_i(*Y) for rhs_i in self.righthandsides_lambda[repr(rhs_select)]])
+                rhs_select = 2
+        elif self.sw0[1]:
+            if self.R_depletion:
+                rhs_select = 3
+            else:
+                rhs_select = 4
+        elif self.sw0[2]:
+            if self.R_depletion:
+                rhs_select = 5
+            else:
+                rhs_select = 6
         else:
-            # calculate Yd0 from rhs according to switches
-            if self.sw0[0]:
-                # calculate dy from the appropriate rhs (1 or 2).
-                if self.R_depletion:
-                    Yd0 = np.array([float(x) for x in list(self.rhs_1.subs(subs_ini).evalf())])
-                else:
-                    Yd0 = np.array([float(x) for x in list(self.rhs_2.subs(subs_ini).evalf())])
-            elif self.sw0[1]:
-                # calculate dy from the appropriate rhs (3 or 4).
-                if self.R_depletion:
-                    Yd0 = np.array([float(x) for x in list(self.rhs_3.subs(subs_ini).evalf())])
-                else:
-                    Yd0 = np.array([float(x) for x in list(self.rhs_4.subs(subs_ini).evalf())])
-            elif self.sw0[2]:
-                print('selecting rhs 5 or 6')
-                # calculate dy from the appropriate rhs (5 or 6).
-                if self.R_depletion:
-                    Yd0 = np.array([float(x) for x in list(self.rhs_5.subs(subs_ini).evalf())])
-                else:
-                    Yd0 = np.array([float(x) for x in list(self.rhs_6.subs(subs_ini).evalf())])
-            else:
-                raise ValueError("one of the entries of sw0 has to be true.")
+            raise ValueError("one of the entries of sw0 has to be true.")
+        Yd0 = np.asarray([rhs_i(*Y) for rhs_i in self.righthandsides_lambda[repr(rhs_select)]])
 
         # calculate Y0
         Y0 = [subs_ini[symbol] for symbol in self.var_symbols]
 
         # Define the problem for Assimulo with Y0 and Yd0
         def prep_rhs(t, Y, Yd, sw):
-            # if self.test:
-            #     print('t = {}, Y = {}'.format(t, Y))
 
-            # print('t = {}, Y = {}'.format(t, Y))
-
-            # ToDo: Cleanup
-            if self.lambdify:
-                # select rhs
-                if sw[0]:
-                    if self.R_depletion:
-                        rhs_select = 1
-                    else:
-                        rhs_select = 2
-                elif sw[1]:
-                    if self.R_depletion:
-                        rhs_select = 3
-                    else:
-                        rhs_select = 4
-                elif sw[2]:
-                    if self.R_depletion:
-                        rhs_select = 5
-                    else:
-                        rhs_select = 6
-                elif sw[3]:
-                    rhs_select = 7
+            # select rhs
+            if sw[0]:
+                if self.R_depletion:
+                    rhs_select = 1
                 else:
-                    raise ValueError('system state undetermined')
-                # evaluate rhs
-                rval = np.asarray([rhs_i(*Y) for rhs_i in self.righthandsides_lambda[repr(rhs_select)]])
-
+                    rhs_select = 2
+            elif sw[1]:
+                if self.R_depletion:
+                    rhs_select = 3
+                else:
+                    rhs_select = 4
+            elif sw[2]:
+                if self.R_depletion:
+                    rhs_select = 5
+                else:
+                    rhs_select = 6
+            elif sw[3]:
+                rhs_select = 7
             else:
-                sbs = {var: val for (var, val) in zip(self.var_symbols, Y)}
-                if sw[0]:
-                    if self.R_depletion:
-                        rval = self.rhs_1.subs(sbs)
-                    else:
-                        rval = self.rhs_2.subs(sbs)
-                elif sw[1]:
-                    if self.R_depletion:
-                        rval = self.rhs_3.subs(sbs)
-                    else:
-                        rval = self.rhs_4.subs(sbs)
-                elif sw[2]:
-                    if self.R_depletion:
-                        rval = self.rhs_5.subs(sbs)
-                    else:
-                        rval = self.rhs_6.subs(sbs)
-                elif sw[3]:
-                    rval = self.rhs_7.subs(sbs)
+                raise ValueError('system state undetermined')
+            # evaluate rhs
+            rval = np.asarray([rhs_i(*Y) for rhs_i in self.righthandsides_lambda[repr(rhs_select)]])
 
             for i in [0, 1, 2, 3]:
                 rval[i] = Yd[i] - sp.simplify(rval[i])
-
-            if not self.lambdify:
-                rval = np.array([float(x) for x in rval.evalf()])
 
             if self.test:
                 self._progress_report(t, self.t_max, 'representative agent running')
@@ -581,19 +515,12 @@ class Integrate_Equations:
                     subs_ini = {symbol: value for symbol, value in zip(self.var_symbols, solver.y)}
                     print(subs_ini)
                     # calculate dy from the appropriate rhs (3 or 4).
-                # ToDo: Cleanup
-                    if self.lambdify:
-                        if self.R_depletion:
-                            solver.yd = np.asarray([rhs_i(*solver.y)
-                                                    for rhs_i in self.righthandsides_lambda['3']])
-                        else:
-                            solver.yd = np.asarray([rhs_i(*solver.y)
-                                                    for rhs_i in self.righthandsides_lambda['4']])
+                    if self.R_depletion:
+                        solver.yd = np.asarray([rhs_i(*solver.y)
+                                                for rhs_i in self.righthandsides_lambda['3']])
                     else:
-                        if self.R_depletion:
-                            solver.yd = np.array([float(x) for x in list(self.rhs_3.subs(subs_ini).evalf())])
-                        else:
-                            solver.yd = np.array([float(x) for x in list(self.rhs_4.subs(subs_ini).evalf())])
+                        solver.yd = np.asarray([rhs_i(*solver.y)
+                                                for rhs_i in self.righthandsides_lambda['4']])
 
             if ev[0] == 1:
                 # n crossed 1 from below.
@@ -601,48 +528,30 @@ class Integrate_Equations:
                 solver.y[4] = 1
                 solver.sw = [False, False, True, False]
                 # calculate dy from the appropriate rhs (5 or 6).
-                # ToDo: Cleanup
-                if self.lambdify:
-                    if self.R_depletion:
-                        solver.yd = np.asarray([rhs_i(*solver.y)
-                                                for rhs_i in self.righthandsides_lambda['5']])
-                    else:
-                        solver.yd = np.asarray([rhs_i(*solver.y)
-                                                for rhs_i in self.righthandsides_lambda['6']])
+                if self.R_depletion:
+                    solver.yd = np.asarray([rhs_i(*solver.y)
+                                            for rhs_i in self.righthandsides_lambda['5']])
                 else:
-                    if self.R_depletion:
-                        solver.yd = np.array([float(x) for x in list(self.rhs_5.subs(subs_ini).evalf())])
-                    else:
-                        solver.yd = np.array([float(x) for x in list(self.rhs_6.subs(subs_ini).evalf())])
+                    solver.yd = np.asarray([rhs_i(*solver.y)
+                                            for rhs_i in self.righthandsides_lambda['6']])
             elif ev[1] == 1:
                 # n crossed 0 from above
                 solver.y[4] = 0
                 print('n crossed 0 from above')
                 solver.sw = [True, False, False, False]
                 # calculate dy from the appropriate rhs (1 or 2).
-                # ToDo: Cleanup
-                if self.lambdify:
-                    if self.R_depletion:
-                        solver.yd = np.asarray([rhs_i(*solver.y)
-                                                for rhs_i in self.righthandsides_lambda['1']])
-                    else:
-                        solver.yd = np.asarray([rhs_i(*solver.y)
-                                                for rhs_i in self.righthandsides_lambda['2']])
+                if self.R_depletion:
+                    solver.yd = np.asarray([rhs_i(*solver.y)
+                                            for rhs_i in self.righthandsides_lambda['1']])
                 else:
-                    if self.R_depletion:
-                        solver.yd = np.array([float(x) for x in list(self.rhs_1.subs(subs_ini).evalf())])
-                    else:
-                        solver.yd = np.array([float(x) for x in list(self.rhs_2.subs(subs_ini).evalf())])
+                    solver.yd = np.asarray([rhs_i(*solver.y)
+                                            for rhs_i in self.righthandsides_lambda['2']])
             elif ev[4] == 1:
                 # resource is exhausted
                 print('resource exhausted')
                 solver.sw = [False, False, False, True]
-                # ToDo: Cleanup
-                if self.lambdify:
-                    solver.yd = np.asarray([rhs_i(*solver.y)
-                                            for rhs_i in self.righthandsides_lambda['7']])
-                else:
-                    solver.yd = np.array([float(x) for x in list(self.rhs_7.subs(subs_ini).evalf())])
+                solver.yd = np.asarray([rhs_i(*solver.y)
+                                        for rhs_i in self.righthandsides_lambda['7']])
 
             solver.re_init(solver.t, solver.y, solver.yd, sw0=solver.sw)
             print('switched state to {}'.format(solver.sw))
@@ -712,21 +621,12 @@ class Integrate_Equations:
                            self.dependent_vars['w']]
         t_values = self.m_trajectory.index.values
         data = np.zeros((len(t_values), len(columns)))
-        if self.lambdify:
-            var_expressions_lambdified = [lambdify(tuple(self.var_symbols), expr) for expr in var_expressions]
-            for i, t in enumerate(t_values):
-                if self.test:
-                    self._progress_report(i, len(t_values), 'calculating dependant variables')
-                Yi = self.m_trajectory.loc[t]
-                data[i, :] = [expr(*Yi) for expr in var_expressions_lambdified]
-
-        else:
-            for i, t in enumerate(t_values):
-                if self.test:
-                    self._progress_report(i, len(t_values), 'calculating dependant variables')
-                Yi = self.m_trajectory.loc[t]
-                sbs = {var_symbol: Yi[var_name] for var_symbol, var_name in zip(self.var_symbols, self.var_names)}
-                data[i, :] = [var.subs(sbs) for var in var_expressions]
+        var_expressions_lambdified = [lambdify(tuple(self.var_symbols), expr) for expr in var_expressions]
+        for i, t in enumerate(t_values):
+            if self.test:
+                self._progress_report(i, len(t_values), 'calculating dependant variables')
+            Yi = self.m_trajectory.loc[t]
+            data[i, :] = [expr(*Yi) for expr in var_expressions_lambdified]
 
         return pd.DataFrame(index=t_values, columns=columns, data=data)
 
