@@ -210,7 +210,7 @@ def run_experiment(argv):
     phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 21))]
     taus = [round(x, 5) for x in list(np.linspace(.5, 10., 20))]
     eps = [0.05, 0.01]
-    tau, phi = [1.], [.4]
+    tau, phi = [1.], [.5]
 
     if test:
         PARAM_COMBS = list(it.product(tau, phi, [0.05], [approximate], [test]))
