@@ -94,14 +94,7 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
     else:
         raise ValueError('approximate must be in [1, 2, 3, 4] but is {}'.format(approximate))
 
-    t_max = 300
-    m.set_parameters()
-    m.run(t_max=t_max)
-
-    # transition phase with resource depletion
-
-    t_max += 600
-    m.R_depletion = True
+    t_max = 900
     m.set_parameters()
     exit_status = m.run(t_max=t_max)
 
