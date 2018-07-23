@@ -41,7 +41,6 @@ class plot_routines(object):
             except:
                 d.index = d.index.droplevel(['model', 'test', 'sample'])
             tvals = d.index.levels[3].values
-            print(tvals)
             t0 = tvals[0] + toffset
             new_times = {t: t-t0 for t in tvals}
             d.rename(mapper=new_times,
@@ -262,9 +261,9 @@ class plot_routines(object):
                 gArtist = plt.Line2D((0, 1), (0, 0), color=self.colors[1])
                 cArtist = plt.Line2D((0, 1), (0, 0), color=self.colors[0])
                 patches = [cArtist, gArtist]
-            # if j is 0:
-            #     ax.set_xticklabels([])
-            #     ax.set_xlabel('')
+            if j is 0:
+                ax.set_xticklabels([])
+                ax.set_xlabel('')
             else:
                 ax.set_xlabel('t')
             lg = ax.legend(patches[:k], labels[:k],
@@ -289,7 +288,7 @@ class plot_routines(object):
                                 ['r_c', 'r_d']]
         self.latex_labels = [['$n_c$', '$i_c$'], ['$c$', '$g$'],
                              ['$k_c$', '$k_d$'],
-                             ['$r_c$', '$r_d$', '$w$']]
+                             ['$r_c$', '$r_d$']]
 
         # set opacity for plots of micro data:
         micro_alpha = 0.5
@@ -312,6 +311,7 @@ class plot_routines(object):
                 # clone axis for plot of knowledge stock
                 c_ax = axes[ax_id].twinx()
                 c_ax.set_ylabel('c')
+                c_ax.set_xlim([tmin, tmax])
                 axes[ax_id].set_ylabel('g')
                 ldp[0][variables[0]] \
                     .plot(
