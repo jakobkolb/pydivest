@@ -213,10 +213,10 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 21))]
-    taus = [round(x, 5) for x in list(np.linspace(.5, 10., 20))]
+    phis = [0.5]
+    taus = [1]
     G_0s = [800., 1200., 1600.]
-    tau, phi = [1.], [.4]
+    tau, phi = [1.], [.5]
 
     if test:
         PARAM_COMBS = list(it.product(tau, phi, [1600], [approximate], [test]))
@@ -227,7 +227,7 @@ def run_experiment(argv):
     run computation and/or post processing and/or plotting
     """
 
-    # Create dummy runfunc output to pass its shape to experiment handle
+    # Create dummy runfunc output to pass its shape to experiment handle 10554137_28  standard batch1MP fangzhao  R       9:58
 
     try:
         if not Path(SAVE_PATH_RAW).exists():
@@ -240,7 +240,7 @@ def run_experiment(argv):
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    SAMPLE_SIZE = 50 #if not (test or approximate in [2, 3]) else 3
+    SAMPLE_SIZE = 100
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,
@@ -291,9 +291,6 @@ def run_experiment(argv):
 
     if mode == 0:
         compute_handle.compute()
-        return 1
-    elif mode == 1:
-
         eva_1_handle.compute()
         eva_2_handle.compute()
         return 1
