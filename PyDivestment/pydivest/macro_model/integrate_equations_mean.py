@@ -243,7 +243,13 @@ class IntegrateEquationsMean(IntegrateEquations):
 
     def get_mean_trajectory(self):
 
-        return self.m_trajectory
+        df = self.m_trajectory
+
+        df['N_c/N'] = .5 * (df['x'] + 1)
+        df['[cc]/M'] = .5 * (1 + df['y'] - df['z'])
+        df['[cd]/M'] = df['z']
+
+        return df
 
     def get_aggregate_trajectory(self):
         """return a mock aggregate trajectory with correct shape but containing zeros"""

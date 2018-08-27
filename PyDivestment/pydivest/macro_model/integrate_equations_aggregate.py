@@ -241,7 +241,13 @@ class IntegrateEquationsAggregate(IntegrateEquations):
 
     def get_aggregate_trajectory(self):
 
-        return self.m_trajectory
+        df = self.m_trajectory
+
+        df['N_c/N'] = .5 * (df['x'] + 1)
+        df['[cc]/M'] = .5 * (1 + df['y'] - df['z'])
+        df['[cd]/M'] = df['z']
+
+        return df
 
     def get_mean_trajectory(self):
         """return a mock mean trajectory with correct shape but containing zeros"""
@@ -249,7 +255,9 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         columns = ['x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c', 'g']
         index = self.m_trajectory.index
 
-        return pd.DataFrame(0, index=index, columns=columns)
+        df = pd.DataFrame(0, index=index, columns=columns)
+
+        return df
 
     def get_unified_trajectory(self):
         """
