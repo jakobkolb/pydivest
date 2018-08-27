@@ -85,6 +85,8 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
                        clean_investment, dirty_investment)
 
     # initializing the model
+    if test:
+        print('initializing')
     if approximate == 1:
         m = DivestmentCore(*init_conditions, **input_params)
     elif approximate == 2:
@@ -96,6 +98,9 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
     else:
         raise ValueError('approximate must be in [1, 2, 3, 4] but is {}'.format(approximate))
 
+
+    if test:
+        print('running')
     t_max = 300 if not test else 2
     m.R_depletion = False
     m.run(t_max=t_max)
@@ -105,6 +110,8 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
     exit_status = m.run(t_max=t_max)
 
     # store data in case of successful run
+    if test:
+        print('saving')
     if exit_status in [0, 1]:
         if approximate == 1:
             df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
@@ -239,20 +246,20 @@ def run_experiment(argv):
     """
 
     # Create dummy runfunc output to pass its shape to experiment handle
-    # Create dummy runfunc output to pass its shape to experiment handle
 
     try:
-        if not Path(SAVE_PATH_RAW).exists():
-            Path(SAVE_PATH_RAW).mkdir(parents=True, exist_ok=True)
         run_func_output = pd.read_pickle(SAVE_PATH_RAW + 'rfof.pkl')
     except:
+        if not Path(SAVE_PATH_RAW).exists():
+            Path(SAVE_PATH_RAW).mkdir(parents=True, exist_ok=True)
         params = list(PARAM_COMBS[0])
         params[-1] = True
+        print('running run func with parameters', params)
         run_func_output = RUN_FUNC(*params)[1]
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 30
+    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 12
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,
