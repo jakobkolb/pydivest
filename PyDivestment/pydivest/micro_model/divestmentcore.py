@@ -1195,7 +1195,10 @@ class DivestmentCore:
         pair based proxy.
         :return: None
         """
-        element = ['time', 'x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c', 'g']
+        element = ['time', 'x', 'y', 'z',
+                   'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d',
+                   'c', 'g',
+                   'N_c/N', '[cc]/M', '[cd]/M']
         self.m_trajectory.append(element)
 
         if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
@@ -1251,7 +1254,10 @@ class DivestmentCore:
         else:
             mucd = mudd = 0
 
-        entry = [self.t, x, y, z, mucc, mudc, mucd, mudd, self.C / n, self.G / n]
+        entry = [self.t, x, y, z,
+                 mucc, mudc, mucd, mudd,
+                 self.C / n, self.G / n,
+                 nc / n, cc / k, cd / k]
         self.m_trajectory.append(entry)
 
     def get_mean_trajectory(self):
@@ -1270,7 +1276,8 @@ class DivestmentCore:
         :return: None
         """
         element = ['time', 'x', 'y', 'z', 'Kcc', 'Kdc', 'Kcd', 'Kdd', 'C',
-                   'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d']
+                   'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d',
+                   'N_c/N', '[cc]/M', '[cd]/M']
         self.ag_trajectory.append(element)
 
         if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
@@ -1300,7 +1307,9 @@ class DivestmentCore:
         c = self.investment_decisions
         d = - self.investment_decisions + 1
 
+        # number of nodes aka. N
         n = self.n
+        # number of edges, aka. M
         k = float(sum(sum(self.neighbors))) / 2
 
         nc = sum(self.investment_decisions)
@@ -1330,7 +1339,11 @@ class DivestmentCore:
             Kcd = Kdd = 0
             Wd = 0.
 
-        entry = [self.t, x, y, z, Kcc, Kdc, Kcd, Kdd, self.C, self.G, self.w, self.r_c, self.r_d, Wc, Wd]
+        entry = [self.t, x, y, z,
+                 Kcc, Kdc, Kcd, Kdd,
+                 self.C, self.G,
+                 self.w, self.r_c, self.r_d, Wc, Wd,
+                 nc / n, cc / k, cd / k]
         self.ag_trajectory.append(entry)
 
     def get_aggregate_trajectory(self):
