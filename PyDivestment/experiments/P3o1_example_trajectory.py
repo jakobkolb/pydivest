@@ -2,6 +2,9 @@
 This experiment is meant to create trajectories of macroscopic variables from
 1) the numeric micro model and
 2) the analytic macro model
+
+Starting at initial values, no equilibration
+
 From these trajectories, I will calculate the distance
 The variable Parameters are tau and phi.
 """
