@@ -446,6 +446,9 @@ class IntegrateEquations:
 
     def update_dependent_vars(self):
 
+        if self.p_test:
+            print('updating dependent variables')
+
         # Add new variables to list of independent Variables.
         for key, val in zip(self.var_names, self.var_symbols):
             self.independent_vars[key] = val
@@ -558,14 +561,14 @@ class IntegrateEquations:
                 self.progress(i, len(t_values), 'calculating dependant variables')
             Yi = self.m_trajectory.loc[t]
             try:
-                data[i, :] = [expr(*Yi.values) for expr in var_expressions_lambdified]
+                data[i, :] = [expr(*Yi.values[:9]) for expr in var_expressions_lambdified]
             except TypeError:
                 # catching double entries from piecewise runs
                 # resulting in end of one piece and start of
                 # next piece having the same time step
                 # try:
                 Yi = Yi.iloc[0]
-                data[i, :] = [expr(*Yi) for expr in var_expressions_lambdified]
+                data[i, :] = [expr(*Yi[:9]) for expr in var_expressions_lambdified]
                 # except TypeError:
                 #     print('Type Error at t={} in getting unified trajectory ')
                 #     print(Yi)
