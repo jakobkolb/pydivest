@@ -98,15 +98,10 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
     else:
         raise ValueError('approximate must be in [1, 2, 3, 4] but is {}'.format(approximate))
 
-
     if test:
         print('running')
-    t_max = 300 if not test else 2
-    m.R_depletion = False
-    m.run(t_max=t_max)
-
-    t_max += 600 if not test else 1
-    m.R_depletion = True
+    t_max = 900 if not test else 10
+    m.set_parameters()
     exit_status = m.run(t_max=t_max)
 
     # store data in case of successful run
@@ -226,7 +221,6 @@ def run_experiment(argv):
     SAVE_PATH_RES = \
         "{}/{}{}/{}/" \
         .format(respath, test_folder, folder, sub_experiment)
-    print(SAVE_PATH_RES)
     """
     create parameter combinations and index
     """
