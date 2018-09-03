@@ -243,9 +243,9 @@ class IntegrateEquationsAggregate(IntegrateEquations):
 
         df = self.m_trajectory
 
-        df['N_c/N'] = .5 * (df['x'] + 1)
-        df['[cc]/M'] = .5 * (1 + df['y'] - df['z'])
-        df['[cd]/M'] = df['z']
+        df['N_c over N'] = .5 * (df['x'] + 1)
+        df['[cc] over M'] = .5 * (1 + df['y'] - df['z'])
+        df['[cd] over M'] = df['z']
 
         return df
 

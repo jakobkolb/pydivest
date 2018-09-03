@@ -1198,7 +1198,7 @@ class DivestmentCore:
         element = ['time', 'x', 'y', 'z',
                    'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d',
                    'c', 'g',
-                   'N_c/N', '[cc]/M', '[cd]/M']
+                   'N_c over N', '[cc] over M', '[cd] over M']
         self.m_trajectory.append(element)
 
         if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
@@ -1277,7 +1277,7 @@ class DivestmentCore:
         """
         element = ['time', 'x', 'y', 'z', 'Kcc', 'Kdc', 'Kcd', 'Kdd', 'C',
                    'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d',
-                   'N_c/N', '[cc]/M', '[cd]/M']
+                   'N_c over N', '[cc] over M', '[cd] over M']
         self.ag_trajectory.append(element)
 
         if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
