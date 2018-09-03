@@ -237,7 +237,7 @@ def run_experiment(argv):
     b_d, phi, eps = [1.25], [.4], [0.05]
 
     if test:
-        PARAM_COMBS = list(it.product(b_d, phi, eps, [approximate], [False]))
+        PARAM_COMBS = list(it.product(b_d, phi, eps, [approximate], [True]))
     else:
         PARAM_COMBS = list(it.product(b_ds, phis, epss, [approximate], [test]))
 
