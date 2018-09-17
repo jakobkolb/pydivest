@@ -20,4 +20,4 @@ echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
 cd ../experiments
-srun -n $SLURM_NTASKS python P2_macro_trajectory.py 0 0 4
+srun -n $SLURM_NTASKS python P2_macro_trajectory.py 0 0 3
