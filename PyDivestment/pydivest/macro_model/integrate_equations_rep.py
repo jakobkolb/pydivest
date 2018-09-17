@@ -633,7 +633,8 @@ class Integrate_Equations:
     def get_aggregate_trajectory(self):
         """return a mock aggregate trajectory with correct shape but containing zeros"""
 
-        columns = ['x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d', 'C', 'G']
+        columns = ['x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d', 'C', 'G',
+                   'N_c over N', '[cc] over M', '[cd] over M']
         index = self.m_trajectory.index
 
         return pd.DataFrame(0, index=index, columns=columns)
@@ -641,7 +642,8 @@ class Integrate_Equations:
     def get_mean_trajectory(self):
         """return a mock mean trajectory with correct shape but containing zeros"""
 
-        columns = ['x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c', 'g']
+        columns = ['x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c',
+                   'g', 'N_c over N', '[cc] over M', '[cd] over M']
         index = self.m_trajectory.index
 
         return pd.DataFrame(0, index=index, columns=columns)
