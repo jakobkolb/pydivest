@@ -28,10 +28,10 @@ class Integrate_Equations:
                  i_tau=0.8, i_phi=.7, eps=0.05,
                  b_c=1., b_d=1.5, s=0.23, d_c=0.06,
                  b_r0=1., e=10,
-                 pi=0.5, kappa_c=0.4, kappa_d=0.5, xi=1. / 8.,
+                 pi=0.5, kappa_c=0.5, kappa_d=0.5, xi=1. / 8.,
                  L=100., G_0=3000, C=1,
                  R_depletion=True,
-                 interaction=2, crs=True, test=False, **kwargs):
+                 interaction=2, test=False, **kwargs):
 
         # set debug flag
         self.test = test
@@ -82,13 +82,8 @@ class Integrate_Equations:
         # labor elasticity (equal in both sectors)
         self.pi = float(pi)
         # clean and dirty capital elasticity
-        # depending on requirement of constant returns to scale
-        if crs:
-            self.kappa_c = 1. - self.pi - self.xi
-            self.kappa_d = 1. - self.pi
-        else:
-            self.kappa_c = float(kappa_c)
-            self.kappa_d = float(kappa_d)
+        self.kappa_c = float(kappa_c)
+        self.kappa_d = float(kappa_d)
         # fossil->energy->output conversion efficiency (Leontief)
         self.e = float(e)
         # total labor
