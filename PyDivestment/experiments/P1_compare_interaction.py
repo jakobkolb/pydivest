@@ -6,7 +6,6 @@ import getpass
 import itertools as it
 import os
 import sys
-import time
 
 import networkx as nx
 import numpy as np
@@ -16,7 +15,8 @@ from pymofa.experiment_handling import experiment_handling, \
 even_time_series_spacing
 
 from pydivest.micro_model.divestmentcore import DivestmentCore as micro
-from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean as mean
+from pydivest.macro_model.integrate_equations_aggregate \
+    import IntegrateEquationsAggregate as aggregate
 from parameters import ExperimentDefaults
 
 
@@ -82,7 +82,7 @@ def RUN_FUNC(interaction, phi, b_d, model, test):
     if model == 1:
         m = micro(*init_conditions, **input_params)
     elif model == 2:
-        m = mean(*init_conditions, **input_params)
+        m = aggregate(*init_conditions, **input_params)
     else:
         raise ValueError(f'model needs to be in [1, 2] but is {model}')
 
@@ -98,7 +98,7 @@ def RUN_FUNC(interaction, phi, b_d, model, test):
     # store data in case of successful run
     if exit_status in [0, 1]:
         # interpolate m_trajectory to get evenly spaced time series.
-        df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+        df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
         df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
 
         for c in df1.columns:

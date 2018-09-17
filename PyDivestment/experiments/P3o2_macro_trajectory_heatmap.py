@@ -17,9 +17,10 @@ import pandas as pd
 from pathlib import Path
 from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
 
-from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean
-from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
-from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as IntegrateEquationsRep
+from pydivest.macro_model.integrate_equations_aggregate \
+    import IntegrateEquationsAggregate
+from pydivest.macro_model.integrate_equations_rep \
+    import Integrate_Equations as IntegrateEquationsRep
 from pydivest.micro_model.divestmentcore import DivestmentCore
 from parameters import ExperimentDefaults
 
@@ -86,11 +87,9 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
     if approximate == 1:
         m = DivestmentCore(*init_conditions, **input_params)
     elif approximate == 2:
-        m = IntegrateEquationsMean(*init_conditions, **input_params)
+        m = IntegrateEquationsAggregate(*init_conditions, **input_params)
     elif approximate == 3:
         m = IntegrateEquationsRep(*init_conditions, **input_params)
-    elif approximate == 4:
-        m = IntegrateEquationsAggregate(*init_conditions, **input_params)
     else:
         raise ValueError('approximate must be in [1, 2, 3, 4] but is {}'.format(approximate))
 
@@ -101,10 +100,10 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
     # store data in case of successful run
     if exit_status in [0, 1]:
         if approximate in [0, 1, 4]:
-            df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0, t_max)
+            df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0, t_max)
             df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0, t_max)
         else:
-            df2 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0, t_max)
+            df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0, t_max)
             df1 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0, t_max)
 
         for c in df1.columns:
@@ -183,7 +182,7 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    sub_experiment = ['micro', 'mean', 'representative'][approximate - 1]
+    sub_experiment = ['micro', 'aggregate', 'representative'][approximate - 1]
     folder = 'P3o2'
 
     # make sure, testing output goes to its own folder:
