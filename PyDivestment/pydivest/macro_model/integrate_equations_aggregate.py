@@ -16,7 +16,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                  tau=0.8, phi=.7, eps=0.05,
                  b_c=1., b_d=1.5, s=0.23, d_c=0.06,
                  b_r0=1., e=10,
-                 pi=0.5, kappa_c=0.4, kappa_d=0.5, xi=1. / 8.,
+                 pi=0.5, kappa_c=0.5, kappa_d=0.5, xi=1. / 8.,
                  L=100., G_0=3000, C=1,
                  R_depletion=True,
                  interaction=1, crs=True, test=False,

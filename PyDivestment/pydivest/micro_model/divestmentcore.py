@@ -24,7 +24,7 @@ class DivestmentCore:
                  xi=1./8., pi=1./2., kappa_c=1./2., kappa_d=1./2.,
                  R_depletion=True, test=False,
                  beta=0.06, learning=False,
-                 campaign=False, interaction=1, crs=True, **kwargs):
+                 campaign=False, interaction=1, **kwargs):
 
         """
 
@@ -77,9 +77,9 @@ class DivestmentCore:
         pi: float
             labor elasticity (equal in both sectors)
         kappa_c: float
-            capital elasticity in the clean sector. Discarted, if crs is True
+            capital elasticity in the clean sector.
         kappa_d: float
-            capital elasticity in the dirty sector. Discarted, if crs is True
+            capital elasticity in the dirty sector.
         xi: float
             Elasticity of knowledge stock in the production process in the clean sector
         learning: bool
@@ -303,13 +303,9 @@ class DivestmentCore:
         # elasticity of knowledge
         self.xi = xi
         # clean capital elasticity
-        if crs:
-            self.kappa_c = 1. - self.pi - self.xi
-            # dirty capital elasticity
-            self.kappa_d = 1. - self.pi
-        else:
-            self.kappa_c = kappa_c
-            self.kappa_d = kappa_d
+        self.kappa_c = kappa_c
+        # dirty capital elasticity
+        self.kappa_d = kappa_d
         # fossil->energy->output conversion efficiency (Leontief)
         self.e = e
 
