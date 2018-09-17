@@ -114,8 +114,8 @@ class IntegrateEquations:
 
     # Switching terms for economic subsystem (total rate of households
     # changing from clean to dirty investment and vice versa)
-    dtNcd = 1. / tau * (p3 + p5)
-    dtNdc = 1. / tau * (p4 + p6)
+    dtNcd = N / tau * (p3 + p5)
+    dtNdc = N / tau * (p4 + p6)
 
     # Create S and r matrices to write down rhs markov jump process for pair based proxy:
 
