@@ -154,10 +154,10 @@ class IntegrateEquations:
     def __init__(self, adjacency=None, investment_decisions=None,
                  investment_clean=None, investment_dirty=None,
                  tau=0.8, phi=.7, eps=0.05,
-                 pi=0.5, kappa_c=0.4, kappa_d=0.5, xi=1. / 8.,
+                 pi=0.5, kappa_c=0.5, kappa_d=0.5, xi=1. / 8.,
                  L=100., b_c=1., b_d=1.5, s=0.23, d_c=0.06,
                  b_r0=1., e=10, G_0=3000, C=1,
-                 R_depletion=True, test=False, crs=True, interaction=1,
+                 R_depletion=True, test=False, interaction=1,
                  **kwargs):
         """
         Handle the parsing of parameters for the approximation modules.
@@ -212,8 +212,6 @@ class IntegrateEquations:
             if 0: tanh(Wi-Wj) interaction,
             if 1: interaction as in Traulsen, 2010 but with relative differences
             if 2: (Wi-Wj)/(Wi+Wj) interaction.
-        crs: bool
-            switch for constant returns to scale. If True, values of kappa are ignored.
         test: bool
             switch on debugging options
         """
@@ -223,7 +221,6 @@ class IntegrateEquations:
         # ----------------------------------------------------------------------------------------------------
 
         self.p_test = test
-        self.p_crs = crs
         self.p_interaction = interaction
 
         # Social parameters
@@ -264,15 +261,8 @@ class IntegrateEquations:
         self.p_pi = pi
         # clean capital elasticity
         # clean and dirty capital elasticity
-        if crs:
-            self.p_kappa_c = 1. - self.p_pi - self.p_xi
-            self.p_kappa_d = 1. - self.p_pi
-        else:
-            self.p_kappa_c = float(kappa_c)
-            self.p_kappa_d = float(kappa_d)
-        if self.p_test:
-            print('pi = {}, xi = {}, kappa_c = {}, kappa_d = {}'.format(self.p_pi, self.p_xi,
-                                                                        self.p_kappa_c, self.p_kappa_d), flush=True)
+        self.p_kappa_c = float(kappa_c)
+        self.p_kappa_d = float(kappa_d)
         # fossil->energy->output conversion efficiency (Leontief)
         self.p_e = float(e)
         # total labor
