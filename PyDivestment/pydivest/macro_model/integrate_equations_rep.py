@@ -25,13 +25,14 @@ from scipy.optimize import root
 class Integrate_Equations:
     def __init__(self, adjacency=None, investment_decisions=None,
                  investment_clean=None, investment_dirty=None,
-                 i_tau=0.8, i_phi=.7, eps=0.05,
+                 tau=0.8, phi=.7, eps=0.05,
                  b_c=1., b_d=1.5, s=0.23, d_c=0.06,
                  b_r0=1., e=10,
-                 pi=0.5, kappa_c=0.5, kappa_d=0.5, xi=1. / 8.,
+                 pi=0.5, xi=1. / 8., kappa_c=0.5, kappa_d=0.5,
                  L=100., G_0=3000, C=1,
                  R_depletion=True,
-                 interaction=2, test=False, **kwargs):
+                 interaction=1, test=False,
+                 **kwargs):
 
         # set debug flag
         self.test = test
@@ -48,9 +49,9 @@ class Integrate_Equations:
         # interaction either with 1) tanh(Wi-Wj) or 2) (Wi-Wj)/(Wi+Wj)
         self.interaction = interaction
         # mean waiting time between social updates
-        self.tau = float(i_tau)
+        self.tau = float(tau)
         # rewiring probability for adaptive voter model
-        self.phi = float(i_phi)
+        self.phi = float(phi)
         # percentage of rewiring and imitation events that are noise
         self.eps = float(eps)
         # number of households (to interface with initial
@@ -101,9 +102,6 @@ class Integrate_Equations:
         self.G = float(G_0)
         # toggle resource depletion
         self.R_depletion = R_depletion
-
-        # Dummy initial knowledge
-        self.C_0 = 1.
 
         # system time
         self.t = 0
@@ -331,13 +329,42 @@ class Integrate_Equations:
         sys.stdout.flush()
 
     def _find_n(self, Y):
+        """
+        Tries to find value of n that optimizes savings allocation
+        Parameters
+        ----------
+        Y: list
+            values of system variables
+
+        Returns
+        -------
+        n_val: float
+            value of n depending on system state
+        """
+
+        # create substitution for system state variables except for n
         subs_ini = {symbol: value for symbol, value in zip(self.var_symbols[:4], Y[:4])}
         n = self.var_symbols[4]
+        # create optimality condition as function of n depending on resource depletion
         if self.R_depletion:
             fun2 = lambdify(n, self.drdiff.subs(subs_ini))
         else:
             fun2 = lambdify(n, self.drdiff_g_const.subs(subs_ini))
-        return root(fun2, .5).x[0]
+        # try to find value of n for which optimality condition is satisfied
+        n_val = root(fun2, 1).x[0]
+
+        Y[4] = n_val
+
+        # check, if condition is satisfied, if not, chose values out of bounds that can be handled down the line
+        rdiff = self.drdiff.subs({symbol: value for symbol, value in zip(self.var_symbols, Y)})
+        if rdiff > 1e-10:
+            Y[4] = 10
+        elif rdiff < -1e-10:
+            Y[4] = -10
+
+        n_val = Y[4]
+
+        return n_val
 
     def _setup_model(self, Y=None):
         """
@@ -354,7 +381,7 @@ class Integrate_Equations:
 
         # define initial values for Kc, Kd, C and G
         if Y is None:
-            Y0 = [self.Kc_0, self.Kd_0, self.G_0, self.C_0]
+            Y0 = [self.Kc_0, self.Kd_0, self.G_0, self.C]
         else:
             Y0 = Y[:4]
         sym = self.var_symbols[:4]
@@ -653,14 +680,14 @@ if __name__ == "__main__":
 
     # Parameters:
 
-    input_parameters = {'i_tau': 1, 'eps': 0.05, 'b_d': 1.2,
-                        'b_c': 1., 'i_phi': 0.8, 'e': 100,
-                        'G_0': 800, 'b_r0': 0.3 ** 2 * 100,
-                        'possible_cue_orders': possible_cue_orders,
-                        'C': 100, 'xi': 1. / 8., 'd_c': 0.06,
+    input_parameters = {'b_c': 1., 'phi': .4, 'tau': 1.,
+                        'eps': 0.05, 'b_d': 2.2, 'e': 100.,
+                        'b_r0': 0.1 ** 2 * 100.,
+                        'possible_cue_orders': [[0], [1]],
+                        'xi': 1. / 8., 'beta': 0.06,
+                        'L': 100., 'C': 50., 'G_0': 800.,
                         'campaign': False, 'learning': True,
-                        'crs': True, 'test': True,
-                        'R_depletion': True}
+                        'interaction': 1, 'test': False}
 
     # investment_decisions
     opinions = []
@@ -690,7 +717,7 @@ if __name__ == "__main__":
 
     # m._setup_model()
 
-    m.run(t_max=.1)
+    m.run(t_max=100)
 
     #m.R_depletion = True
     #m.set_parameters()
