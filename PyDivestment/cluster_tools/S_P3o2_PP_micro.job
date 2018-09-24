@@ -11,6 +11,8 @@ module load hpc/2015 anaconda/5.0.0_py3
 export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
 export OMP_NUM_THREADS=1
 
+source activate py36
+
 echo "_______________________________________________"
 echo "SLURM JOB ID: $SLURM_JOBID"
 echo "$SLURM_NTASKS tasks"
