@@ -38,9 +38,10 @@ class Integrate_Equations:
         self.test = test
 
         # report unnecessary keyword arguments
-        if len(kwargs.keys()) > 0 and self.test:
-            print('got superfluous keyword arguments')
-            print(kwargs.keys())
+        if test:
+            if len(kwargs.keys()) > 0 and self.test:
+                print('got superfluous keyword arguments')
+                print(kwargs.keys())
 
         self.t_max = 0
 
@@ -90,7 +91,7 @@ class Integrate_Equations:
         # total labor
         self.L = float(L)
         # total knowledge stock
-        self.C = float(C)
+        self.C_0 = float(C)
         # unprofitable fraction of fossil reserve
         self.alpha = (b_r0 / e) ** 0.5
 
@@ -381,7 +382,7 @@ class Integrate_Equations:
 
         # define initial values for Kc, Kd, C and G
         if Y is None:
-            Y0 = [self.Kc_0, self.Kd_0, self.G_0, self.C]
+            Y0 = [self.Kc_0, self.Kd_0, self.G_0, self.C_0]
         else:
             Y0 = Y[:4]
         sym = self.var_symbols[:4]
@@ -408,8 +409,8 @@ class Integrate_Equations:
             n_val = root(fun2, .5).x[0]
 
         subs_ini[n] = n_val
-
-        Y = [subs_ini[symbol] for name, symbol in self.independent_vars.items()]
+        if Y is None:
+            Y = [subs_ini[symbol] for name, symbol in self.independent_vars.items()]
         # calculate Yd0 from rhs according to switches
         if self.sw0[0]:
             if self.R_depletion:
@@ -494,14 +495,13 @@ class Integrate_Equations:
             # check if resource is exhausted
             event_5 = self.G_0 - Y[2] * (self.e / self.b_r0) ** (1. / 2.)
 
-            print(t, event_1, event_2, event_3, event_4, event_5)
+            # print(t, event_1, event_2, event_3, event_4, event_5)
 
             return np.array([event_1, event_2, event_3, event_4, event_5])
 
         def handle_event(solver, event_info):
 
             ev = event_info[0]
-            print('event info is', event_info)
 
             if ev[2] == 1 or ev[3] == 1:
                 # the system is back in its optimizing (variable n mode).
@@ -681,13 +681,14 @@ if __name__ == "__main__":
     # Parameters:
 
     input_parameters = {'b_c': 1., 'phi': .4, 'tau': 1.,
-                        'eps': 0.05, 'b_d': 2.2, 'e': 100.,
-                        'b_r0': 0.1 ** 2 * 100.,
+                        'eps': 0.05, 'b_d': 2.8, 'e': 1.,
+                        'b_r0': 0.2,
                         'possible_cue_orders': [[0], [1]],
                         'xi': 1. / 8., 'beta': 0.06,
-                        'L': 100., 'C': 50., 'G_0': 800.,
+                        'L': 100., 'C': 1., 'G_0': 500000.,
                         'campaign': False, 'learning': True,
-                        'interaction': 1, 'test': False}
+                        'interaction': 1, 'test': False,
+                        'R_depletion': True}
 
     # investment_decisions
     opinions = []
@@ -715,13 +716,7 @@ if __name__ == "__main__":
 
     m = Integrate_Equations(*init_conditions, **input_parameters)
 
-    # m._setup_model()
-
-    m.run(t_max=100)
-
-    #m.R_depletion = True
-    #m.set_parameters()
-    #m.run(t_max=100)
+    m.run(t_max=200)
 
     # Plot the results
 

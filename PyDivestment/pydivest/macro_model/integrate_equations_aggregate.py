@@ -89,9 +89,10 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                          b_r0=b_r0, e=e, G_0=G_0, C=C,
                          R_depletion=R_depletion, test=test, crs=crs, interaction=interaction)
 
-        if len(kwargs.items()) > 0:
-            print('got superfluous keyword arguments')
-            print(kwargs.keys())
+        if test:
+            if len(kwargs.items()) > 0:
+                print('got superfluous keyword arguments')
+                print(kwargs.keys())
 
         c = self.investment_decisions
         d = - self.investment_decisions + 1
@@ -296,3 +297,4 @@ class IntegrateEquationsAggregate(IntegrateEquations):
 
         return self.calculate_unified_trajectory(columns=columns,
                                                  var_expressions=var_expressions)
+
