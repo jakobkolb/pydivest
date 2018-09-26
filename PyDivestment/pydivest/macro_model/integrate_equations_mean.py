@@ -82,15 +82,16 @@ class IntegrateEquationsMean(IntegrateEquations):
                          b_r0=b_r0, e=e, G_0=G_0, C=C,
                          R_depletion=R_depletion, test=test, interaction=interaction)
 
-        if len(kwargs.items()) > 0:
-            print('got superfluous keyword arguments')
-            print(kwargs.keys())
-        if 'kappa_c' in kwargs.keys():
-            print('value for kappa_c provided will have no effect, since the mean approximation'
-                  'requires constant returns to scale')
-        if 'kappa_d' in kwargs.keys():
-            print('value for kappa_d provided will have no effect, since the mean approximation'
-                  'requires constant returns to scale')
+        if test:
+            if len(kwargs.items()) > 0:
+                print('got superfluous keyword arguments')
+                print(kwargs.keys())
+            if 'kappa_c' in kwargs.keys():
+                print('value for kappa_c provided will have no effect, since the mean approximation'
+                      'requires constant returns to scale')
+            if 'kappa_d' in kwargs.keys():
+                print('value for kappa_d provided will have no effect, since the mean approximation'
+                      'requires constant returns to scale')
 
         assert self.p_kappa_c + pi + xi == 1, 'this approximation requires scale invariance of economic eqs.'
         assert self.p_kappa_d + pi == 1, 'this approximation requires scale invariance of economic eqs.'
