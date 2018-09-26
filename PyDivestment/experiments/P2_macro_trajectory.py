@@ -11,17 +11,20 @@ import getpass
 import itertools as it
 import os
 import sys
-import time
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
+from pymofa.experiment_handling \
+    import experiment_handling, even_time_series_spacing
 
-from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean
-from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
+from pydivest.macro_model.integrate_equations_aggregate \
+    import IntegrateEquationsAggregate
+from pydivest.macro_model.integrate_equations_rep \
+    import Integrate_Equations as IntegrateEquationsRep
 from pydivest.micro_model.divestmentcore import DivestmentCore
+from parameters import ExperimentDefaults
 
 
 def RUN_FUNC(b_d, phi, eps, approximate, test):
@@ -52,14 +55,13 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
-                    'eps': eps, 'b_d': b_d, 'e': 100.,
-                    'b_r0': 0.1 ** 2 * 100.,
-                    'possible_cue_orders': [[0], [1]],
-                    'xi': 1. / 8., 'beta': 0.06,
-                    'L': 100., 'C': 100., 'G_0': 800.,
-                    'campaign': False, 'learning': True,
-                    'interaction': 1, 'test': test}
+    ed = ExperimentDefaults()
+    input_params = ed.input_params
+
+    input_params['phi'] = phi
+    input_params['b_d'] = b_d
+    input_params['eps'] = eps
+    input_params['test'] = test
 
     # investment_decisions:
     nopinions = [100, 100]
@@ -84,51 +86,44 @@ def RUN_FUNC(b_d, phi, eps, approximate, test):
                        clean_investment, dirty_investment)
 
     # initializing the model
+    if test:
+        print('initializing')
     if approximate == 1:
         m = DivestmentCore(*init_conditions, **input_params)
     elif approximate == 2:
-        m = IntegrateEquationsMean(*init_conditions, **input_params)
-    elif approximate == 3:
         m = IntegrateEquationsAggregate(*init_conditions, **input_params)
+    elif approximate == 3:
+        m = IntegrateEquationsRep(*init_conditions, **input_params)
     else:
         raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
 
-    t_max = 400 if not test else 2
-    m.R_depletion = False
-    m.run(t_max=t_max)
-
-    t_max += 600 if not test else 1
-    m.R_depletion = True
+    if test:
+        print('running')
+    t_max = 900 if not test else 10
+    m.set_parameters()
     exit_status = m.run(t_max=t_max)
 
     # store data in case of successful run
+    if test:
+        print('saving')
     if exit_status in [0, 1]:
         if approximate == 1:
-            df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
-            df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
-            df3 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
-        elif approximate == 2:
-            df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
-            df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
-            df3 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
-        elif approximate == 3:
             df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
-            df2 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
-            df3 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
+            df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
+        elif approximate == 2:
+            df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
+            df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
+        elif approximate == 3:
+            df1 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
+            df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
         else:
-            raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
+            raise ValueError('approximate must be in [1, 2, 3, 4] but is {}'.format(approximate))
 
         for c in df1.columns:
             if c in df2.columns:
                 df2.drop(c, axis=1, inplace=True)
 
-        df_tmp = pd.concat([df1, df2], axis=1)
-
-        for c in df_tmp.columns:
-            if c in df3.columns:
-                df_tmp.drop(c, axis=1, inplace=True)
-
-        df_out = pd.concat([df3, df_tmp], axis=1)
+        df_out = pd.concat([df1, df2], axis=1)
 
         df_out.index.name = 'tstep'
     else:
@@ -199,7 +194,7 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    sub_experiment = ['micro', 'mean', 'aggregate'][approximate - 1]
+    sub_experiment = ['micro', 'aggregate', 'representative'][approximate - 1]
     folder = 'P2'
 
     # make sure, testing output goes to its own folder:
@@ -212,7 +207,6 @@ def run_experiment(argv):
     SAVE_PATH_RES = \
         "{}/{}{}/{}/" \
         .format(respath, test_folder, folder, sub_experiment)
-    print(SAVE_PATH_RES)
     """
     create parameter combinations and index
     """
@@ -223,7 +217,7 @@ def run_experiment(argv):
     b_d, phi, eps = [1.25], [.4], [0.05]
 
     if test:
-        PARAM_COMBS = list(it.product(b_d, phi, eps, [approximate], [False]))
+        PARAM_COMBS = list(it.product(b_d, phi, eps, [approximate], [True]))
     else:
         PARAM_COMBS = list(it.product(b_ds, phis, epss, [approximate], [test]))
 
@@ -232,20 +226,20 @@ def run_experiment(argv):
     """
 
     # Create dummy runfunc output to pass its shape to experiment handle
-    # Create dummy runfunc output to pass its shape to experiment handle
 
     try:
-        if not Path(SAVE_PATH_RAW).exists():
-            Path(SAVE_PATH_RAW).mkdir(parents=True, exist_ok=True)
         run_func_output = pd.read_pickle(SAVE_PATH_RAW + 'rfof.pkl')
     except:
+        if not Path(SAVE_PATH_RAW).exists():
+            Path(SAVE_PATH_RAW).mkdir(parents=True, exist_ok=True)
         params = list(PARAM_COMBS[0])
         params[-1] = True
+        print('running run func with parameters', params)
         run_func_output = RUN_FUNC(*params)[1]
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 30
+    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 12
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,

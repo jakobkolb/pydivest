@@ -5,10 +5,10 @@ echo $jid1
 sleep 2
 sbatch --dependency=afterok:${jid1##* } S_P3_PP_micro.job
 
-jid1=$(sbatch S_P3_mean_macro.job)
+jid1=$(sbatch S_P3_aggregate_macro.job)
 echo $jid1
 sleep 2
-sbatch --dependency=afterok:${jid1##* } S_P3_PP_mean_macro.job
+sbatch --dependency=afterok:${jid1##* } S_P3_PP_aggregate_macro.job
 
 jid1=$(sbatch S_P3_representative_macro.job)
 echo $jid1

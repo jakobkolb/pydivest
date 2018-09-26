@@ -1,15 +1,18 @@
 #!/bin/bash
 #SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
 #SBATCH --qos=short
-#SBATCH --job-name=P3o2_mean_pp
-#SBATCH --output=%A_P3o2_mean_pp.out
-#SBATCH --error=%A_P3o2_mean_pp.err
-#SBATCH --nodes=8
+#SBATCH --job-name=P4_mic
+#SBATCH --output=%A_P4_mic.out
+#SBATCH --error=%A_P4_mic.err
+#SBATCH --nodes=32
 #SBATCH --tasks-per-node=16
 
 
-module load hpc/2015 anaconda/2.3.0
+module load hpc/2015 anaconda/5.0.0_py3
 export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
+export OMP_NUM_THREADS=1
+
+source activate py36
 
 echo "_______________________________________________"
 echo "SLURM JOB ID: $SLURM_JOBID"
@@ -18,5 +21,4 @@ echo "_______________________________________________"
 
 cd ../experiments
 
-srun -n $SLURM_NTASKS python P3o2_macro_trajectory_heatmap.py 0 1 2
-
+srun -n $SLURM_NTASKS python P4_parameter_scan.py 0 1

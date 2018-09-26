@@ -2,12 +2,12 @@
 
 from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as Rep
 from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate as Agg
-from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean as Mean
+from pydivest.micro_model.divestmentcore import DivestmentCore as Micro
 from .run_model import run
 
 models = {'Representative_agent': Rep,
           'Aggregate_approximation': Agg,
-          'Mean_approximation': Mean}
+          'Micro_model': Micro}
 
 
 for (name, model) in models.items():

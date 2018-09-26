@@ -17,10 +17,10 @@ import pandas as pd
 from pathlib import Path
 from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
 
-from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean
 from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
 from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as IntegrateEquationsRep
 from pydivest.micro_model.divestmentcore import DivestmentCore
+from parameters import ExperimentDefaults
 
 
 def RUN_FUNC(tau, phi, eps, approximate, test):
@@ -51,14 +51,13 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'phi': phi, 'tau': tau,
-                    'eps': eps, 'b_d': 1.25, 'e': 100.,
-                    'b_r0': 0.1 ** 2 * 100.,
-                    'possible_cue_orders': [[0], [1]],
-                    'xi': 1. / 8., 'beta': 0.06,
-                    'L': 100., 'C': 100., 'G_0': 800.,
-                    'campaign': False, 'learning': True,
-                    'interaction': 1, 'test': False}
+    ed = ExperimentDefaults()
+    input_params = ed.input_params
+
+    input_params['phi'] = phi
+    input_params['tau'] = tau
+    input_params['eps'] = eps
+    input_params['test'] = test
 
     # investment_decisions:
     nopinions = [50, 50]
@@ -86,13 +85,11 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
     if approximate == 1:
         m = DivestmentCore(*init_conditions, **input_params)
     elif approximate == 2:
-        m = IntegrateEquationsMean(*init_conditions, **input_params)
+        m = IntegrateEquationsAggregate(*init_conditions, **input_params)
     elif approximate == 3:
         m = IntegrateEquationsRep(*init_conditions, **input_params)
-    elif approximate == 4:
-        m = IntegrateEquationsAggregate(*init_conditions, **input_params)
     else:
-        raise ValueError('approximate must be in [1, 2, 3, 4] but is {}'.format(approximate))
+        raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
 
     # THIS TURNED OUT TO BE TROUBLE! SINCE THE EQUILIBRIUM STATE APPARENTLY DEPENDS ON TAU
     # (even though i'm sure it is not supposed to.)
@@ -100,7 +97,7 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
     # equilibration phase with small tau
     # to reach equilibrium distribution of
     # investment decisions
-    t_eq = 1000 if not test else 10
+    t_eq = 1000 #if not test else 10
     t_max = t_eq
     if hasattr(m, 'trj_output_window'):
         m.trj_output_window = [t_eq, np.float('inf')]
@@ -113,22 +110,27 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
     # to verify that the equilibrium distribution of investment decisions
     # is in fact independent from tau
 
-    t_max += 200 if not test else 2
+    t_max += 300 #if not test else 2
     m.tau = tau
     m.set_parameters()
     m.run(t_max=t_max)
 
     # transition phase with resource depletion
 
-    t_max += 600 if not test else 6
+    t_max += 600 #if not test else 6
     m.R_depletion = True
     m.set_parameters()
     exit_status = m.run(t_max=t_max)
 
     # store data in case of successful run
     if exit_status in [0, 1]:
-        df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, t_eq, t_max)
-        df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, t_eq, t_max)
+        if approximate in [0, 1, 4]:
+            df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, t_eq, t_max)
+            df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, t_eq, t_max)
+        else:
+            df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, t_eq, t_max)
+            df1 = even_time_series_spacing(m.get_unified_trajectory(), 201, t_eq, t_max)
+
 
         for c in df2.columns:
             if c in df1.columns:
@@ -205,7 +207,7 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    sub_experiment = ['micro', 'mean', 'representative'][approximate - 1]
+    sub_experiment = ['micro', 'aggregate', 'representative'][approximate - 1]
     folder = 'P3'
 
     # make sure, testing output goes to its own folder:
@@ -228,7 +230,7 @@ def run_experiment(argv):
     tau, phi = [1.], [.8]
 
     if test:
-        PARAM_COMBS = list(it.product(tau, phi, eps, [approximate], [test]))
+        PARAM_COMBS = list(it.product(tau, phi, [0.05], [approximate], [test]))
     else:
         PARAM_COMBS = list(it.product(taus, phis, eps, [approximate], [test]))
 

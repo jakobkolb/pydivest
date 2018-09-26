@@ -6,7 +6,6 @@ import getpass
 import itertools as it
 import os
 import sys
-import time
 
 import networkx as nx
 import numpy as np
@@ -16,7 +15,9 @@ from pymofa.experiment_handling import experiment_handling, \
 even_time_series_spacing
 
 from pydivest.micro_model.divestmentcore import DivestmentCore as micro
-from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean as mean
+from pydivest.macro_model.integrate_equations_aggregate \
+    import IntegrateEquationsAggregate as aggregate
+from parameters import ExperimentDefaults
 
 
 def RUN_FUNC(interaction, phi, b_d, model, test):
@@ -48,14 +49,13 @@ def RUN_FUNC(interaction, phi, b_d, model, test):
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
-                    'eps': 0.05, 'b_d': b_d, 'e': 100.,
-                    'b_r0': 0.1 ** 2 * 100.,
-                    'possible_cue_orders': [[0], [1]],
-                    'xi': 1. / 8., 'beta': 0.06,
-                    'L': 100., 'C': 100., 'G_0': 800.,
-                    'campaign': False, 'learning': True,
-                    'interaction': interaction, 'test': test}
+    ed = ExperimentDefaults()
+    input_params = ed.input_params
+
+    input_params['phi'] = phi
+    input_params['b_d'] = b_d
+    input_params['interaction'] = interaction
+    input_params['test'] = test
 
     # investment_decisions:
     nopinions = [50, 50]
@@ -82,15 +82,15 @@ def RUN_FUNC(interaction, phi, b_d, model, test):
     if model == 1:
         m = micro(*init_conditions, **input_params)
     elif model == 2:
-        m = mean(*init_conditions, **input_params)
+        m = aggregate(*init_conditions, **input_params)
     else:
         raise ValueError(f'model needs to be in [1, 2] but is {model}')
 
-    t_max = 300 if not test else 20
+    t_max = 300 if not test else 300
     m.R_depletion = False
     m.run(t_max=t_max)
 
-    t_max += 600 if not test else 1
+    t_max += 600 if not test else 600
     m.R_depletion = True
     m.set_parameters()
     exit_status = m.run(t_max=t_max)
@@ -98,7 +98,7 @@ def RUN_FUNC(interaction, phi, b_d, model, test):
     # store data in case of successful run
     if exit_status in [0, 1]:
         # interpolate m_trajectory to get evenly spaced time series.
-        df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+        df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
         df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
 
         for c in df1.columns:
@@ -188,11 +188,11 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    phis = [round(x, 2) for x in list(np.linspace(0.0, 0.9, 20))]
+    phis = [round(x, 2) for x in list(np.linspace(0.0, 1., 21))]
     b_ds = [round(x, 2) for x in list(np.linspace(1., 1.5, 5))]
     interactions = [0, 1, 2]
     model = [1, 2]
-    b_d, phi, interaction = [1.25], [.5], [0, 1, 2]
+    b_d, phi, interaction = [1.25], [.5], [0, 1]
 
     if test:
         param_combs = list(it.product(interaction, phi, b_d, model, [test]))
@@ -214,7 +214,7 @@ def run_experiment(argv):
         with open(save_path_raw+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    sample_size = 100 if not test else 3
+    sample_size = 100 if not test else 30
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,

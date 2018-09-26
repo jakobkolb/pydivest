@@ -17,10 +17,10 @@ class IntegrateEquationsMean(IntegrateEquations):
                  tau=0.8, phi=.7, eps=0.05,
                  b_c=1., b_d=1.5, s=0.23, d_c=0.06,
                  b_r0=1., e=10,
-                 pi=0.5, xi=1. / 8.,
+                 pi=0.5, xi=1. / 8., kappa_c=0.5 - 1. / 8., kappa_d=0.5,
                  L=100., G_0=3000, C=1,
                  R_depletion=True,
-                 interaction=1, crs=True, test=False,
+                 interaction=1, test=False,
                  **kwargs):
         """
         Implements the same interface as the aggregate approximation but requires constant
@@ -80,20 +80,21 @@ class IntegrateEquationsMean(IntegrateEquations):
                          pi=pi, xi=xi,
                          L=L, b_c=b_c, b_d=b_d, s=s, d_c=d_c,
                          b_r0=b_r0, e=e, G_0=G_0, C=C,
-                         R_depletion=R_depletion, test=test, crs=crs, interaction=interaction)
+                         R_depletion=R_depletion, test=test, interaction=interaction)
 
-        if len(kwargs.items()) > 0:
-            print('got superfluous keyword arguments')
-            print(kwargs.keys())
-        if 'kappa_c' in kwargs.keys():
-            print('value for kappa_c provided will have no effect, since the mean approximation'
-                  'requires constant returns to scale')
-        if 'kappa_d' in kwargs.keys():
-            print('value for kappa_d provided will have no effect, since the mean approximation'
-                  'requires constant returns to scale')
-        # ensure constant returns to scale as required for mean approximation.
-        self.p_kappa_d = 1 - pi
-        self.p_kappa_c = 1 - pi - xi
+        if test:
+            if len(kwargs.items()) > 0:
+                print('got superfluous keyword arguments')
+                print(kwargs.keys())
+            if 'kappa_c' in kwargs.keys():
+                print('value for kappa_c provided will have no effect, since the mean approximation'
+                      'requires constant returns to scale')
+            if 'kappa_d' in kwargs.keys():
+                print('value for kappa_d provided will have no effect, since the mean approximation'
+                      'requires constant returns to scale')
+
+        assert self.p_kappa_c + pi + xi == 1, 'this approximation requires scale invariance of economic eqs.'
+        assert self.p_kappa_d + pi == 1, 'this approximation requires scale invariance of economic eqs.'
 
         # Parse Initial conditions for mean capital endowments
 
@@ -243,7 +244,13 @@ class IntegrateEquationsMean(IntegrateEquations):
 
     def get_mean_trajectory(self):
 
-        return self.m_trajectory
+        df = self.m_trajectory
+
+        df['N_c over N'] = .5 * (df['x'] + 1)
+        df['[cc] over M'] = .5 * (1 + df['y'] - df['z'])
+        df['[cd] over M'] = df['z']
+
+        return df
 
     def get_aggregate_trajectory(self):
         """return a mock aggregate trajectory with correct shape but containing zeros"""

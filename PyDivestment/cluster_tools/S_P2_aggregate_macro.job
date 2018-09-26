@@ -8,8 +8,10 @@
 #SBATCH --tasks-per-node=16
 
 
-module load hpc/2015 anaconda/2.3.0
+module load hpc/2015 anaconda/5.0.0_py3
 export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
+
+source activate py36
 
 echo "_______________________________________________"
 echo "SLURM JOB ID: $SLURM_JOBID"
@@ -17,4 +19,4 @@ echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
 cd ../experiments
-srun -n $SLURM_NTASKS python P2_macro_trajectory.py 0 0 3
+srun -n $SLURM_NTASKS python P2_macro_trajectory.py 0 0 2

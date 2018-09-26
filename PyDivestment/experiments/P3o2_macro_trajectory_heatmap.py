@@ -17,18 +17,20 @@ import pandas as pd
 from pathlib import Path
 from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
 
-from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean
-from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
-from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as IntegrateEquationsRep
+from pydivest.macro_model.integrate_equations_aggregate \
+    import IntegrateEquationsAggregate
+from pydivest.macro_model.integrate_equations_rep \
+    import Integrate_Equations as IntegrateEquationsRep
 from pydivest.micro_model.divestmentcore import DivestmentCore
+from parameters import ExperimentDefaults
 
 
 def RUN_FUNC(tau, phi, eps, approximate, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
-    Output is saved in pickled dictionaries including the
-    initial values, parameters and convergence state and time
+    Output is saved in pickled dictionaries including the 
+    initial values, parameters and convergence state and time 
     for each run.
 
     Parameters:
@@ -51,14 +53,13 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'phi': phi, 'tau': tau,
-                    'eps': eps, 'b_d': 1.25, 'e': 100.,
-                    'b_r0': 0.1 ** 2 * 100.,
-                    'possible_cue_orders': [[0], [1]],
-                    'xi': 1. / 8., 'beta': 0.06,
-                    'L': 100., 'C': 100., 'G_0': 800.,
-                    'campaign': False, 'learning': True,
-                    'interaction': 1, 'test': False}
+    ed = ExperimentDefaults()
+    input_params = ed.input_params
+
+    input_params['phi'] = phi
+    input_params['tau'] = tau
+    input_params['eps'] = eps
+    input_params['test'] = test
 
     # investment_decisions:
     nopinions = [50, 50]
@@ -86,37 +87,31 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
     if approximate == 1:
         m = DivestmentCore(*init_conditions, **input_params)
     elif approximate == 2:
-        m = IntegrateEquationsMean(*init_conditions, **input_params)
+        m = IntegrateEquationsAggregate(*init_conditions, **input_params)
     elif approximate == 3:
         m = IntegrateEquationsRep(*init_conditions, **input_params)
-    elif approximate == 4:
-        m = IntegrateEquationsAggregate(*init_conditions, **input_params)
     else:
         raise ValueError('approximate must be in [1, 2, 3, 4] but is {}'.format(approximate))
 
-
-    t_max = 200 if not test else 2
-    m.tau = tau
-    m.set_parameters()
-    m.run(t_max=t_max)
-
-    # transition phase with resource depletion
-
-    t_max += 600 if not test else 6
-    m.R_depletion = True
+    t_max = 900
     m.set_parameters()
     exit_status = m.run(t_max=t_max)
 
     # store data in case of successful run
     if exit_status in [0, 1]:
-        df1 = even_time_series_spacing(m.get_mean_trajectory(), 201, 0, t_max)
-        df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0, t_max)
+        if approximate in [0, 1, 4]:
+            df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0, t_max)
+            df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0, t_max)
+        else:
+            df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0, t_max)
+            df1 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0, t_max)
 
-        for c in df2.columns:
-            if c in df1.columns:
+        for c in df1.columns:
+            if c in df2.columns:
                 df2.drop(c, axis=1, inplace=True)
 
         df_out = pd.concat([df1, df2], axis=1)
+
         df_out.index.name = 'tstep'
     else:
         df_out = None
@@ -187,7 +182,7 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    sub_experiment = ['micro', 'mean', 'representative'][approximate - 1]
+    sub_experiment = ['micro', 'aggregate', 'representative'][approximate - 1]
     folder = 'P3o2'
 
     # make sure, testing output goes to its own folder:
@@ -207,10 +202,10 @@ def run_experiment(argv):
     phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 21))]
     taus = [round(x, 5) for x in list(np.linspace(.5, 10., 20))]
     eps = [0.05, 0.01]
-    tau, phi = [1.], [.8]
+    tau, phi = [1.], [.5]
 
     if test:
-        PARAM_COMBS = list(it.product(tau, phi, eps, [approximate], [False]))
+        PARAM_COMBS = list(it.product(tau, phi, [0.05], [approximate], [test]))
     else:
         PARAM_COMBS = list(it.product(taus, phis, eps, [approximate], [test]))
 
@@ -231,7 +226,7 @@ def run_experiment(argv):
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    SAMPLE_SIZE = 50 if not (test or approximate in [2, 3]) else 3
+    SAMPLE_SIZE = 50 #if not (test or approximate in [2, 3]) else 3
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,
@@ -281,13 +276,10 @@ def run_experiment(argv):
                                        )
 
     if mode == 0:
-        import time
-        t0 = time.clock()
         compute_handle.compute()
-        t1 = time.clock()
-        print('took {} seconds to complete'.format(t1-t0))
         return 1
     elif mode == 1:
+
         eva_1_handle.compute()
         eva_2_handle.compute()
         return 1

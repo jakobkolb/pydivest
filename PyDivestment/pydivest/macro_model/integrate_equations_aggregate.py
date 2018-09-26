@@ -16,7 +16,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                  tau=0.8, phi=.7, eps=0.05,
                  b_c=1., b_d=1.5, s=0.23, d_c=0.06,
                  b_r0=1., e=10,
-                 pi=0.5, kappa_c=0.4, kappa_d=0.5, xi=1. / 8.,
+                 pi=0.5, kappa_c=0.5, kappa_d=0.5, xi=1. / 8.,
                  L=100., G_0=3000, C=1,
                  R_depletion=True,
                  interaction=1, crs=True, test=False,
@@ -89,9 +89,10 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                          b_r0=b_r0, e=e, G_0=G_0, C=C,
                          R_depletion=R_depletion, test=test, crs=crs, interaction=interaction)
 
-        if len(kwargs.items()) > 0:
-            print('got superfluous keyword arguments')
-            print(kwargs.keys())
+        if test:
+            if len(kwargs.items()) > 0:
+                print('got superfluous keyword arguments')
+                print(kwargs.keys())
 
         c = self.investment_decisions
         d = - self.investment_decisions + 1
@@ -108,6 +109,8 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         # create list of symbols and names of all independent variables
         self.var_symbols = [self.x, self.y, self.z, self.Kcc, self.Kcd, self.Kdc, self.Kdd, self.C, self.G]
         self.var_names = ['x', 'y', 'z', 'K_c^c', 'K_c^d', 'K_d^c', 'K_d^d', 'C', 'G']
+
+        self.independent_vars = {name: symbol for name, symbol in zip(self.var_names, self.var_symbols)}
 
         # define expected wealth as expected income
         self.subs1[self.Wc] = ((self.rc * self.Kcc + self.rd * self.Kdc) / self.Nc).subs(self.subs1)
@@ -181,6 +184,13 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         # dictionary for final state
         self.final_state = {}
 
+    def list_initial_conditions(self):
+        values = [self.v_x, self.v_y, self.v_z,
+                  self.v_Kcc, self.v_Kcd,
+                  self.v_Kdc, self.v_Kdd,
+                  self.v_C, self.v_G]
+        return {symbol: val for symbol, val in zip(self.var_symbols, values)}
+
     def run(self, t_max=100, t_steps=500):
         """
         run the model for a given time t_max and produce results in resolution t_steps
@@ -232,7 +242,13 @@ class IntegrateEquationsAggregate(IntegrateEquations):
 
     def get_aggregate_trajectory(self):
 
-        return self.m_trajectory
+        df = self.m_trajectory
+
+        df['N_c over N'] = .5 * (df['x'] + 1)
+        df['[cc] over M'] = .5 * (1 + df['y'] - df['z'])
+        df['[cd] over M'] = df['z']
+
+        return df
 
     def get_mean_trajectory(self):
         """return a mock mean trajectory with correct shape but containing zeros"""
@@ -240,7 +256,9 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         columns = ['x', 'y', 'z', 'mu_c^c', 'mu_d^c', 'mu_c^d', 'mu_d^d', 'c', 'g']
         index = self.m_trajectory.index
 
-        return pd.DataFrame(0, index=index, columns=columns)
+        df = pd.DataFrame(0, index=index, columns=columns)
+
+        return df
 
     def get_unified_trajectory(self):
         """
@@ -279,3 +297,4 @@ class IntegrateEquationsAggregate(IntegrateEquations):
 
         return self.calculate_unified_trajectory(columns=columns,
                                                  var_expressions=var_expressions)
+
