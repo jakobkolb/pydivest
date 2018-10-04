@@ -2,11 +2,10 @@
 
 from __future__ import print_function
 
+import numpy as np
+import pandas as pd
 import sympy as sp
 from scipy.integrate import odeint
-
-import pandas as pd
-import numpy as np
 
 from .integrate_equations import IntegrateEquations
 
@@ -83,15 +82,24 @@ class IntegrateEquationsMean(IntegrateEquations):
                          R_depletion=R_depletion, test=test, interaction=interaction)
 
         if test:
-            if len(kwargs.items()) > 0:
-                print('got superfluous keyword arguments')
-                print(kwargs.keys())
-            if 'kappa_c' in kwargs.keys():
-                print('value for kappa_c provided will have no effect, since the mean approximation'
-                      'requires constant returns to scale')
-            if 'kappa_d' in kwargs.keys():
-                print('value for kappa_d provided will have no effect, since the mean approximation'
-                      'requires constant returns to scale')
+            def verboseprint(*args):
+                for stuff in args:
+                    print(stuff)
+        else:
+            def verboseprint(*args):
+                pass
+
+        self.verboseprint = verboseprint
+
+        if len(kwargs.items()) > 0:
+            self.verboseprint('got superfluous keyword arguments')
+            self.verboseprint(kwargs.keys())
+        if 'kappa_c' in kwargs.keys():
+            self.verboseprint('value for kappa_c provided will have no effect, since the mean approximation'
+                              'requires constant returns to scale')
+        if 'kappa_d' in kwargs.keys():
+            self.verboseprint('value for kappa_d provided will have no effect, since the mean approximation'
+                              'requires constant returns to scale')
 
         assert self.p_kappa_c + pi + xi == 1, 'this approximation requires scale invariance of economic eqs.'
         assert self.p_kappa_d + pi == 1, 'this approximation requires scale invariance of economic eqs.'
@@ -211,8 +219,7 @@ class IntegrateEquationsMean(IntegrateEquations):
         self.p_t_max = t_max
 
         if t_max > self.v_t:
-            if self.p_test:
-                print('integrating equations from t={} to t={}'.format(self.v_t, t_max))
+            self.verboseprint('integrating equations from t={} to t={}'.format(self.v_t, t_max))
 
             t = np.linspace(self.v_t, t_max, t_steps)
 
@@ -237,8 +244,7 @@ class IntegrateEquationsMean(IntegrateEquations):
             self.v_t = t_max
 
         elif t_max <= self.v_t:
-            if self.p_test:
-                print('upper time limit is smaller than system time', self.v_t)
+            self.verboseprint('upper time limit is smaller than system time', self.v_t)
 
         return 1
 

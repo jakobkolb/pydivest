@@ -2,9 +2,8 @@
 authored by Jakob J. Kolb (kolb@pik-potsdam.de)"""
 
 import numpy as np
-import sympy as sp
 import pandas as pd
-
+import sympy as sp
 from scipy.integrate import odeint
 
 from .integrate_equations import IntegrateEquations
@@ -90,9 +89,17 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                          R_depletion=R_depletion, test=test, crs=crs, interaction=interaction)
 
         if test:
-            if len(kwargs.items()) > 0:
-                print('got superfluous keyword arguments')
-                print(kwargs.keys())
+            def verboseprint(*args):
+                for stuff in args:
+                    print(stuff)
+        else:
+            def verboseprint(*args):
+                pass
+
+        self.verboseprint = verboseprint
+
+        self.verboseprint('got superfluous keyword arguments')
+        self.verboseprint(kwargs.keys())
 
         c = self.investment_decisions
         d = - self.investment_decisions + 1
@@ -209,8 +216,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         self.p_t_max = t_max
 
         if t_max > self.v_t:
-            if self.p_test:
-                print('integrating equations from t={} to t={}'.format(self.v_t, t_max))
+            self.verboseprint('integrating equations from t={} to t={}'.format(self.v_t, t_max))
 
             t = np.linspace(self.v_t, t_max, t_steps)
 
@@ -235,8 +241,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
             self.v_t = t_max
 
         elif t_max <= self.v_t:
-            if self.p_test:
-                print('upper time limit is smaller than system time', self.v_t)
+            self.verboseprint('upper time limit is smaller than system time', self.v_t)
 
         return 1
 

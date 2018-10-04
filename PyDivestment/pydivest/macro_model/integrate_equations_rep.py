@@ -10,9 +10,6 @@ import sys
 import numpy as np
 import pandas as pd
 import sympy as sp
-from sympy import lambdify
-
-
 from assimulo.problem import Implicit_Problem
 from assimulo.solvers import IDA
 # except ImportError:
@@ -20,6 +17,7 @@ from assimulo.solvers import IDA
 #     Implicit_Problem = None
 #     IDA = None
 from scipy.optimize import root
+from sympy import lambdify
 
 
 class Integrate_Equations:
@@ -36,6 +34,16 @@ class Integrate_Equations:
 
         # set debug flag
         self.test = test
+
+        if self.test:
+            def verboseprint(*args):
+                for stuff in args:
+                    print(stuff)
+        else:
+            def verboseprint(*args):
+                pass
+
+        self.verboseprint = verboseprint
 
         # report unnecessary keyword arguments
         if test:
@@ -285,8 +293,7 @@ class Integrate_Equations:
     def set_parameters(self):
         """(re)set parameters in rhs of system and dependen variable expressions"""
 
-        if self.test:
-            print('resetting parameter values...')
+        self.verboseprint('resetting parameter values...')
 
         # list all parameter values,
         param_values = [self.b_c, self.b_d, self.b_r0, self.e, self.s, self.d_c, self.pi, self.kappa_c,
@@ -305,8 +312,7 @@ class Integrate_Equations:
             self.righthandsides[key] = rhs.subs(subs_params)
 
         # lambdify rhs expressions
-        if self.test:
-            print('lambdify rhs expressions')
+        self.verboseprint('lambdify rhs expressions')
         for key, rhs in self.righthandsides.items():
             self.righthandsides_lambda[key] = [lambdify(tuple(self.var_symbols), r_i) for r_i in rhs]
 
@@ -315,8 +321,7 @@ class Integrate_Equations:
             self.dependent_vars[key] = self.dependent_vars_raw[key].subs(subs_params)
 
         self._setup_model()
-        if self.test:
-            print('successful')
+        self.verboseprint('successful')
 
     @staticmethod
     def _progress_report(count, total, status=''):
@@ -495,7 +500,7 @@ class Integrate_Equations:
             # check if resource is exhausted
             event_5 = self.G_0 - Y[2] * (self.e / self.b_r0) ** (1. / 2.)
 
-            # print(t, event_1, event_2, event_3, event_4, event_5)
+            # self.verboseprint(t, event_1, event_2, event_3, event_4, event_5)
 
             return np.array([event_1, event_2, event_3, event_4, event_5])
 
@@ -509,25 +514,25 @@ class Integrate_Equations:
                 # find the appropriate n,
                 # reinitialize the solver with the right yd.
                 if ev[3] == 1:
-                    print('rc>rd again, n crossed 0 from below')
+                    self.verboseprint('rc>rd again, n crossed 0 from below')
                 else:
-                    print('rd>rc again, n crossed 1 from above')
+                    self.verboseprint('rd>rc again, n crossed 1 from above')
                 # find n that solves the residual function
                 solver.y[4] = self._find_n(solver.y)
                 if solver.y[4] < 0:
                     # n is below New Event0 already. Skip and jump to case 'n crossed 0 from above'
-                    print('back to optimizing range, but n={} already out of bounds'.format(solver.y[4]))
+                    self.verboseprint('back to optimizing range, but n={} already out of bounds'.format(solver.y[4]))
                     ev[1] = 1  # continue with n < 0
                 elif solver.y[4] > 1:
                     # n is above 1 already. Skip and jump to case 'n crossed 1 from below'
-                    print('back to optimizing range, but n={} already out of bounds'.format(solver.y[4]))
+                    self.verboseprint('back to optimizing range, but n={} already out of bounds'.format(solver.y[4]))
                     ev[0] = 1  # continue with n > 1
                 else:
-                    print('back in optimizing range, n={} in bounds'.format(solver.y[4]))
+                    self.verboseprint('back in optimizing range, n={} in bounds'.format(solver.y[4]))
                     solver.sw = [False, True, False, False]
                     # put it into the substitution list.
                     subs_ini = {symbol: value for symbol, value in zip(self.var_symbols, solver.y)}
-                    print(subs_ini)
+                    self.verboseprint(subs_ini)
                     # calculate dy from the appropriate rhs (3 or 4).
                     if self.R_depletion:
                         solver.yd = np.asarray([rhs_i(*solver.y)
@@ -538,7 +543,7 @@ class Integrate_Equations:
 
             if ev[0] == 1:
                 # n crossed 1 from below.
-                print('n crossed 1 from below')
+                self.verboseprint('n crossed 1 from below')
                 solver.y[4] = 1
                 solver.sw = [False, False, True, False]
                 # calculate dy from the appropriate rhs (5 or 6).
@@ -551,7 +556,7 @@ class Integrate_Equations:
             elif ev[1] == 1:
                 # n crossed 0 from above
                 solver.y[4] = 0
-                print('n crossed 0 from above')
+                self.verboseprint('n crossed 0 from above')
                 solver.sw = [True, False, False, False]
                 # calculate dy from the appropriate rhs (1 or 2).
                 if self.R_depletion:
@@ -562,13 +567,13 @@ class Integrate_Equations:
                                             for rhs_i in self.righthandsides_lambda['2']])
             elif ev[4] == 1:
                 # resource is exhausted
-                print('resource exhausted')
+                self.verboseprint('resource exhausted')
                 solver.sw = [False, False, False, True]
                 solver.yd = np.asarray([rhs_i(*solver.y)
                                         for rhs_i in self.righthandsides_lambda['7']])
 
             solver.re_init(solver.t, solver.y, solver.yd, sw0=solver.sw)
-            print('switched state to {} at time {}'.format(solver.sw, solver.t))
+            self.verboseprint('switched state to {} at time {}'.format(solver.sw, solver.t))
 
         mod = Implicit_Problem(prep_rhs,
                                Y0,
@@ -582,8 +587,7 @@ class Integrate_Equations:
         self.sim.rtol = 1.e-12  # Sets the relative tolerance
         self.sim.atol = 1.e-10  # Sets the absolute tolerance
 
-        if self.test:
-            print(subs_ini)
+        self.verboseprint(subs_ini)
         return n_val
 
     def run(self, t_max, **kwargs):

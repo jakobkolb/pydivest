@@ -1,11 +1,9 @@
 import datetime
+import sys
+import traceback
 from itertools import chain
 from random import shuffle
 
-import numpy as np
-import pandas as pd
-import traceback
-import sys
 import networkx as nx
 from scipy.integrate import odeint
 from scipy.sparse.csgraph import connected_components
@@ -97,6 +95,16 @@ class DivestmentCore:
             length of running window average that chartes use to predict trends
         """
 
+        if test:
+            def verboseprint(*args):
+                for stuff in args:
+                    print(stuff)
+        else:
+            def verboseprint(*args):
+                pass
+
+        self.verboseprint = verboseprint
+
         # Modes:
         #  1: only economy,
         #  2: economy + opinion formation + decision making,
@@ -121,7 +129,7 @@ class DivestmentCore:
 
         # trajectory output time window
         if 'trj_output_window' in kwargs.keys():
-            print('found trj_output_window')
+            self.verboseprint('found trj_output_window')
             self.trj_output_window = kwargs['trj_output_window']
         else:
             self.trj_output_window = [0, np.float('inf')]
@@ -543,8 +551,7 @@ class DivestmentCore:
             if self.debug:
                 self.progress(self.t, t_max, 'abm running')
 
-            # if self.debug:
-            #     print self.t, t_max
+            self.verboseprint(self.t, t_max)
 
             # 1 find update candidate and respective update time
             (candidate, neighbor,
@@ -1081,8 +1088,7 @@ class DivestmentCore:
 
         attractor = 2. / 3.
         dist = attractor - state
-        # if self.debug == True:
-        #     print dist, self.t, self.convergence_state
+        self.verboseprint(dist, self.t, self.convergence_state)
         alpha = (self.b_r0 / self.e) ** (1. / 2.)
 
         if self.eps > 0 and dist < 0. and np.isnan(self.convergence_time):
@@ -1345,8 +1351,7 @@ class DivestmentCore:
     def get_aggregate_trajectory(self):
         # make up Dataframe from macro data:
         columns = self.ag_trajectory[0]
-        if self.debug:
-            print(columns)
+        self.verboseprint(columns)
         df = pd.DataFrame(self.ag_trajectory[1:], columns=columns)
         df = df.set_index('time')
 
