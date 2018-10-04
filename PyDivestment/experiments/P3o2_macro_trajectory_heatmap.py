@@ -10,11 +10,12 @@ import getpass
 import itertools as it
 import os
 import sys
+from pathlib import Path
 
 import networkx as nx
 import numpy as np
 import pandas as pd
-from pathlib import Path
+from parameters import ExperimentDefaults
 from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
 
 from pydivest.macro_model.integrate_equations_aggregate \
@@ -22,7 +23,6 @@ from pydivest.macro_model.integrate_equations_aggregate \
 from pydivest.macro_model.integrate_equations_rep \
     import Integrate_Equations as IntegrateEquationsRep
 from pydivest.micro_model.divestmentcore import DivestmentCore
-from parameters import ExperimentDefaults
 
 
 def RUN_FUNC(tau, phi, eps, approximate, test):
@@ -93,7 +93,7 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
     else:
         raise ValueError('approximate must be in [1, 2, 3, 4] but is {}'.format(approximate))
 
-    t_max = 900
+    t_max = 300
     m.set_parameters()
     exit_status = m.run(t_max=t_max)
 
@@ -221,7 +221,7 @@ def run_experiment(argv):
         run_func_output = pd.read_pickle(SAVE_PATH_RAW + 'rfof.pkl')
     except:
         params = list(PARAM_COMBS[0])
-        params[-1] = True
+        params[-1] = False
         run_func_output = RUN_FUNC(*params)[1]
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)

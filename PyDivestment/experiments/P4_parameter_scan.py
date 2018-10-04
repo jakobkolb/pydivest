@@ -66,7 +66,7 @@ def RUN_FUNC(b_d, b_R, xi, approximate, test):
     input_params['test'] = test
 
     # investment_decisions:
-    nopinions = [50, 50]
+    nopinions = [25, 25]
 
     # network:
     N = sum(nopinions)
@@ -198,9 +198,9 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    b_ds = [round(x, 5) for x in list(np.linspace(3., 4., 21))]
+    b_ds = [round(x, 5) for x in list(np.linspace(1., 4., 21))]
     b_Rs = [round(x, 5) for x in list(np.linspace(.1, .3, 21))]
-    xis = [round(x, 5) for x in list(np.linspace(.0, .25, 21))]
+    xis = [round(x, 5) for x in list(np.linspace(.0, .1, 21))]
     eps = [0.05, 0.01]
     tau, phi = [1.], [.8]
 
@@ -228,7 +228,7 @@ def run_experiment(argv):
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    SAMPLE_SIZE = 2 if (test or approximate in [2, 3]) else 50
+    SAMPLE_SIZE = 2 if (test or approximate in [2, 3]) else 5
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,
@@ -240,22 +240,22 @@ def run_experiment(argv):
 
     # define eva functions
 
-    def mean(tau, phi, eps, approximate, test):
+    def mean(b_d, b_R, xi, approximate, test):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = 'tau={} & phi={} & eps={} & approximate={} & test={}'.format(tau, phi, eps, approximate, test)
+        query = 'b_d={} & b_R={} & xi={} & approximate={} & test={}'.format(b_d, b_R, xi, approximate, test)
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
 
         return 1, trj.groupby(level='tstep').mean()
 
-    def std(tau, phi, eps, approximate, test):
+    def std(b_d, b_R, xi, approximate, test):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = 'tau={} & phi={} & eps={} & approximate={} & test={}'.format(tau, phi, eps, approximate, test)
+        query = 'b_d={} & b_R={} & xi={} & approximate={} & test={}'.format(b_d, b_R, xi, approximate, test)
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
