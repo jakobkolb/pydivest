@@ -1279,7 +1279,7 @@ class DivestmentCore:
         pair based proxy.
         :return: None
         """
-        element = ['time', 'x', 'y', 'z', 'Kcc', 'Kdc', 'Kcd', 'Kdd', 'C',
+        element = ['time', 'x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d', 'C',
                    'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d',
                    'N_c over N', '[cc] over M', '[cd] over M']
         self.ag_trajectory.append(element)
