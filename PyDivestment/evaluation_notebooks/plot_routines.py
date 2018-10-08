@@ -55,7 +55,7 @@ class plot_routines(object):
                              ['$\mu^{(c)}_c$', '$\mu^{(d)}_d$'],
                              ['$\mu^{(c)}_d$', '$\mu^{(d)}_c$']]
 
-        self.colors = 'rgbk'
+        self.colors = 'gkby'
 
     def mk_plots(self, bd):
 
@@ -252,6 +252,7 @@ class plot_routines(object):
                           linewidth=2,
                           alpha=macro_alpha)
 
+
             ax = axes[ax_id]
             ax.set_ylim([lower_limits[j], upper_limits[j]])
             k = len(variables)
@@ -286,12 +287,15 @@ class plot_routines(object):
                   figsize=(8, 6)):
 
         self.variable_combos = [['N_c over N', '[cc] over M', '[cd] over M'],
-                                ['c', 'g'], ['mu_c^c', 'mu_d^d'],
-                                ['mu_c^d', 'mu_d^c']]
+                                ['c', 'g'], ['Kcc', 'Kdd'],
+                                ['Kcd', 'Kdc']]
+        self.variable_combos_backup = [['N_c over N', '[cc] over M', '[cd] over M'],
+                                ['c', 'g'], ['K_c^c', 'K_d^d'],
+                                ['K_c^d', 'K_d^c']]
         self.latex_labels = [['$N_c / N$', '$[cc] / M$', '$[cd] / M$'],
-                             ['$c$', '$g$'],
-                             ['$\mu^{(c)}_c$', '$\mu^{(d)}_d$'],
-                             ['$\mu^{(c)}_d$', '$\mu^{(d)}_c$']]
+                             ['$C$', '$G$'],
+                             ['$K^{(c)}_c$', '$K^{(d)}_d$'],
+                             ['$K^{(c)}_d$', '$K^{(d)}_c$']]
 
         # set opacity for plots of micro data:
         micro_alpha = 0.8
@@ -357,13 +361,22 @@ class plot_routines(object):
                         alpha=0.2)
 
                 # Plot macro data.
-                ldp[2][[variable]] \
-                    .plot(ax=ax,
-                          color=self.colors[k],
-                          legend=False,
-                          style='--',
-                          linewidth=2,
-                          alpha=macro_alpha)
+                try:
+                    ldp[2][[variable]] \
+                        .plot(ax=ax,
+                              color=self.colors[k],
+                              legend=False,
+                              style='--',
+                              linewidth=2,
+                              alpha=macro_alpha)
+                except KeyError:
+                    ldp[2][self.variable_combos_backup[j][k]] \
+                        .plot(ax=ax,
+                              color=self.colors[k],
+                              legend=False,
+                              style='--',
+                              linewidth=2,
+                              alpha=macro_alpha)
 
             ax = axes[ax_id]
             ax.set_ylim([lower_limits[j], upper_limits[j]])
