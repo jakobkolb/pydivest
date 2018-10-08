@@ -226,7 +226,7 @@ def run_experiment(argv):
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    SAMPLE_SIZE = 50 #if not (test or approximate in [2, 3]) else 3
+    SAMPLE_SIZE = 50 if not (test or approximate in [2, 3]) else 3
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,

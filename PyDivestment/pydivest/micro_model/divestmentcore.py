@@ -5,6 +5,8 @@ from itertools import chain
 from random import shuffle
 
 import networkx as nx
+import numpy as np
+import pandas as pd
 from scipy.integrate import odeint
 from scipy.sparse.csgraph import connected_components
 from scipy.stats import linregress
