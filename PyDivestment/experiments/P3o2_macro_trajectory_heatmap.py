@@ -25,7 +25,7 @@ from pydivest.macro_model.integrate_equations_rep \
 from pydivest.micro_model.divestmentcore import DivestmentCore
 
 
-def RUN_FUNC(tau, phi, eps, approximate, test):
+def RUN_FUNC(tau, phi, xi, approximate, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -58,11 +58,11 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
 
     input_params['phi'] = phi
     input_params['tau'] = tau
-    input_params['eps'] = eps
-    input_params['test'] = test
+    input_params['xi'] = xi
+    input_params['test'] = False  # test
 
     # investment_decisions:
-    nopinions = [50, 50]
+    nopinions = [100, 100]
 
     # network:
     N = sum(nopinions)
@@ -102,19 +102,45 @@ def RUN_FUNC(tau, phi, eps, approximate, test):
         if approximate in [0, 1, 4]:
             df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0, t_max)
             df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0, t_max)
+            if test:
+                df3 = even_time_series_spacing(m.get_economic_trajectory(), 201, 0, t_max)
         else:
             df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0, t_max)
             df1 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0, t_max)
+            if test:
+                df3 = df2
 
         for c in df1.columns:
             if c in df2.columns:
                 df2.drop(c, axis=1, inplace=True)
-
-        df_out = pd.concat([df1, df2], axis=1)
+        if not test:
+            df_out = pd.concat([df1, df2], axis=1)
+        else:
+            df_tmp = pd.concat([df1, df2], axis=1)
+            for c in df_tmp.columns:
+                if c in df3.columns:
+                    df3.drop(c, axis=1, inplace=True)
+            df_out = pd.concat([df_tmp, df3], axis=1)
 
         df_out.index.name = 'tstep'
     else:
         df_out = None
+
+    # remove output that is not needed for production plot to write less on database
+    rm_columns = ['mu_c^c','mu_c^d','mu_d^c','mu_d^d','l_c','l_d','r','r_c','r_d',
+                  'w', 'W_c', 'W_d', 'n_c', 'i_c', 'wage', 'r_c_dot', 'r_d_dot', 'K_c', 'K_d', 'P_c',
+                  'P_d', 'L', 'R', 'P_c_cost', 'P_d_cost', 'K_c_cost',
+                  'K_d_cost', 'c_R', 'consensus', 'decision state', 'G_alpha', '[0]',
+                  '[1]', 'c[0]', 'c[1]', 'd[0]', 'd[1]']
+    if not test:
+        for c in ['k_c', 'k_d', 'g', 'c']:
+            rm_columns.append(c)
+
+    for column in df_out.columns:
+        if column in rm_columns:
+            df_out.drop(column, axis=1, inplace=True)
+
+    print(df_out.columns)
 
     return exit_status, df_out
 
@@ -201,13 +227,13 @@ def run_experiment(argv):
 
     phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 21))]
     taus = [round(x, 5) for x in list(np.linspace(.5, 10., 20))]
-    eps = [0.05, 0.01]
+    xis = [0.01, 0.05, 0.06, 0.07]
     tau, phi = [1.], [.5]
 
     if test:
-        PARAM_COMBS = list(it.product(tau, phi, [0.05], [approximate], [test]))
+        PARAM_COMBS = list(it.product(tau, phi, [0.01], [approximate], [test]))
     else:
-        PARAM_COMBS = list(it.product(taus, phis, eps, [approximate], [test]))
+        PARAM_COMBS = list(it.product(taus, phis, xis, [approximate], [test]))
 
     """
     run computation and/or post processing and/or plotting
@@ -221,12 +247,12 @@ def run_experiment(argv):
         run_func_output = pd.read_pickle(SAVE_PATH_RAW + 'rfof.pkl')
     except:
         params = list(PARAM_COMBS[0])
-        params[-1] = False
+        params[-1] = True
         run_func_output = RUN_FUNC(*params)[1]
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    SAMPLE_SIZE = 50 if not (test or approximate in [2, 3]) else 3
+    SAMPLE_SIZE = 10 #if not (test or approximate in [2, 3]) else 3
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,
