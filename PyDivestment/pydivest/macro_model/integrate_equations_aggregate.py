@@ -278,7 +278,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         L = self.dependent_vars['L']
         columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r',
                    'n_c', 'i_c', 'r_c', 'r_d', 'w',
-                   'W_c', 'W_d']
+                   'W_c', 'W_d', 'Y_c', 'Y_d']
         var_expressions = [(self.independent_vars['K_c^c'] + self.independent_vars['K_c^d']) / L,
                            (self.independent_vars['K_d^c'] + self.independent_vars['K_d^d']) / L,
                            self.dependent_vars['Lc'] / L,
@@ -297,7 +297,13 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                            self.dependent_vars['rd'],
                            self.dependent_vars['w'],
                            self.dependent_vars['W_c'] / self.p_n,
-                           self.dependent_vars['W_d'] / self.p_n
+                           self.dependent_vars['W_d'] / self.p_n,
+                           self.p_b_c * self.independent_vars['C']**self.p_xi
+                               *(self.independent_vars['K_c^c'] + self.independent_vars['K_c^d'])**self.p_kappa_c
+                               *self.dependent_vars['Lc']**self.p_pi,
+                           self.p_b_d * (self.independent_vars['K_d^c']
+                              + self.independent_vars['K_d^d']) ** self.p_kappa_c
+                           * self.dependent_vars['Ld'] ** self.p_pi
                            ]
 
         return self.calculate_unified_trajectory(columns=columns,
