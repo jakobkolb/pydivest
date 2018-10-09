@@ -132,9 +132,6 @@ def RUN_FUNC(tau, phi, xi, approximate, test):
                   'P_d', 'L', 'R', 'P_c_cost', 'P_d_cost', 'K_c_cost',
                   'K_d_cost', 'c_R', 'consensus', 'decision state', 'G_alpha', '[0]',
                   '[1]', 'c[0]', 'c[1]', 'd[0]', 'd[1]']
-    if not test:
-        for c in ['k_c', 'k_d', 'g', 'c']:
-            rm_columns.append(c)
 
     for column in df_out.columns:
         if column in rm_columns:

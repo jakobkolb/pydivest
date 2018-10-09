@@ -621,7 +621,7 @@ class Integrate_Equations:
         Starting there, It is probably easiest to just calculate per capita quantities."""
 
         L = self.dependent_vars['L']
-        columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r', 'n_c', 'i_c', 'r_c', 'r_d', 'w']
+        columns = ['k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r', 'n_c', 'i_c', 'r_c', 'r_d', 'w', 'Y_c', 'Y_d']
         var_expressions = [self.independent_vars['Kc'] / L,
                            self.independent_vars['Kd'] / L,
                            self.dependent_vars['Lc'] / L,
@@ -636,7 +636,10 @@ class Integrate_Equations:
                               + self.independent_vars['Kd'] * self.dependent_vars['rd']) / L,
                            self.dependent_vars['rc'],
                            self.dependent_vars['rd'],
-                           self.dependent_vars['w']]
+                           self.dependent_vars['w'],
+                           self.b_c * self.independent_vars['Kc']**self.kappa_c * self.independent_vars['C']**self.xi * self.dependent_vars['Lc']**self.pi,
+                           self.b_d * self.independent_vars['Kd']**self.kappa_d * self.dependent_vars['Ld']**self.pi
+                           ]
         t_values = self.m_trajectory.index.values
         data = np.zeros((len(t_values), len(columns)))
         var_expressions_lambdified = [lambdify(tuple(self.var_symbols), expr) for expr in var_expressions]
