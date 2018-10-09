@@ -551,7 +551,8 @@ class IntegrateEquations:
                 self.progress(i, len(t_values), 'calculating dependant variables')
             Yi = self.m_trajectory.loc[t]
             try:
-                data[i, :] = [expr(*Yi.values[:9]) for expr in var_expressions_lambdified]
+                dt = [expr(*Yi.values[:9]) for expr in var_expressions_lambdified]
+                data[i, :] = dt
             except TypeError:
                 # catching double entries from piecewise runs
                 # resulting in end of one piece and start of

@@ -6,7 +6,10 @@ import pandas as pd
 import sympy as sp
 from scipy.integrate import odeint
 
-from .integrate_equations import IntegrateEquations
+try:
+    from .integrate_equations import IntegrateEquations
+except ModuleNotFoundError:
+    from integrate_equations import IntegrateEquations
 
 
 class IntegrateEquationsAggregate(IntegrateEquations):
@@ -309,3 +312,34 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         return self.calculate_unified_trajectory(columns=columns,
                                                  var_expressions=var_expressions)
 
+
+if __name__ == "__main__":
+    import networkx as nx
+
+    # investment_decisions:
+    nopinions = [100, 100]
+
+    # network:
+    N = sum(nopinions)
+    k = 10
+
+    # building initial conditions
+    p = float(k) / N
+    while True:
+        net = nx.erdos_renyi_graph(N, p)
+        if len(list(net)) > 1:
+            break
+    adjacency_matrix = nx.adj_matrix(net).toarray()
+    investment_decisions = np.random.randint(low=0, high=2, size=N)
+
+    clean_investment = np.ones(N) * 50. / float(N)
+    dirty_investment = np.ones(N) * 50. / float(N)
+
+    init_conditions = (adjacency_matrix, investment_decisions,
+                       clean_investment, dirty_investment)
+
+    m = IntegrateEquationsAggregate(*init_conditions)
+
+    m.run(t_max=10)
+
+    trj = m.get_unified_trajectory()
