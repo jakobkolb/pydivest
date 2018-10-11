@@ -205,12 +205,12 @@ def run_experiment(argv):
 
     b_ds = [round(x, 5) for x in list(np.linspace(1., 4., 4))]
     b_Rs = [round(x, 5) for x in list(np.linspace(.1, .3, 3))]
-    xis = [round(x, 5) for x in list(np.linspace(.0, .8, 81))]
+    xis = [round(x, 5) for x in list(np.linspace(.0, .08, 81))]
 
     if test:
         PARAM_COMBS = list(it.product(list(np.linspace(3., 4., 4)),
                                       list(np.linspace(.1, .3, 3)),
-                                      list(np.linspace(.0, .8, 9)), [approximate], [test]))
+                                      list(np.linspace(.0, .08, 9)), [approximate], [test]))
     else:
         PARAM_COMBS = list(it.product(b_ds, b_Rs, xis, [approximate], [test]))
 

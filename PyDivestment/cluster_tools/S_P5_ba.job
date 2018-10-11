@@ -1,18 +1,18 @@
 #!/bin/bash
 #SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
 #SBATCH --qos=short
-#SBATCH --job-name=P4_agg
-#SBATCH --output=%A_P4_agg.out
-#SBATCH --error=%A_P4_agg.err
+#SBATCH --job-name=P5_ba
+#SBATCH --output=%A_P5_ba.out
+#SBATCH --error=%A_P5_ba.err
 #SBATCH --nodes=2
-#SBATCH --tasks-per-node=12
+#SBATCH --tasks-per-node=11
 
 
 module load hpc/2015 anaconda/5.0.0_py3
 export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
 export OMP_NUM_THREADS=1
 
-source activate pyds
+source activate py36
 
 echo "_______________________________________________"
 echo "SLURM JOB ID: $SLURM_JOBID"
@@ -21,4 +21,4 @@ echo "_______________________________________________"
 
 cd ../experiments
 
-srun -n $SLURM_NTASKS python P4_parameter_scan.py 0
+srun -n $SLURM_NTASKS python P5_Bifurcation_analysis.py 0

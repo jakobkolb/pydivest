@@ -287,8 +287,8 @@ class plot_routines(object):
                   figsize=(8, 6)):
 
         self.variable_combos = [['N_c over N', '[cc] over M', '[cd] over M'],
-                                ['c', 'g'], ['Kcc', 'Kdd'],
-                                ['Kcd', 'Kdc']]
+                                ['c', 'g'], ['K_c^c', 'K_d^d'],
+                                ['K_c^d', 'K_d^c']]
         self.variable_combos_backup = [['N_c over N', '[cc] over M', '[cd] over M'],
                                 ['c', 'g'], ['K_c^c', 'K_d^d'],
                                 ['K_c^d', 'K_d^c']]

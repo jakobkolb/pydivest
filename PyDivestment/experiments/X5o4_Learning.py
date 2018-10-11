@@ -515,7 +515,7 @@ if mode == 2:
     SAMPLE_SIZE = 100
     handle = experiment_handling(
             SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
-    # handle.compute(RUN_FUNC)
+    # handle.compute(run_func)
     # handle.resave(EVA1, NAME1)
     # handle.resave(EVA2, NAME2)
     # plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)

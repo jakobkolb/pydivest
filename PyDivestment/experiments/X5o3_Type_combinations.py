@@ -529,7 +529,7 @@ if mode == 2:
     SAMPLE_SIZE = 100
     handle = experiment_handling(
             SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
-    #handle.compute(RUN_FUNC)
+    #handle.compute(run_func)
     #handle.resave(EVA1, NAME1)
     #handle.resave(EVA2, NAME2)
     plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,

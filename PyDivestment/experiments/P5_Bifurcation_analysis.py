@@ -6,6 +6,9 @@ xi: the elasticity of knowledge in the clean sector.
 to see, which of the two sectors dominates.
 """
 
+import matplotlib
+matplotlib.use('Agg')
+
 import getpass
 import itertools as it
 import os
@@ -14,6 +17,7 @@ from pathlib import Path
 import PyDSTool as pdt
 import sympy as sp
 import matplotlib.pyplot as plt
+
 
 import networkx as nx
 import numpy as np
@@ -140,7 +144,7 @@ def RUN_FUNC(b_d, test):
     fig.savefig(f'lp_manifold_xi_vs_C_with_bd={b_d}.png')
 
     exit_status = 1
-    df_out = pd.DataFrame(PC['EQ1'].todict()).set_index('xi')
+    df_out = pd.DataFrame(PC['EQ1'].sol.todict()).set_index('xi')
 
     return exit_status, df_out
 
@@ -198,7 +202,7 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    folder = 'P4'
+    folder = 'P5'
 
     # make sure, testing output goes to its own folder:
 
@@ -214,7 +218,7 @@ def run_experiment(argv):
     b_ds = [round(x, 5) for x in list(np.linspace(1., 4., 41))]
 
     if test:
-        PARAM_COMBS = list(it.product([3.], [test]))
+        PARAM_COMBS = list(it.product([3.5], [test]))
     else:
         PARAM_COMBS = list(it.product(b_ds, [test]))
 
