@@ -244,7 +244,7 @@ def run_experiment(argv):
         run_func_output = pd.read_pickle(SAVE_PATH_RAW + 'rfof.pkl')
     except:
         params = list(PARAM_COMBS[0])
-        params[-1] = True
+
         run_func_output = RUN_FUNC(*params)[1]
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
@@ -261,22 +261,22 @@ def run_experiment(argv):
 
     # define eva functions
 
-    def mean(tau, phi, eps, approximate, test):
+    def mean(tau, phi, xi, approximate, test):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = 'tau={} & phi={} & eps={} & approximate={} & test={}'.format(tau, phi, eps, approximate, test)
+        query = 'tau={} & phi={} & xi={} & approximate={} & test={}'.format(tau, phi, xi, approximate, test)
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
 
         return 1, trj.groupby(level='tstep').mean()
 
-    def std(tau, phi, eps, approximate, test):
+    def std(tau, phi, xi, approximate, test):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = 'tau={} & phi={} & eps={} & approximate={} & test={}'.format(tau, phi, eps, approximate, test)
+        query = 'tau={} & phi={} & xi={} & approximate={} & test={}'.format(tau, phi, xi, approximate, test)
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
