@@ -21,6 +21,8 @@ from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquation
 from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as IntegrateEquationsRep
 from pydivest.micro_model.divestmentcore import DivestmentCore
 
+from parameters import ExperimentDefaults
+
 
 def RUN_FUNC(b_d, b_R, xi, approximate, test):
     """
@@ -50,15 +52,7 @@ def RUN_FUNC(b_d, b_R, xi, approximate, test):
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'phi': .4, 'tau': 1.,
-                    'eps': 0.05, 'b_d': 3.5, 'e': 1.,
-                    'b_r0': 0.2,
-                    'possible_cue_orders': [[0], [1]],
-                    'xi': 1. / 8., 'beta': 0.06,
-                    'L': 100., 'C': 1., 'G_0': 500000.,
-                    'campaign': False, 'learning': True,
-                    'interaction': 1, 'test': False,
-                    'R_depletion': True}
+    input_params = ExperimentDefaults.input_params
 
     input_params['b_d'] = b_d
     input_params['b_r0'] = b_R
@@ -66,7 +60,7 @@ def RUN_FUNC(b_d, b_R, xi, approximate, test):
     input_params['test'] = test
 
     # investment_decisions:
-    nopinions = [25, 25]
+    nopinions = [50, 50]
 
     # network:
     N = sum(nopinions)
@@ -97,7 +91,7 @@ def RUN_FUNC(b_d, b_R, xi, approximate, test):
     else:
         raise ValueError('approximate must be in [1, 2, 3] but is {}'.format(approximate))
 
-    t_max = 200
+    t_max = 300
     exit_status = m.run(t_max=t_max)
 
     # transition phase with resource depletion
@@ -119,6 +113,17 @@ def RUN_FUNC(b_d, b_R, xi, approximate, test):
         df_out.index.name = 'tstep'
     else:
         df_out = None
+
+    # remove output that is not needed for production plot to write less on database
+    rm_columns = ['mu_c^c', 'mu_c^d', 'mu_d^c', 'mu_d^d', 'l_c', 'l_d', 'r', 'r_c', 'r_d',
+                  'w', 'W_c', 'W_d', 'n_c', 'i_c', 'wage', 'r_c_dot', 'r_d_dot', 'K_c', 'K_d', 'P_c',
+                  'P_d', 'L', 'R', 'P_c_cost', 'P_d_cost', 'K_c_cost',
+                  'K_d_cost', 'c_R', 'consensus', 'decision state', 'G_alpha', '[0]',
+                  '[1]', 'c[0]', 'c[1]', 'd[0]', 'd[1]']
+
+    for column in df_out.columns:
+        if column in rm_columns:
+            df_out.drop(column, axis=1, inplace=True)
 
     return exit_status, df_out
 
@@ -198,16 +203,14 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    b_ds = [round(x, 5) for x in list(np.linspace(1., 4., 21))]
-    b_Rs = [round(x, 5) for x in list(np.linspace(.1, .3, 21))]
-    xis = [round(x, 5) for x in list(np.linspace(.0, .1, 21))]
-    eps = [0.05, 0.01]
-    tau, phi = [1.], [.8]
+    b_ds = [round(x, 5) for x in list(np.linspace(1., 4., 4))]
+    b_Rs = [round(x, 5) for x in list(np.linspace(.1, .3, 3))]
+    xis = [round(x, 5) for x in list(np.linspace(.0, .8, 81))]
 
     if test:
-        PARAM_COMBS = list(it.product(list(np.linspace(3., 4., 6)),
-                                      list(np.linspace(.1, .3, 6)),
-                                      list(np.linspace(.0, .25, 6)), [approximate], [test]))
+        PARAM_COMBS = list(it.product(list(np.linspace(3., 4., 4)),
+                                      list(np.linspace(.1, .3, 3)),
+                                      list(np.linspace(.0, .8, 9)), [approximate], [test]))
     else:
         PARAM_COMBS = list(it.product(b_ds, b_Rs, xis, [approximate], [test]))
 
@@ -228,7 +231,7 @@ def run_experiment(argv):
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    SAMPLE_SIZE = 2 if (test or approximate in [2, 3]) else 5
+    SAMPLE_SIZE = 10 if (test or approximate in [2, 3]) else 5
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,
