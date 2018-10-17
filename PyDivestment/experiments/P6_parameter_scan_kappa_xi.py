@@ -218,7 +218,7 @@ def run_experiment(argv):
 
         pd.to_pickle(run_func_output, SAVE_PATH_RAW+'rfof.pkl')
 
-    SAMPLE_SIZE = 50 if (test or approximate in [2, 3]) else 10
+    SAMPLE_SIZE = 10 if (test or approximate in [2, 3]) else 50
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=run_func,
