@@ -377,6 +377,13 @@ class DivestmentCore:
         if self.switchlist_output:
             self.init_switchlist()
 
+        self.total_events = 0.
+        self.imitation_events = 0.
+        self.adaptation_events = 0.
+        self.noise_imitation_events = 0.
+        self.noise_adaptation_events = 0.
+        self.rate_data = None
+
     @staticmethod
     def cue_0(i):
         """
@@ -882,6 +889,7 @@ class DivestmentCore:
             if self.m_trajectory_output:
                 self.update_mean_trajectory()
                 self.update_aggregate_trajectory()
+            self.update_event_rate_data()
 
     def find_update_candidates(self):
 
@@ -907,24 +915,32 @@ class DivestmentCore:
             self.waiting_times[candidate] += \
                 np.random.exponential(scale=self.tau)
 
-            # load neighborhood of household i
-            neighbors = self.neighbors[:, candidate].nonzero()[0]
+            # count household activation event:
+            self.total_events += 1./self.n
 
-            # noise in imitation (exploration of strategies)
-            # people trying new stuff at random
+            # determine if event is a noise event.
             rdn = np.random.uniform()
 
+            # with prob. eps*(1-phi) it is a noise imitation event:
+            # and the household choses its strategy uniformly from
+            # the available strategies.
             if rdn < self.eps * (1 - self.phi) and self.imitation:
+                # save old opinion
                 old_opinion = self.opinions[candidate]
-                new_opinion = np.random.randint(
-                    len(self.possible_que_orders))
+                # determine new opinion
+                new_opinion = np.random.randint(len(self.possible_que_orders))
                 self.opinions[candidate] = new_opinion
+                # if required save switching data
                 if old_opinion != new_opinion and self.switchlist_output:
                     self.save_switch(candidate, old_opinion)
+                # and count event to determine rates - if it changes macro properties.
+                if old_opinion != new_opinion:
+                    self.noise_imitation_events += 1./self.n
                 candidate = -1
                 break
 
-            # noise in rewiring (sometimes they make new friends at random..)
+            # with prob. p = eps*phi it is a noise adaptation event
+            # and the household rewires to a random new neighbor.
             elif rdn > 1. - self.eps * self.phi and len(neighbors) > 0:
                 unconnected = np.zeros(self.n, dtype=int)
                 for i in range(self.n):
@@ -938,8 +954,16 @@ class DivestmentCore:
                         self.neighbors[old_neighbor, candidate] = 0
                     self.neighbors[candidate, new_neighbor] = \
                         self.neighbors[new_neighbor, candidate] = 1
+                    # count event, if it changed macro properties
+                    old_opinion = self.opinions[old_neighbor]
+                    new_opinion = self.opinions[new_neighbor]
+                    if new_opinion != old_opinion:
+                        self.noise_adaptation_events += 1./self.n
                 candidate = -1
                 break
+
+            # load neighborhood of household i
+            neighbors = self.neighbors[:, candidate].nonzero()[0]
 
             # if candidate has neighbors, chose one at random.
             if len(neighbors) > 0:
@@ -978,8 +1002,9 @@ class DivestmentCore:
         # adapt or rewire?
         if (self.phi == 1 or (self.phi != 1
                               and np.random.uniform() < self.phi)):
-            # if rewire
+            # rewire:
             for i in range(self.n):
+                # find potential new neighbors:
                 # campaigners rewire to everybody
                 if (self.campaign is True and
                             opinion[candidate] == len(self.possible_que_orders)):
@@ -991,13 +1016,18 @@ class DivestmentCore:
                         same_unconnected[i] = 1
             same_unconnected = same_unconnected.nonzero()[0]
             if len(same_unconnected) > 0:
+                # if there are potential new neighbors, connect to one of them:
+                # 1) select neighbor
                 new_neighbor = np.random.choice(same_unconnected)
+                # 2) update network
                 self.neighbors[candidate, neighbor] = \
                     self.neighbors[neighbor, candidate] = 0
                 self.neighbors[candidate, new_neighbor] = \
                     self.neighbors[new_neighbor, candidate] = 1
+                # 3) count event (and normalize to get the rate)
+                self.adaptation_events += 1./self.n
         else:
-            # if adapt
+            # adapt:
             # compare fitness
             Wi = self.fitness(candidate)
             Wj = self.fitness(neighbor)
@@ -1011,13 +1041,17 @@ class DivestmentCore:
                 p_imitate = .5
             else:
                 raise ValueError('interaction not defined, must be in [0, 1, 2] but is {}'.format(self.interaction))
-            # and imitate, if not a campaigner
+            # and determine wheter imitation happens:
             if ((self.campaign is False or opinion[candidate] != (len(self.possible_cue_orders) - 1))
                     and (np.random.uniform() < p_imitate)
                     and self.imitation):
+                    # copy opinion
+                    self.opinions[candidate] = self.opinions[neighbor]
+                    # count event:
+                    self.imitation_events += 1./self.n
+                    # and if required, save imitation data.
                     if self.switchlist_output:
                         self.save_switch(candidate, self.opinions[candidate])
-                    self.opinions[candidate] = self.opinions[neighbor]
         return 0
 
     def update_decision_making(self):
@@ -1245,6 +1279,7 @@ class DivestmentCore:
         x = float(nc - nd) / n
         y = float(cc - dd) / k
         z = float(cd) / k
+        print(z, cd, k)
 
         if nc > 0:
             mucc = sum(self.investment_decisions * self.investment_clean) / nc
@@ -1297,7 +1332,7 @@ class DivestmentCore:
 
         def cl(adj, x, y):
             """
-            calculate number of links between like links in x and y
+            calculate number of links between x and y
             :param adj: adjacency matrix
             :param x: node vector
             :param y: node vector
@@ -1314,10 +1349,10 @@ class DivestmentCore:
         # number of nodes aka. N
         n = self.n
         # number of edges, aka. M
-        k = float(sum(sum(self.neighbors))) / 2
+        k = float(sum(sum(adj))) / 2
 
-        nc = sum(self.investment_decisions)
-        nd = sum(- self.investment_decisions + 1)
+        nc = sum(c)
+        nd = sum(d)
 
         cc = cl(adj, c, c) / 2
         cd = cl(adj, c, d)
@@ -1385,6 +1420,23 @@ class DivestmentCore:
         df = df.set_index('time')
 
         return df
+
+    def update_event_rate_data(self):
+        """write rate data to trajectory"""
+        if self.rate_data is None:
+            self.rate_data = [['time', 'E_tot', 'E_i', 'E_in', 'E_a', 'E_an']]
+            self.rate_data.append([0, 0, 0, 0, 0])
+        else:
+            self.rate_data.append([self.t, self.total_events,
+                                   self.imitation_events, self.noise_imitation_events,
+                                   self.adaptation_events, self.noise_adaptation_events])
+
+    def get_event_rate_data(self):
+        """return dataframe with event rate data and time as index values"""
+        columns = self.rate_data[0]
+        df = pd.DataFrame(self.rate_data[1:], columns=columns)
+
+        return df.set_index('time')
 
     def get_unified_trajectory(self):
         """
@@ -1558,3 +1610,11 @@ if __name__ == '__main__':
 
     fig.tight_layout()
     fig.savefig('example_trajectory.png')
+
+    rates = model.get_event_rate_data()
+
+    print(rates)
+
+    figs, axes = mp.subplots(1)
+    rates.plot(ax=axes)
+    figs.savefig('rate_data.png')

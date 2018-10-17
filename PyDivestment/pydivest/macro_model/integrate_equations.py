@@ -112,6 +112,11 @@ class IntegrateEquations:
     p9 = epsilon * phi * Nd / N * (2 * dd) / (2 * dd + cd) * Nc / N  # rewiring noise d-d -> d-c
     p10 = epsilon * phi * Nd / N * cd / (2 * dd + cd) * Nd / N  # rewiring noise d-c -> d-d
 
+    W_imitation = (p3 + p4)/tau
+    W_imitation_noise = (p5 + p6)/tau
+    W_adaptation = (p1 + p2)/tau
+    W_adaptation_noise = (p7 + p8 + p9 + p10)/tau
+
     # Switching terms for economic subsystem (total rate of households
     # changing from clean to dirty investment and vice versa)
     dtNcd = N / tau * (p3 + p5)
@@ -316,32 +321,37 @@ class IntegrateEquations:
             """
             assert len(x) == len(y)
 
-            n = len(x)
-            ccc = 0
+            # n = len(x)
+            # ccc = 0
+            #
+            # for i in range(n):
+            #     for j in range(n):
+            #         ccc += x[i] * adj[i, j] * y[j]
+            #
+            # return float(ccc)
 
-            for i in range(n):
-                for j in range(n):
-                    ccc += x[i] * adj[i, j] * y[j]
-
-            return float(ccc)
+            return float(np.dot(x, np.dot(adj, y)))
 
         adj = adjacency
         c = self.investment_decisions
         d = - self.investment_decisions + 1
 
-        cc = cl(adj, c, c) / 2
-        cd = cl(adj, c, d)
-        dd = cl(adj, d, d) / 2
-
+        # number of nodes N
         n = len(c)
+        # number of links M
         k = float(sum(sum(adj))) / 2
 
         nc = sum(c)
         nd = sum(d)
 
+        cc = cl(adj, c, c) / 2
+        cd = cl(adj, c, d)
+        dd = cl(adj, d, d) / 2
+
         self.v_x = float(nc - nd) / n
         self.v_y = float(cc - dd) / k
         self.v_z = float(cd) / k
+        print(self.v_z, cd, k)
 
         self.v_c = float(self.v_C) / n
         self.v_g = self.p_g_0
@@ -423,7 +433,9 @@ class IntegrateEquations:
                                    'R': self.R, 'Kd': self.Kd, 'Kc': self.Kc,
                                    'Lc': self.Pc, 'Ld': self.Pd, 'L': self.P, 'rs': self.rs,
                                    'W_d': self.Wd, 'W_c': self.Wc, 'Pcd': self.Pcd, 'Pdc': self.Pdc,
-                                   'l': self.p, 'Nc': self.Nc, 'Nd': self.Nd, 'P': self.P}
+                                   'l': self.p, 'Nc': self.Nc, 'Nd': self.Nd, 'P': self.P,
+                                   'W_i': self.W_imitation, 'W_in': self.W_imitation_noise,
+                                   'W_a': self.W_adaptation, 'W_an': self.W_adaptation_noise}
 
         # Some dummy attributes to be specified by child classes.
         self.rhs_raw = None

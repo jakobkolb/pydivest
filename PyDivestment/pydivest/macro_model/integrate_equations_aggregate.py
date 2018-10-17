@@ -227,8 +227,11 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                                   self.v_Kcc, self.v_Kcd,
                                   self.v_Kdc, self.v_Kdd,
                                   self.v_C, self.v_G]
+            print(initial_conditions)
 
             trajectory = odeint(self.dot_rhs, initial_conditions, t)
+
+            print(trajectory)
 
             df = pd.DataFrame(trajectory, index=t, columns=self.var_names)
             self.m_trajectory = pd.concat([self.m_trajectory, df])
@@ -312,9 +315,36 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         return self.calculate_unified_trajectory(columns=columns,
                                                  var_expressions=var_expressions)
 
+    def get_event_rate_data(self):
+        """
+                Calculate unified trajectory in per capita variables
+
+                Returns
+                -------
+                Dataframe of unified per capita variables if calculation succeeds,
+                else return -1 for TypeError and -2 for ValueError
+                """
+
+        columns = ['W_tot', 'W_i', 'W_in', 'W_a', 'W_an']
+        var_expressions = [1./self.p_tau,
+                           self.dependent_vars['W_i'],
+                           self.dependent_vars['W_in'],
+                           self.dependent_vars['W_a'],
+                           self.dependent_vars['W_an']
+                           ]
+
+        print(var_expressions)
+
+        df_out = self.calculate_unified_trajectory(columns=columns,
+                                                 var_expressions=var_expressions)
+
+        return(df_out)
+
+
 
 if __name__ == "__main__":
     import networkx as nx
+    import matplotlib.pyplot as plt
 
     # investment_decisions:
     nopinions = [100, 100]
@@ -338,8 +368,15 @@ if __name__ == "__main__":
     init_conditions = (adjacency_matrix, investment_decisions,
                        clean_investment, dirty_investment)
 
-    m = IntegrateEquationsAggregate(*init_conditions)
+    m = IntegrateEquationsAggregate(*init_conditions, test=True)
 
     m.run(t_max=10)
 
-    trj = m.get_unified_trajectory()
+    print('done runnin')
+
+    fig, ax = plt.subplots(1)
+
+    trj = m.get_event_rate_data()
+    print(trj)
+    trj.plot(ax=ax)
+    plt.show()
