@@ -59,7 +59,7 @@ class IntegrateEquations:
     Kc, Kd = sp.symbols('K_c K_d', positive=True, real=True)
     w, rc, rd = sp.symbols('w r_c r_d', positive=True, real=True)
     R, G, C = sp.symbols('R, G, C', positive=True, real=True)
-    rs, delta, pi, kappac, kappad, xi = sp.symbols('s delta pi kappa_c, kappa_d xi', positive=True, rational=True,
+    rs, delta_k, delta_c, pi, kappac, kappad, xi = sp.symbols('s delta_k delta_c pi kappa_c kappa_d xi', positive=True, rational=True,
                                                    real=True)
     bc, bd, bR, e, G0 = sp.symbols('b_c b_d b_R e G_0', positive=True, real=True)
     Xc, Xd, XR = sp.symbols('X_c X_d X_R', positive=True, real=True)
@@ -153,14 +153,14 @@ class IntegrateEquations:
              XR: (1. - bR / e * (G0 / G) ** 2) ** (1. / (1 - pi))}
 
     # Define lists of symbols for parameters to substitute in rhs expression
-    param_symbols = [bc, bd, bR, e, rs, delta, pi, kappac, kappad, xi, g0, p, G0, P,
+    param_symbols = [bc, bd, bR, e, rs, delta_k, delta_c, pi, kappac, kappad, xi, g0, p, G0, P,
                      epsilon, phi, tau, k, N]
 
     def __init__(self, adjacency=None, investment_decisions=None,
                  investment_clean=None, investment_dirty=None,
                  tau=0.8, phi=.7, eps=0.05,
                  pi=0.5, kappa_c=0.5, kappa_d=0.5, xi=1. / 8.,
-                 L=100., b_c=1., b_d=1.5, s=0.23, d_c=0.06,
+                 L=100., b_c=1., b_d=1.5, s=0.23, d_k=0.06, d_c=0.06,
                  b_r0=1., e=10, G_0=3000, C=1,
                  R_depletion=True, test=False, interaction=1,
                  **kwargs):
@@ -190,8 +190,10 @@ class IntegrateEquations:
             Solow residual of the production function of the dirty sector
         s: float
             Savings rate of the households
-        d_c: float
+        d_k: float
             Capital depreciation rate
+        d_c: float
+            Knowledge depreciation rate
         b_r0: float
             Resource cost factor
         e: float
@@ -246,12 +248,10 @@ class IntegrateEquations:
 
         # Sector parameters
 
-        # Clean capital depreciation rate
-        self.p_d_c = float(d_c)
-        # Dirty capital depreciation rate
-        self.p_d_d = float(self.p_d_c)
+        # Capital depreciation rate
+        self.p_d_k = float(d_k)
         # knowledge depreciation rate
-        self.p_beta = float(self.p_d_c)
+        self.p_d_c = float(d_c)
         # Resource harvest cost per unit (at full resource stock)
         self.p_b_r0 = float(b_r0)
         # percentage of income saved
@@ -374,18 +374,19 @@ class IntegrateEquations:
         # economy respectively, hoping to get a decent approximation in the entire
         # reachable phase space.
 
+        # TODO: check these expressions for different deprecation rates for capital and knowledge
         # equilibrium clean capital in full clean economy:
         Kc_star = (self.rs **(1 - self.xi)
-                   * self.bc/self.delta
+                   * self.bc/self.delta_k
                    * self.P**self.pi
                    )**(1./(1.-self.kappac - self.xi))
         # equilibrium knowledge stock in full clean economy:
         C_star = (self.rs**self.kappac
-                  * self.bc/self.delta
+                  * self.bc/self.delta_k
                   * self.P**self.pi
                   )**(1./(1. - self.kappac - self.xi))
         # equilibrium dirty capital in full dirty economy:
-        Kd_star = (self.rs * self.bc/self.delta
+        Kd_star = (self.rs * self.bc/self.delta_k
                    * (1. - self.bR/self.e)
                    * (self.kappad + self.pi)
                    * self.P**self.pi
@@ -463,7 +464,7 @@ class IntegrateEquations:
 
     def list_parameters(self):
         # link parameter symbols to values,
-        self.param_values = [self.p_b_c, self.p_b_d, self.p_b_r0, self.p_e, self.p_s, self.p_d_c, self.p_pi,
+        self.param_values = [self.p_b_c, self.p_b_d, self.p_b_r0, self.p_e, self.p_s, self.p_d_k, self.p_d_c, self.p_pi,
                              self.p_kappa_c, self.p_kappa_d, self.p_xi, self.p_g_0, self.p_l, self.p_G_0, self.p_P,
                              self.p_eps, self.p_phi, self.p_tau, self.p_k, 1.]
 
@@ -489,8 +490,6 @@ class IntegrateEquations:
             self.dependent_vars[key] = self.dependent_vars_raw[key].subs(self.subs_params)
         if self.p_test:
             print('sucessfull')
-
-
 
     def dot_rhs(self, values, t):
         """
