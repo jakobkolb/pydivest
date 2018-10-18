@@ -28,7 +28,7 @@ from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquation
 
 from parameters import ExperimentDefaults
 
-def RUN_FUNC(b_d, test):
+def RUN_FUNC(b_d, kappa_c, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -40,6 +40,8 @@ def RUN_FUNC(b_d, test):
     -----------
     b_d: float
         total factor productivity in the dirty sector
+    kappa_c: float
+        elasticity of capital in the clean sector
     test: int \in [0,1]
         whether this is a test run, e.g.
         can be executed with lower runtime
@@ -50,7 +52,8 @@ def RUN_FUNC(b_d, test):
     input_params = ExperimentDefaults.input_params
 
     input_params['b_d'] = b_d
-    input_params['xi'] = 0.05
+    input_params['kappa_c'] = kappa_c
+    input_params['xi'] = 0.
     input_params['test'] = test
 
     # investment_decisions:
@@ -74,6 +77,8 @@ def RUN_FUNC(b_d, test):
 
     init_conditions = (adjacency_matrix, investment_decisions,
                        clean_investment, dirty_investment)
+    if test:
+        print('initializing model')
 
     m = IntegrateEquationsAggregate(*init_conditions, **input_params)
 
@@ -114,6 +119,9 @@ def RUN_FUNC(b_d, test):
 
     initial_conditions['C'] = 1
 
+    if test:
+        print('initializing curve')
+
     DSargs.pars = params_updated
     DSargs.varspecs = equations_updated
     DSargs.ics = initial_conditions
@@ -127,24 +135,36 @@ def RUN_FUNC(b_d, test):
     PC = pdt.ContClass(ode)
     PCargs = pdt.args(name='EQ1', type='EP-C')
     PCargs.freepars = ['xi']
-    PCargs.MaxNumPoints = 20000
+    PCargs.MaxNumPoints = 100000 if not test else 100
     PCargs.MaxStepSize = 2
     PCargs.MinStepSize = 1e-10
     PCargs.StepSize = 2e-3
     PCargs.SaveEigen = True
     PCargs.LocBifPoints = 'LP'
-    PCargs.StopAtPoints = 'LP'
     PC.newCurve(PCargs)
+
+    if test:
+        print('continuation')
     PC['EQ1'].forward()
+
+    if test:
+        print('plotting')
 
     res = PC['EQ1'].display(stability=True, figure='fig1', axes='somename')
     fig = plt.gcf()
     ax = plt.gca()
     ax.set_title(f'Limit Point Manyfold for b_d={b_d}')
-    fig.savefig(f'lp_manifold_xi_vs_C_with_bd={b_d}.png')
+    fig.savefig(f'lp_manifold_xi_vs_C_with_bd={b_d:.3f}_kappac={kappa_c:.3f}.png')
 
     exit_status = 1
+
+    if test:
+        print('getting output')
+
     df_out = pd.DataFrame(PC['EQ1'].sol.todict()).set_index('xi')
+
+    if test:
+        print(df_out)
 
     return exit_status, df_out
 
@@ -215,12 +235,13 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    b_ds = [round(x, 5) for x in list(np.linspace(1., 4., 41))]
+    b_ds = [round(x, 5) for x in list(np.linspace(3., 4., 11))]
+    kappa_cs = [round(x, 5) for x in list(np.linspace(.4, .5, 3))]
 
     if test:
-        PARAM_COMBS = list(it.product([3.5], [test]))
+        PARAM_COMBS = list(it.product([3.2], [.4, .5], [test]))
     else:
-        PARAM_COMBS = list(it.product(b_ds, [test]))
+        PARAM_COMBS = list(it.product(b_ds, kappa_cs, [test]))
 
     """
     run computation and/or post processing and/or plotting
@@ -234,7 +255,7 @@ def run_experiment(argv):
         run_func_output = pd.read_pickle(SAVE_PATH_RAW + 'rfof.pkl')
     except:
         params = list(PARAM_COMBS[0])
-        params[-1] = False
+        params[-1] = True
         run_func_output = RUN_FUNC(*params)[1]
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)

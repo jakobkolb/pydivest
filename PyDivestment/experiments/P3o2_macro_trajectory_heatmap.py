@@ -25,7 +25,7 @@ from pydivest.macro_model.integrate_equations_rep \
 from pydivest.micro_model.divestmentcore import DivestmentCore
 
 
-def RUN_FUNC(tau, phi, xi, approximate, test):
+def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -39,8 +39,10 @@ def RUN_FUNC(tau, phi, xi, approximate, test):
         the frequency of social interactions
     phi : float \in [0,1]
         the rewiring probability for the network update
-    eps : float
-        the fraction of opinion formation events that is random
+    xi : float
+        elasticity of knowledge in the clean sector
+    kappa_c: float
+        elasticity of capital in the clean sector
     approximate: bool
         if True: run macroscopic approximation
         if False: run micro-model
@@ -59,6 +61,7 @@ def RUN_FUNC(tau, phi, xi, approximate, test):
     input_params['phi'] = phi
     input_params['tau'] = tau
     input_params['xi'] = xi
+    input_params['kappa_c'] = kappa_c
     input_params['test'] = False  # test
 
     # investment_decisions:
@@ -222,15 +225,16 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 21))]
-    taus = [round(x, 5) for x in list(np.linspace(.5, 10., 20))]
+    phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 11))]
+    taus = [round(x, 5) for x in list(np.linspace(.5, 10., 10))]
     xis = [round(x, 5) for x in list(np.linspace(.01, .07, 7))]
+    kappa_cs = [0.4, 0.5]
     tau, phi = [1.], [.5]
 
     if test:
-        PARAM_COMBS = list(it.product(tau, phi, [0.01], [approximate], [test]))
+        PARAM_COMBS = list(it.product(tau, phi, [0.01], [0.4], [approximate], [test]))
     else:
-        PARAM_COMBS = list(it.product(taus, phis, xis, [approximate], [test]))
+        PARAM_COMBS = list(it.product(taus, phis, xis, kappa_cs, [approximate], [test]))
 
     """
     run computation and/or post processing and/or plotting
