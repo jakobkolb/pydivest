@@ -95,6 +95,7 @@ class DivestmentCore:
             if 0: tanh(Wi-Wj) interaction,
             if 1: interaction as in Traulsen, 2010 but with relative differences
             if 2: (Wi-Wj)/(Wi+Wj) interaction.
+            if 3: random imitation e.g. p_cd = p_dc = .5
         t_trend: float
             length of running window average that chartes use to predict trends
         """
@@ -378,9 +379,13 @@ class DivestmentCore:
             self.init_switchlist()
 
         self.total_events = 0.
-        self.imitation_events = 0.
+
+        self.imitation_cd_events = 0.
+        self.imitation_dc_events = 0.
+        self.noise_imitation_cd_events = 0.
+        self.noise_imitation_dc_events = 0.
+
         self.adaptation_events = 0.
-        self.noise_imitation_events = 0.
         self.noise_adaptation_events = 0.
         self.rate_data = None
 
@@ -935,7 +940,10 @@ class DivestmentCore:
                     self.save_switch(candidate, old_opinion)
                 # and count event to determine rates - if it changes macro properties.
                 if old_opinion != new_opinion:
-                    self.noise_imitation_events += 1./self.n
+                    if new_opinion == 1:
+                        self.noise_imitation_dc_events += 1. / self.n
+                    else:
+                        self.noise_imitation_cd_events += 1. / self.n
                 candidate = -1
                 break
 
@@ -1048,7 +1056,10 @@ class DivestmentCore:
                     # copy opinion
                     self.opinions[candidate] = self.opinions[neighbor]
                     # count event:
-                    self.imitation_events += 1./self.n
+                    if self.opinions[candidate] == 1:
+                        self.imitation_dc_events += 1. / self.n
+                    else:
+                        self.imitation_cd_events += 1. / self.n
                     # and if required, save imitation data.
                     if self.switchlist_output:
                         self.save_switch(candidate, self.opinions[candidate])
@@ -1279,7 +1290,6 @@ class DivestmentCore:
         x = float(nc - nd) / n
         y = float(cc - dd) / k
         z = float(cd) / k
-        print(z, cd, k)
 
         if nc > 0:
             mucc = sum(self.investment_decisions * self.investment_clean) / nc
@@ -1424,11 +1434,12 @@ class DivestmentCore:
     def update_event_rate_data(self):
         """write rate data to trajectory"""
         if self.rate_data is None:
-            self.rate_data = [['time', 'E_tot', 'E_i', 'E_in', 'E_a', 'E_an']]
+            self.rate_data = [['time', 'E_tot', 'E_i_cd', 'E_i_dc', 'E_in_cd', 'E_in_dc', 'E_a', 'E_an']]
             self.rate_data.append([0, 0, 0, 0, 0])
         else:
             self.rate_data.append([self.t, self.total_events,
-                                   self.imitation_events, self.noise_imitation_events,
+                                   self.imitation_cd_events, self.imitation_dc_events,
+                                   self.noise_imitation_cd_events, self.noise_imitation_dc_events,
                                    self.adaptation_events, self.noise_adaptation_events])
 
     def get_event_rate_data(self):
