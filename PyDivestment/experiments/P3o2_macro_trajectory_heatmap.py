@@ -269,7 +269,7 @@ def run_experiment(argv):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappac} & approximate={approximate} & test={test}'
+        query = f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappa_c} & approximate={approximate} & test={test}'
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
@@ -280,7 +280,7 @@ def run_experiment(argv):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappac} & approximate={approximate} & test={test}'
+        query = f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappa_c} & approximate={approximate} & test={test}'
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)

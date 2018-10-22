@@ -141,6 +141,7 @@ def RUN_FUNC(b_d, kappa_c, test):
     PCargs.StepSize = 2e-3
     PCargs.SaveEigen = True
     PCargs.LocBifPoints = 'LP'
+    PCargs.StopAtPoints = 'LP'
     PC.newCurve(PCargs)
 
     if test:
@@ -153,8 +154,8 @@ def RUN_FUNC(b_d, kappa_c, test):
     res = PC['EQ1'].display(stability=True, figure='fig1', axes='somename')
     fig = plt.gcf()
     ax = plt.gca()
-    ax.set_title(f'Limit Point Manyfold for b_d={b_d}')
-    fig.savefig(f'lp_manifold_xi_vs_C_with_bd={b_d:.3f}_kappac={kappa_c:.3f}.png')
+    ax.set_title(f'Limit Point Manyfold for b_d={b_d}, kappa_c={kappa_c}')
+    fig.savefig(f'lp_manifold_xi_vs_C_with_kappac={kappa_c:.3f}_bd={b_d:.3f}.png')
 
     exit_status = 1
 
@@ -235,8 +236,8 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    b_ds = [round(x, 5) for x in list(np.linspace(3., 4., 11))]
-    kappa_cs = [round(x, 5) for x in list(np.linspace(.4, .5, 3))]
+    b_ds = [round(x, 5) for x in list(np.linspace(1., 4., 21))]
+    kappa_cs = [round(x, 5) for x in list(np.linspace(.3, .5, 5))]
 
     if test:
         PARAM_COMBS = list(it.product([3.2], [.4, .5], [test]))
