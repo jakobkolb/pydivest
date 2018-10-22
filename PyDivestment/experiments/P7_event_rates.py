@@ -53,8 +53,9 @@ def run_func(approximate, test):
 
     input_params = ExperimentDefaults.input_params
 
-    input_params['phi'] = 1.
+    input_params['phi'] = .5
     input_params['test'] = test
+    input_params['interaction'] = 1
 
     # investment_decisions:
     nopinions = [100, 100]
