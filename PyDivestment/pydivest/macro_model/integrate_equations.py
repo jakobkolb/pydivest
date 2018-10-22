@@ -59,12 +59,12 @@ class IntegrateEquations:
     Kc, Kd = sp.symbols('K_c K_d', positive=True, real=True)
     w, rc, rd = sp.symbols('w r_c r_d', positive=True, real=True)
     R, G, C = sp.symbols('R, G, C', positive=True, real=True)
-    rs, delta_k, delta_c, pi, kappac, kappad, xi = sp.symbols('s delta_k delta_c pi kappa_c kappa_d xi', positive=True, rational=True,
-                                                   real=True)
+    rs, delta_k, delta_c, pi, kappac, kappad, xi = \
+        sp.symbols('s delta_k delta_c pi kappa_c kappa_d xi', positive=True, rational=True, real=True)
     bc, bd, bR, e, G0 = sp.symbols('b_c b_d b_R e G_0', positive=True, real=True)
     Xc, Xd, XR = sp.symbols('X_c X_d X_R', positive=True, real=True)
 
-    # Defination of relations between variables and calculation of substitution of
+    # Definition of relations between variables and calculation of substitution of
     # *primitive variables* by *state variables* of the system
 
     eqs = [
@@ -112,8 +112,10 @@ class IntegrateEquations:
     p9 = epsilon * phi * Nd / N * (2 * dd) / (2 * dd + cd) * Nc / N  # rewiring noise d-d -> d-c
     p10 = epsilon * phi * Nd / N * cd / (2 * dd + cd) * Nd / N  # rewiring noise d-c -> d-d
 
-    W_imitation = (p3 + p4)/tau
-    W_imitation_noise = (p5 + p6)/tau
+    W_imitation_cd = p3 / tau
+    W_imitation_dc = p4 / tau
+    W_imitation_noise_cd = p5 / tau
+    W_imitation_noise_dc = p6 / tau
     W_adaptation = (p1 + p2)/tau
     W_adaptation_noise = (p7 + p8 + p9 + p10)/tau
 
@@ -219,6 +221,7 @@ class IntegrateEquations:
             if 0: tanh(Wi-Wj) interaction,
             if 1: interaction as in Traulsen, 2010 but with relative differences
             if 2: (Wi-Wj)/(Wi+Wj) interaction.
+            if 3: random imitation e.g. p_cd = p_dc = .5
         test: bool
             switch on debugging options
         """
@@ -300,13 +303,13 @@ class IntegrateEquations:
 
         # household investment in dirty capital
         if investment_dirty is None:
-            self.investment_dirty = np.ones(self.p_n)
+            self.investment_dirty = np.ones(int(self.p_n))
         else:
             self.investment_dirty = investment_dirty
 
         # household investment in clean capital
         if investment_clean is None:
-            self.investment_clean = np.ones(self.p_n)
+            self.investment_clean = np.ones(int(self.p_n))
         else:
             self.investment_clean = investment_clean
 
@@ -374,56 +377,107 @@ class IntegrateEquations:
         # economy respectively, hoping to get a decent approximation in the entire
         # reachable phase space.
 
-        # TODO: check these expressions for different deprecation rates for capital and knowledge
-        # equilibrium clean capital in full clean economy:
-        Kc_star = (self.rs **(1 - self.xi)
-                   * self.bc/self.delta_k
-                   * self.P**self.pi
-                   )**(1./(1.-self.kappac - self.xi))
-        # equilibrium knowledge stock in full clean economy:
-        C_star = (self.rs**self.kappac
-                  * self.bc/self.delta_k
-                  * self.P**self.pi
-                  )**(1./(1. - self.kappac - self.xi))
+        # equilibrium clean capital and knowledge in full clean economy:
+
+        # define symbols for helper variables:
+        a_1, a_2, delta_k, delta_c = sp.symbols('a_1 a_2 delta_k delta_c', positive=True, real=True)
+        # define helper variable content:
+        subs_clean_steady_state = {a_1: self.rs * (self.kappac + self.pi) * self.delta_c / self.delta_k,
+                                   a_2: self.bc * self.P ** self.pi / self.delta_c}
+        # define equations for steady state:
+        eqs = [a_1 * a_2 * self.Kc ** self.kappac * self.C ** self.xi - self.Kc,
+               a_2 * self.Kc ** self.kappac * self.C ** self.xi - self.C]
+        # solve equations for steady state:
+        clean_steady_state = sp.powsimp(sp.solve(eqs, (self.Kc, self.C), dict=True)[0],
+                                        combine='all', force=True, deep=True)
+        # substitute expressions for helper variables
+        for key, item in clean_steady_state.items():
+            clean_steady_state[key] = item.subs(subs_clean_steady_state)
+
         # equilibrium dirty capital in full dirty economy:
-        Kd_star = (self.rs * self.bc/self.delta_k
-                   * (1. - self.bR/self.e)
-                   * (self.kappad + self.pi)
-                   * self.P**self.pi
-                   )**(1./(1 - self.kappad))
+
+        # define helper variables
+        a_0 = sp.Symbol('a_0', positive=True, real=True)
+        # define helper variable content
+        subs_dirty_steady_state = {a_0: (1 - self.bR / self.e) * (self.kappad + self.pi) * self.bd * self.P ** self.pi}
+        # define equations for steady state
+        eqs = [a_0 * self.Kd ** self.kappad - self.Kd]
+        # solve equations for steady state:
+        dirty_steady_state = sp.powsimp(sp.solve(eqs, self.Kd, dict=True)[0],
+                                        combine='all', force=True, deep=True)
+        # substitute expressions for helper variables:
+        for key, item in dirty_steady_state.items():
+            dirty_steady_state[key] = item.subs(subs_dirty_steady_state)
 
         # expected income in full clean and full dirty economy
+        Fc0, Fd0 = sp.symbols('F_c^0 F_d^0')
+        self.F0 = {Fc0: 1. / self.N * (self.kappac + self.pi) * self.bc * self.Kc ** self.kappac
+                        * self.P ** self.pi * self.C ** self.xi,
+                   Fd0: 1. / self.N * (1 - self.bR / self.e) * (self.kappad + self.pi)
+                        * self.bd * self.P ** self.pi}
 
-        # Wd* = w P + r_c * K_c*
-        Wd_star = self.bd * (self.kappad + self.pi) * (1. - self.bR/self.e) * self.P ** self.pi * Kd_star ** self.kappad
-        # Wd* = w P + r_d * K_d*
-        Wc_star = self.bc * (self.kappac + self.pi) * self.P**self.pi * Kc_star**self.kappac * C_star**self.xi
+        # in terms of the equilibrium capital and knowledge stock from above:
+        self.F0[Fc0] = self.F0[Fc0].subs(clean_steady_state)
+        self.F0[Fd0] = self.F0[Fd0].subs(dirty_steady_state)
 
-        # normalized difference in clean and dirty income for half of the max expected income:
-        Wcd_star = (Wc_star - Wd_star)/(Wc_star + Wd_star)
-        Wdc_star = (Wd_star - Wc_star)/(Wc_star + Wd_star)
+        # simplify:
+        tmp = sp.powsimp(sp.expand(self.F0[Fc0], power_base=True, deep=True, force=True), force=True)
+        self.F0[Fc0] = sp.exp(sp.simplify(sp.ratsimp(sp.log(tmp))))
+        
+        # Note: It turns out that different reference incomes lead to an inherent bias in imitation 
+        # probabilities towards the sector with higher reference income. This can NOT happen.
+        # Therefore, I use the mean of the two reference incomes for both Fc0 and Fd0.
 
-        Wij0, Wji0, Wi0, Wj0, Wi, Wj = sp.symbols('W_ij0 W_ji0 W_i0 W_j0 Wi Wj')
+        self.subs_F0 = {Fc0: 1. / 2. * (self.F0[Fc0] + self.F0[Fd0]),
+                        Fd0: 1. / 2. * (self.F0[Fc0] + self.F0[Fd0])
+                        }
 
         if interaction == 0:
             self.subs1[self.Pcd] = (1./2.*(self.Wd - self.Wc + 1))
             self.subs1[self.Pdc] = (1./2.*(self.Wc - self.Wd + 1))
         elif interaction == 1:
             # write down taylor expansion of Pcd = 1/(1+exp(8(Wc - Wd)/(Wc + Wd)))
-            Pij = (1. / (1 + sp.exp(8. * Wij0)))
-            diPij = - sp.exp(8. * Wij0) / (1. + sp.exp(8. * Wij0))**2. * 16. * Wj0 / (Wi0 + Wj0) ** 2.
-            djPij =   sp.exp(8. * Wij0) / (1. + sp.exp(8. * Wij0))**2. * 16. * Wi0 / (Wi0 + Wj0) ** 2.
-            texpPij = Pij + diPij * (Wi - Wi0/2.) + djPij * (Wj - Wj0/2.)
-            icjd = {Wij0: Wcd_star, Wi0: Wc_star, Wj0: Wd_star, Wi: self.Wc, Wj: self.Wd}
-            idjc = {Wij0: Wdc_star, Wi0: Wd_star, Wj0: Wc_star, Wi: self.Wd, Wj: self.Wc}
-            self.subs1[self.Pcd] = texpPij.subs(icjd)
-            self.subs1[self.Pdc] = texpPij.subs(idjc)
+            # definition of symbols
+            full_Pcd, full_Pdc, a = sp.symbols('fP_{cd} fP_{dc} a', real=True, positive=True)
+
+            # imitation probabilities depending on relative differences
+            # in income (fitness) along the lines of (Traulsen 2010) with a=8 to match their empirical data.
+            full_Pcd = 1. / (1. + sp.exp(-a * (self.Wd - self.Wc) / (self.Wc + self.Wd)))
+            full_Pdc = 1. / (1. + sp.exp(-a * (self.Wc - self.Wd) / (self.Wc + self.Wd)))
+            sbs0 = ({self.Wc: Fc0, self.Wd: Fd0, a: 8.})
+
+            # Series expansion of imitation probabilities to first order in clean and dirty household income:
+            subsP = {self.Pcd: sp.simplify(full_Pcd.subs(sbs0)
+                                           + sp.diff(full_Pcd, self.Wc).subs(sbs0) * (self.Wc - Fc0)
+                                           + sp.diff(full_Pcd, self.Wd).subs(sbs0) * (self.Wd - Fd0)
+                                           ),
+                     self.Pdc: sp.simplify(full_Pdc.subs(sbs0)
+                                           + sp.diff(full_Pdc, self.Wc).subs(sbs0) * (self.Wc - Fc0)
+                                           + sp.diff(full_Pdc, self.Wd).subs(sbs0) * (self.Wd - Fd0)
+                                           )
+                     }
+            for key, item in subsP.items():
+                self.subs1[key] = item.subs(self.subs_F0)
+
             # Old:
+            # Wij0, Wji0, Wi0, Wj0, Wi, Wj = sp.symbols('W_ij0 W_ji0 W_i0 W_j0 Wi Wj')
+            # Pij = (1. / (1 + sp.exp(8. * Wij0)))
+            # diPij = - sp.exp(8. * Wij0) / (1. + sp.exp(8. * Wij0))**2. * 16. * Wj0 / (Wi0 + Wj0) ** 2.
+            # djPij =   sp.exp(8. * Wij0) / (1. + sp.exp(8. * Wij0))**2. * 16. * Wi0 / (Wi0 + Wj0) ** 2.
+            # texpPij = Pij + diPij * (Wi - Wi0/2.) + djPij * (Wj - Wj0/2.)
+            # icjd = {Wij0: Wcd_star, Wi0: Wc_star, Wj0: Wd_star, Wi: self.Wc, Wj: self.Wd}
+            # idjc = {Wij0: Wdc_star, Wi0: Wd_star, Wj0: Wc_star, Wi: self.Wd, Wj: self.Wc}
+            # self.subs1[self.Pcd] = texpPij.subs(icjd)
+            # self.subs1[self.Pdc] = texpPij.subs(idjc)
+            # Very Old:
             # self.subs1[self.Pcd] = 1./(1 + sp.exp(- 8. * (self.Wd - self.Wc)/(self.Wc + self.Wd)))
             # self.subs1[self.Pdc] = 1./(1 + sp.exp(- 8. * (self.Wc - self.Wd)/(self.Wc + self.Wd)))
         elif interaction == 2:
             self.subs1[self.Pcd] = ((1. / 2.) * ((self.Wd - self.Wc) / (self.Wd + self.Wc) + 1.))
             self.subs1[self.Pdc] = ((1. / 2.) * ((self.Wc - self.Wd) / (self.Wd + self.Wc) + 1.))
+        elif interaction == 3:
+            self.subs1[self.Pcd] = .5
+            self.subs1[self.Pdc] = .5
         else:
             raise ValueError('interaction must be in [0, 1, 2] but is {}'.format(interaction))
 
@@ -435,7 +489,8 @@ class IntegrateEquations:
                                    'Lc': self.Pc, 'Ld': self.Pd, 'L': self.P, 'rs': self.rs,
                                    'W_d': self.Wd, 'W_c': self.Wc, 'Pcd': self.Pcd, 'Pdc': self.Pdc,
                                    'l': self.p, 'Nc': self.Nc, 'Nd': self.Nd, 'P': self.P,
-                                   'W_i': self.W_imitation, 'W_in': self.W_imitation_noise,
+                                   'W_i_cd': self.W_imitation_cd, 'W_i_dc': self.W_imitation_dc,
+                                   'W_in_cd': self.W_imitation_noise_cd, 'W_in_dc': self.W_imitation_noise_dc,
                                    'W_a': self.W_adaptation, 'W_an': self.W_adaptation_noise}
 
         # Some dummy attributes to be specified by child classes.
@@ -445,7 +500,10 @@ class IntegrateEquations:
         self.param_values = []
         self.subs_params = {}
         self.dependent_vars = {}
+        self.var_names = []
         self.var_symbols = []
+
+        self.m_trajectory = pd.DataFrame()
 
     def update_dependent_vars(self):
 
@@ -470,7 +528,7 @@ class IntegrateEquations:
 
         return {symbol: value for symbol, value in zip(self.param_symbols, self.param_values)}
 
-    def set_parameters(self):
+    def set_parameters(self, dict_in=None):
         """(re)set parameter values in rhs and dependent expressions"""
 
         self.subs_params = self.list_parameters()
@@ -490,6 +548,9 @@ class IntegrateEquations:
             self.dependent_vars[key] = self.dependent_vars_raw[key].subs(self.subs_params)
         if self.p_test:
             print('sucessfull')
+        
+        if dict_in is not None:
+            return {key: item.subs(self.subs_params) for key, item in dict_in.items()}
 
     def dot_rhs(self, values, t):
         """

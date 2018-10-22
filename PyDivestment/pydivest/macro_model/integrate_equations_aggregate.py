@@ -81,6 +81,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
             if 0: tanh(Wi-Wj) interaction,
             if 1: interaction as in Traulsen, 2010 but with relative differences
             if 2: (Wi-Wj)/(Wi+Wj) interaction.
+            if 3: random imitation e.g. p_cd = p_dc = .5
         crs: bool
             switch for constant returns to scale. If True, values of kappa are ignored.
         """
@@ -327,10 +328,12 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                 else return -1 for TypeError and -2 for ValueError
                 """
 
-        columns = ['W_tot', 'W_i', 'W_in', 'W_a', 'W_an']
+        columns = ['W_tot', 'W_i_cd', 'W_i_dc', 'W_in_cd', 'W_in_dc', 'W_a', 'W_an']
         var_expressions = [1./self.p_tau,
-                           self.dependent_vars['W_i'],
-                           self.dependent_vars['W_in'],
+                           self.dependent_vars['W_i_cd'],
+                           self.dependent_vars['W_i_dc'],
+                           self.dependent_vars['W_in_cd'],
+                           self.dependent_vars['W_in_dc'],
                            self.dependent_vars['W_a'],
                            self.dependent_vars['W_an']
                            ]
