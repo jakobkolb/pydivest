@@ -265,22 +265,22 @@ def run_experiment(argv):
 
     # define eva functions
 
-    def mean(tau, phi, xi, approximate, test):
+    def mean(tau, phi, xi, kappa_c, approximate, test):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = 'tau={} & phi={} & xi={} & approximate={} & test={}'.format(tau, phi, xi, approximate, test)
+        query = f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappac} & approximate={approximate} & test={test}'
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
 
         return 1, trj.groupby(level='tstep').mean()
 
-    def std(tau, phi, xi, approximate, test):
+    def std(tau, phi, xi, kappa_c, approximate, test):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = 'tau={} & phi={} & xi={} & approximate={} & test={}'.format(tau, phi, xi, approximate, test)
+        query = f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappac} & approximate={approximate} & test={test}'
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
