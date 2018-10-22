@@ -19,7 +19,7 @@ class DivestmentCore:
                  investment_decisions=None,
                  tau=0.8, phi=.7, eps=0.05,
                  L=100., G_0=3000, C=1.,
-                 b_c=1., b_d=1.5, s=0.23, d_c=0.06,
+                 b_c=1., b_d=1.5, s=0.23, d_c=0.06, d_k=0.06,
                  b_r0=1., e=10,
                  xi=1./8., pi=1./2., kappa_c=1./2., kappa_d=1./2.,
                  R_depletion=True, test=False,
@@ -63,6 +63,8 @@ class DivestmentCore:
         s: float
             Savings rate of the households
         d_c: float
+            Knowledge depreciation rate
+        d_k: float
             Capital depreciation rate
         b_r0: float
             Resource cost factor
@@ -93,6 +95,7 @@ class DivestmentCore:
             if 0: tanh(Wi-Wj) interaction,
             if 1: interaction as in Traulsen, 2010 but with relative differences
             if 2: (Wi-Wj)/(Wi+Wj) interaction.
+            if 3: random imitation e.g. p_cd = p_dc = .5
         t_trend: float
             length of running window average that chartes use to predict trends
         """
@@ -285,12 +288,10 @@ class DivestmentCore:
 
         # Sector parameters
 
-        # Clean capital depreciation rate
+        # Capital depreciation rate
+        self.d_k = d_k
+        # Knowledge depreciation rate
         self.d_c = d_c
-        # Dirty capital depreciation rate
-        self.d_d = self.d_c
-        # knowledge depreciation rate
-        self.beta = beta
         # Resource harvest cost per unit (at full resource stock)
         self.b_r0 = b_r0
 
@@ -378,9 +379,13 @@ class DivestmentCore:
             self.init_switchlist()
 
         self.total_events = 0.
-        self.imitation_events = 0.
+
+        self.imitation_cd_events = 0.
+        self.imitation_dc_events = 0.
+        self.noise_imitation_cd_events = 0.
+        self.noise_imitation_dc_events = 0.
+
         self.adaptation_events = 0.
-        self.noise_imitation_events = 0.
         self.noise_adaptation_events = 0.
         self.rate_data = None
 
@@ -478,9 +483,9 @@ class DivestmentCore:
              0 decide for dirty investment
              1 decide for clean investment
         """
-        if self.r_c_dot > self.r_d_dot * 1.1 and self.r_c > self.d_c:
+        if self.r_c_dot > self.r_d_dot * 1.1 and self.r_c > self.d_k:
             dec = 1
-        elif self.r_d_dot > self.r_c_dot * 1.1 and self.r_d > self.d_c:
+        elif self.r_d_dot > self.r_c_dot * 1.1 and self.r_d > self.d_k:
             dec = 0
         else:
             dec = -1
@@ -604,7 +609,7 @@ class DivestmentCore:
             'L': self.P, 'r_b': self.r_b, 'b_c': self.b_c,
             'b_d': self.b_d, 's': self.s, 'd_c': self.d_c,
             'b_r0': self.b_r0, 'e': self.e, 'G_0': self.G,
-            'C': self.C, 'beta': self.beta, 'xi': self.xi,
+            'C': self.C, 'd_k': self.d_k, 'xi': self.xi,
             'learning': self.learning,
             'campaign': self.campaign,
             'test': self.debug, 'R_depletion': False}
@@ -798,13 +803,13 @@ class DivestmentCore:
         G_dot = -R if self.R_depletion else 0.0
         P_dot = 0
         C_dot = self.b_c * C ** self.xi * P_c ** self.pi \
-                * K_c ** self.kappa_c - C * self.beta if self.learning else 0.
+                * K_c ** self.kappa_c - C * self.d_c if self.learning else 0.
         investment_clean_dot = \
             self.investment_decisions \
-            * self.s * self.income - self.investment_clean * self.d_c
+            * self.s * self.income - self.investment_clean * self.d_k
         investment_dirty_dot = \
             np.logical_not(self.investment_decisions) \
-            * self.s * self.income - self.investment_dirty * self.d_d
+            * self.s * self.income - self.investment_dirty * self.d_k
 
         x1 = np.fromiter(
             chain.from_iterable([list(investment_clean_dot),
@@ -935,7 +940,10 @@ class DivestmentCore:
                     self.save_switch(candidate, old_opinion)
                 # and count event to determine rates - if it changes macro properties.
                 if old_opinion != new_opinion:
-                    self.noise_imitation_events += 1./self.n
+                    if new_opinion == 1:
+                        self.noise_imitation_dc_events += 1. / self.n
+                    else:
+                        self.noise_imitation_cd_events += 1. / self.n
                 candidate = -1
                 break
 
@@ -1048,7 +1056,10 @@ class DivestmentCore:
                     # copy opinion
                     self.opinions[candidate] = self.opinions[neighbor]
                     # count event:
-                    self.imitation_events += 1./self.n
+                    if self.opinions[candidate] == 1:
+                        self.imitation_dc_events += 1. / self.n
+                    else:
+                        self.imitation_cd_events += 1. / self.n
                     # and if required, save imitation data.
                     if self.switchlist_output:
                         self.save_switch(candidate, self.opinions[candidate])
@@ -1279,7 +1290,6 @@ class DivestmentCore:
         x = float(nc - nd) / n
         y = float(cc - dd) / k
         z = float(cd) / k
-        print(z, cd, k)
 
         if nc > 0:
             mucc = sum(self.investment_decisions * self.investment_clean) / nc
@@ -1424,11 +1434,12 @@ class DivestmentCore:
     def update_event_rate_data(self):
         """write rate data to trajectory"""
         if self.rate_data is None:
-            self.rate_data = [['time', 'E_tot', 'E_i', 'E_in', 'E_a', 'E_an']]
+            self.rate_data = [['time', 'E_tot', 'E_i_cd', 'E_i_dc', 'E_in_cd', 'E_in_dc', 'E_a', 'E_an']]
             self.rate_data.append([0, 0, 0, 0, 0])
         else:
             self.rate_data.append([self.t, self.total_events,
-                                   self.imitation_events, self.noise_imitation_events,
+                                   self.imitation_cd_events, self.imitation_dc_events,
+                                   self.noise_imitation_cd_events, self.noise_imitation_dc_events,
                                    self.adaptation_events, self.noise_adaptation_events])
 
     def get_event_rate_data(self):

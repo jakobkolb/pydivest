@@ -16,7 +16,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
     def __init__(self, adjacency=None, investment_decisions=None,
                  investment_clean=None, investment_dirty=None,
                  tau=0.8, phi=.7, eps=0.05,
-                 b_c=1., b_d=1.5, s=0.23, d_c=0.06,
+                 b_c=1., b_d=1.5, s=0.23, d_k=0.06, d_c=0.06,
                  b_r0=1., e=10,
                  pi=0.5, kappa_c=0.5, kappa_d=0.5, xi=1. / 8.,
                  L=100., G_0=3000, C=1,
@@ -52,8 +52,10 @@ class IntegrateEquationsAggregate(IntegrateEquations):
             Solow residual of the production function of the dirty sector
         s: float
             Savings rate of the households
-        d_c: float
+        d_k: float
             Capital depreciation rate
+        d_c: float
+            Knowledge depreciation rate
         b_r0: float
             Resource cost factor
         e: float
@@ -79,6 +81,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
             if 0: tanh(Wi-Wj) interaction,
             if 1: interaction as in Traulsen, 2010 but with relative differences
             if 2: (Wi-Wj)/(Wi+Wj) interaction.
+            if 3: random imitation e.g. p_cd = p_dc = .5
         crs: bool
             switch for constant returns to scale. If True, values of kappa are ignored.
         """
@@ -87,7 +90,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                          investment_clean=investment_clean, investment_dirty=investment_dirty,
                          tau=tau, phi=phi, eps=eps,
                          pi=pi, kappa_c=kappa_c, kappa_d=kappa_d, xi=xi,
-                         L=L, b_c=b_c, b_d=b_d, s=s, d_c=d_c,
+                         L=L, b_c=b_c, b_d=b_d, s=s, d_c=d_c, d_k=d_k,
                          b_r0=b_r0, e=e, G_0=G_0, C=C,
                          R_depletion=R_depletion, test=test, crs=crs, interaction=interaction)
 
@@ -138,13 +141,13 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         # for clean and dirty households
 
         self.rhsECO_1 = sp.Matrix(
-            [(self.rs * self.rc - self.delta) * self.Kcc + self.rs * self.rd * self.Kdc
+            [(self.rs * self.rc - self.delta_k) * self.Kcc + self.rs * self.rd * self.Kdc
              + self.rs * self.w * self.P * self.Nc / self.N,
-             -self.delta * self.Kcd,
-             -self.delta * self.Kdc,
-             self.rs * self.rc * self.Kcd + (self.rs * self.rd - self.delta) * self.Kdd
+             -self.delta_k * self.Kcd,
+             -self.delta_k * self.Kdc,
+             self.rs * self.rc * self.Kcd + (self.rs * self.rd - self.delta_k) * self.Kdd
              + self.rs * self.w * self.P * self.Nd / self.N,
-             self.bc * self.Pc ** self.pi * self.Kc ** self.kappac * self.C ** self.xi - self.delta * self.C,
+             self.bc * self.Pc ** self.pi * self.Kc ** self.kappac * self.C ** self.xi - self.delta_c * self.C,
              -self.R])
         # Write down changes in means of capital stocks through agents'
         # switching of opinions and add them to the capital accumulation terms
@@ -325,10 +328,12 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                 else return -1 for TypeError and -2 for ValueError
                 """
 
-        columns = ['W_tot', 'W_i', 'W_in', 'W_a', 'W_an']
+        columns = ['W_tot', 'W_i_cd', 'W_i_dc', 'W_in_cd', 'W_in_dc', 'W_a', 'W_an']
         var_expressions = [1./self.p_tau,
-                           self.dependent_vars['W_i'],
-                           self.dependent_vars['W_in'],
+                           self.dependent_vars['W_i_cd'],
+                           self.dependent_vars['W_i_dc'],
+                           self.dependent_vars['W_in_cd'],
+                           self.dependent_vars['W_in_dc'],
                            self.dependent_vars['W_a'],
                            self.dependent_vars['W_an']
                            ]
