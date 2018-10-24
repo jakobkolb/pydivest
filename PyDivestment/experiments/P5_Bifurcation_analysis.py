@@ -28,7 +28,7 @@ from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquation
 
 from parameters import ExperimentDefaults
 
-def RUN_FUNC(b_d, kappa_c, test):
+def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -42,6 +42,14 @@ def RUN_FUNC(b_d, kappa_c, test):
         total factor productivity in the dirty sector
     kappa_c: float
         elasticity of capital in the clean sector
+    d_c: float
+        depreciation rate of knowledge in the clean sector
+    e: float > 1
+        capital intensity of the dirty sector e.g. R = 1/e * Y_d
+    r_R: float
+        resource cost as fraction of output in dirty sector
+    eps: float
+        fraction of rewiring and imitation events that are nose
     test: int \in [0,1]
         whether this is a test run, e.g.
         can be executed with lower runtime
@@ -55,6 +63,10 @@ def RUN_FUNC(b_d, kappa_c, test):
     input_params['kappa_c'] = kappa_c
     input_params['xi'] = 0.
     input_params['test'] = test
+    input_params['d_c'] = d_c
+    input_params['e'] = e
+    input_params['b_r0'] = b_R
+    input_params['eps'] = eps
 
     # investment_decisions:
     nopinions = [50, 50]
@@ -141,7 +153,6 @@ def RUN_FUNC(b_d, kappa_c, test):
     PCargs.StepSize = 2e-3
     PCargs.SaveEigen = True
     PCargs.LocBifPoints = 'LP'
-    PCargs.StopAtPoints = 'LP'
     PC.newCurve(PCargs)
 
     if test:
@@ -154,8 +165,10 @@ def RUN_FUNC(b_d, kappa_c, test):
     res = PC['EQ1'].display(stability=True, figure='fig1', axes='somename')
     fig = plt.gcf()
     ax = plt.gca()
-    ax.set_title(f'Limit Point Manyfold for b_d={b_d}, kappa_c={kappa_c}')
-    fig.savefig(f'lp_manifold_xi_vs_C_with_kappac={kappa_c:.3f}_bd={b_d:.3f}.png')
+    ax.set_title(f'Limit Point Manyfold for kappac={kappa_c:.2f}, d_c={d_c:.2f}, '
+                 f'e={e:.1f}, b_R={b_R}, eps={eps:.2f}, b_d={b_d:.1f}')
+    fig.savefig(f'lp_manifold_xi_vs_C_with_kappac={kappa_c:.2f}_d_c={d_c:.2f}'
+                f'_e={e:.1f}_b_R={b_R}_eps={eps:.2f}_bd={b_d:.1f}.png')
 
     exit_status = 1
 
@@ -236,13 +249,21 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
+    # default parameter values:
+    b_d, kappa_c, d_c, e, b_R, eps = [3.2], [.5], [.12], [1.], [.1], [0.01]
+
     b_ds = [round(x, 5) for x in list(np.linspace(1., 4., 21))]
-    kappa_cs = [round(x, 5) for x in list(np.linspace(.3, .5, 5))]
+    kappa_cs = [round(x, 5) for x in list(np.linspace(.4, .5, 2))]
+    d_cs = [round(x, 5) for x in list(np.linspace(.05, .12, 8))]
+    es = [round(x, 5) for x in list(np.linspace(1., 51, 6))]
+    b_Rs = [round(x, 5) for x in list(np.linspace(.1, .5, 6))]
+    epss = [round(x, 5) for x in list(np.linspace(.01, .05, 5))]
+
 
     if test:
-        PARAM_COMBS = list(it.product([3.2], [.4, .5], [test]))
+        PARAM_COMBS = list(it.product(b_d, kappa_c, d_c, e, eps, [test]))
     else:
-        PARAM_COMBS = list(it.product(b_ds, kappa_cs, [test]))
+        PARAM_COMBS = list(it.product(b_ds, kappa_cs, d_cs, e, eps, [test]))
 
     """
     run computation and/or post processing and/or plotting

@@ -4,8 +4,8 @@
 #SBATCH --job-name=P5_ba
 #SBATCH --output=%A_P5_ba.out
 #SBATCH --error=%A_P5_ba.err
-#SBATCH --nodes=2
-#SBATCH --tasks-per-node=11
+#SBATCH --nodes=16
+#SBATCH --tasks-per-node=16
 
 
 module load hpc/2015 anaconda/5.0.0_py3

@@ -5,7 +5,7 @@ class ExperimentDefaults:
                     'eps': 0.05, 'b_d': 3, 'e': 1.,
                     'b_r0': 0.1,
                     'possible_cue_orders': [[0], [1]],
-                    'xi': .05, 'beta': 0.06,
+                    'xi': .05, 'd_k': 0.06, 'd_c': 0.06,
                     'L': 100., 'C': 1., 'G_0': 500000.,
                     'campaign': False, 'learning': True,
                     'interaction': 1, 'test': False,
