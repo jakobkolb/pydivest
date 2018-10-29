@@ -82,6 +82,7 @@ def run_func(approximate, test):
     # initializing the model
     if approximate == 1:
         m = DivestmentCore(*init_conditions, **input_params)
+        m.switchlist_output = True
     elif approximate == 2:
         m = IntegrateEquationsAggregate(*init_conditions, **input_params)
     else:
@@ -100,10 +101,15 @@ def run_func(approximate, test):
         df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0, t_max)
         df_out = pd.concat([df1, df2], axis=1)
         df_out.index.name = 'tstep'
+
+        df_out_2 = m.get_switch_list()
     else:
         df_out = None
+        df_out_2 = None
 
-    return exit_status, df_out
+    print(f'output of {len([df_out, df_out_2])} dataframes')
+
+    return exit_status, [df_out, df_out_2]
 
 
 # get sub experiment and mode from command line
@@ -197,7 +203,7 @@ def run_experiment(argv):
 
         pd.to_pickle(run_func_output, SAVE_PATH_RAW+'rfof.pkl')
 
-    SAMPLE_SIZE = 10 if (test or approximate in [2, 3]) else 50
+    SAMPLE_SIZE = 10 if (test or approximate in [2, 3]) else 100
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=run_func,
@@ -216,9 +222,11 @@ def run_experiment(argv):
         query = f'approximate={approximate} & test={test}'
 
         with SafeHDFStore(compute_handle.path_raw) as store:
-            trj = store.select("dat", where=query)
+            trj = store.select("dat_0", where=query)
 
-        return 1, trj.groupby(level='tstep').mean()
+        df_out = trj.groupby(level='tstep').mean()
+
+        return 1, df_out
 
     def std(approximate, test):
 
@@ -227,11 +235,28 @@ def run_experiment(argv):
         query = f'approximate={approximate} & test={test}'
 
         with SafeHDFStore(compute_handle.path_raw) as store:
-            trj = store.select("dat", where=query)
+            trj = store.select("dat_0", where=query)
 
         df_out = trj.groupby(level='tstep').std()
 
         return 1, df_out
+
+    def collect_switching_events(approximate, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = f'approximate={approximate} & test={test}'
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat_0", where=query)
+
+        df_out1 = trj.groupby(level='tstep').std()
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            df_out2 = store.select("dat_1", where=query)
+        df_out2.index = df_out2.index.droplevel(['approximate', 'test', 'sample'])
+
+        return 1, [df_out1, df_out2]
 
     eva_1_handle = experiment_handling(run_func=mean,
                                        runfunc_output=run_func_output,
@@ -245,10 +270,17 @@ def run_experiment(argv):
                                        parameter_combinations=PARAM_COMBS,
                                        path_raw=SAVE_PATH_RES + '/std.h5'
                                        )
+    eva_3_handle = experiment_handling(run_func=collect_switching_events,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=PARAM_COMBS,
+                                       path_raw=SAVE_PATH_RES + '/switch.h5'
+                                       )
 
     compute_handle.compute()
     eva_1_handle.compute()
     eva_2_handle.compute()
+    eva_3_handle.compute()
     return 1
 
 

@@ -225,16 +225,15 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 11))]
-    taus = [round(x, 5) for x in list(np.linspace(.5, 10., 10))]
-    xis = [round(x, 5) for x in list(np.linspace(.01, .07, 7))]
-    kappa_cs = [0.4, 0.5]
+    phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 21))]
+    taus = [round(x, 5) for x in list(np.linspace(.5, 10., 20))]
+    xis = [round(x, 5) for x in list(np.linspace(.1, .15, 3))]
     tau, phi = [1.], [.5]
 
     if test:
-        PARAM_COMBS = list(it.product(tau, phi, [0.01], [0.4], [approximate], [test]))
+        PARAM_COMBS = list(it.product(tau, phi, [0.1], [0.5], [approximate], [test]))
     else:
-        PARAM_COMBS = list(it.product(taus, phis, xis, kappa_cs, [approximate], [test]))
+        PARAM_COMBS = list(it.product(taus, phis, xis, [0.5], [approximate], [test]))
 
     """
     run computation and/or post processing and/or plotting
@@ -248,12 +247,11 @@ def run_experiment(argv):
         run_func_output = pd.read_pickle(SAVE_PATH_RAW + 'rfof.pkl')
     except:
         params = list(PARAM_COMBS[0])
-
         run_func_output = RUN_FUNC(*params)[1]
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    SAMPLE_SIZE = 50 if not (test or approximate in [2, 3]) else 10
+    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 10
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,
