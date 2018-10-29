@@ -101,8 +101,10 @@ def run_func(approximate, test):
         df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0, t_max)
         df_out = pd.concat([df1, df2], axis=1)
         df_out.index.name = 'tstep'
-
-        df_out_2 = m.get_switch_list()
+        if approximate == 1:
+            df_out_2 = m.get_switch_list()
+        else:
+            df_out_2 = None
     else:
         df_out = None
         df_out_2 = None
@@ -256,6 +258,8 @@ def run_experiment(argv):
             df_out2 = store.select("dat_1", where=query)
         df_out2.index = df_out2.index.droplevel(['approximate', 'test', 'sample'])
 
+        print(df_out2)
+
         return 1, [df_out1, df_out2]
 
     eva_1_handle = experiment_handling(run_func=mean,
@@ -280,7 +284,10 @@ def run_experiment(argv):
     compute_handle.compute()
     eva_1_handle.compute()
     eva_2_handle.compute()
-    eva_3_handle.compute()
+    try:
+        eva_3_handle.compute()
+    except KeyError:
+        pass
     return 1
 
 
