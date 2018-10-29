@@ -354,7 +354,6 @@ class IntegrateEquations:
         self.v_x = float(nc - nd) / n
         self.v_y = float(cc - dd) / k
         self.v_z = float(cd) / k
-        print(self.v_z, cd, k)
 
         self.v_c = float(self.v_C) / n
         self.v_g = self.p_g_0

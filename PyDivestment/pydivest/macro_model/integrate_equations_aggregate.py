@@ -230,11 +230,8 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                                   self.v_Kcc, self.v_Kcd,
                                   self.v_Kdc, self.v_Kdd,
                                   self.v_C, self.v_G]
-            print(initial_conditions)
 
             trajectory = odeint(self.dot_rhs, initial_conditions, t)
-
-            print(trajectory)
 
             df = pd.DataFrame(trajectory, index=t, columns=self.var_names)
             self.m_trajectory = pd.concat([self.m_trajectory, df])
@@ -337,8 +334,6 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                            self.dependent_vars['W_a'],
                            self.dependent_vars['W_an']
                            ]
-
-        print(var_expressions)
 
         df_out = self.calculate_unified_trajectory(columns=columns,
                                                  var_expressions=var_expressions)

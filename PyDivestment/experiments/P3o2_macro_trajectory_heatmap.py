@@ -140,8 +140,6 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
         if column in rm_columns:
             df_out.drop(column, axis=1, inplace=True)
 
-    print(df_out.columns)
-
     return exit_status, df_out
 
 
