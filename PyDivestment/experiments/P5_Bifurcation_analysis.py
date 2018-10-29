@@ -28,6 +28,7 @@ from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquation
 
 from parameters import ExperimentDefaults
 
+
 def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
     """
     Set up the model for various parameters and determine
@@ -257,13 +258,13 @@ def run_experiment(argv):
     d_cs = [round(x, 5) for x in list(np.linspace(.05, .12, 8))]
     es = [round(x, 5) for x in list(np.linspace(1., 51, 6))]
     b_Rs = [round(x, 5) for x in list(np.linspace(.1, .5, 6))]
-    epss = [round(x, 5) for x in list(np.linspace(.01, .05, 5))]
+    epss = [round(x, 5) for x in list(np.linspace(.01, .05, 3))]
 
 
     if test:
-        PARAM_COMBS = list(it.product(b_d, kappa_c, d_c, e, eps, [test]))
+        PARAM_COMBS = list(it.product(b_d, kappa_c, d_c, e, b_R, eps, [test]))
     else:
-        PARAM_COMBS = list(it.product(b_ds, kappa_cs, d_cs, e, eps, [test]))
+        PARAM_COMBS = list(it.product(b_ds, kappa_cs, d_cs, e, b_R, epss, [test]))
 
     """
     run computation and/or post processing and/or plotting
