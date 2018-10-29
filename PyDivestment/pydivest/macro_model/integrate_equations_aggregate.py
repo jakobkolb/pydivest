@@ -325,14 +325,18 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                 else return -1 for TypeError and -2 for ValueError
                 """
 
-        columns = ['W_tot', 'W_i_cd', 'W_i_dc', 'W_in_cd', 'W_in_dc', 'W_a', 'W_an']
+        columns = ['W_tot', 'W_i_cd', 'W_i_dc', 'W_in_cd', 'W_in_dc', 'W_a', 'W_an', 'I_c', 'I_d', 'Pcd', 'Pdc']
         var_expressions = [1./self.p_tau,
                            self.dependent_vars['W_i_cd'],
                            self.dependent_vars['W_i_dc'],
                            self.dependent_vars['W_in_cd'],
                            self.dependent_vars['W_in_dc'],
                            self.dependent_vars['W_a'],
-                           self.dependent_vars['W_an']
+                           self.dependent_vars['W_an'],
+                           self.dependent_vars['W_c']/self.dependent_vars['Nc'],
+                           self.dependent_vars['W_d']/self.dependent_vars['Nd'],
+                           self.dependent_vars['Pcd'],
+                           self.dependent_vars['Pdc']
                            ]
 
         df_out = self.calculate_unified_trajectory(columns=columns,

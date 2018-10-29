@@ -490,7 +490,8 @@ class IntegrateEquations:
                                    'l': self.p, 'Nc': self.Nc, 'Nd': self.Nd, 'P': self.P,
                                    'W_i_cd': self.W_imitation_cd, 'W_i_dc': self.W_imitation_dc,
                                    'W_in_cd': self.W_imitation_noise_cd, 'W_in_dc': self.W_imitation_noise_dc,
-                                   'W_a': self.W_adaptation, 'W_an': self.W_adaptation_noise}
+                                   'W_a': self.W_adaptation, 'W_an': self.W_adaptation_noise
+                                   }
 
         # Some dummy attributes to be specified by child classes.
         self.rhs_raw = None

@@ -1336,12 +1336,13 @@ class DivestmentCore:
         pair based proxy.
         :return: None
         """
-        element = ['time', 'x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d', 'C',
-                   'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d',
+        element = ['time', 'x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d',
+                   'C', 'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d',
                    'N_c over N', '[cc] over M', '[cd] over M']
         self.ag_trajectory.append(element)
 
-        if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
+        if (self.trj_output_window[0] - self.tau
+                < self.t < self.trj_output_window[1] + self.tau):
             self.update_aggregate_trajectory()
 
     def update_aggregate_trajectory(self):
@@ -1418,10 +1419,12 @@ class DivestmentCore:
 
     def init_switchlist(self):
         """Initializes the switchlist by naming the columns"""
-        self.switchlist = [['time', '$K^{(c)}$', '$K^{(d)}$', 'direction',
-                            'Income of active agent', 'Income of neighbor', 'imitation']]
+        self.switchlist = [['time', '$K^{(c)}$', '$K^{(d)}$', 'Direction',
+                            'Income of active agent', 'Income of neighbor',
+                            'Imitation', 'Probability']]
 
-    def save_switch(self, household_index, direction, probability, income_1, income_2, event):
+    def save_switch(self, household_index, direction, probability,
+                    income_1, income_2, event):
         """
         Adds an entry to the switchlist.
 
@@ -1448,11 +1451,14 @@ class DivestmentCore:
         self.switchlist.append([float(self.t),
                                 float(self.investment_clean[household_index]),
                                 float(self.investment_dirty[household_index]),
-                                int(direction), float(income_1), float(income_2), bool(event)])
+                                int(direction),
+                                float(income_1), float(income_2),
+                                bool(event), float(probability)])
 
     def get_switch_list(self):
         columns = self.switchlist[0]
-        df = pd.DataFrame(self.switchlist[1:], columns=columns).convert_objects()
+        df = pd.DataFrame(self.switchlist[1:],
+                          columns=columns).convert_objects()
         df = df.set_index('time')
 
         return df
@@ -1460,13 +1466,17 @@ class DivestmentCore:
     def update_event_rate_data(self):
         """write rate data to trajectory"""
         if self.rate_data is None:
-            self.rate_data = [['time', 'E_tot', 'E_i_cd', 'E_i_dc', 'E_in_cd', 'E_in_dc', 'E_a', 'E_an']]
+            self.rate_data = [['time', 'E_tot', 'E_i_cd', 'E_i_dc', 'E_in_cd',
+                               'E_in_dc', 'E_a', 'E_an']]
             self.rate_data.append([0, 0, 0, 0, 0])
         else:
             self.rate_data.append([self.t, self.total_events,
-                                   self.imitation_cd_events, self.imitation_dc_events,
-                                   self.noise_imitation_cd_events, self.noise_imitation_dc_events,
-                                   self.adaptation_events, self.noise_adaptation_events])
+                                   self.imitation_cd_events,
+                                   self.imitation_dc_events,
+                                   self.noise_imitation_cd_events,
+                                   self.noise_imitation_dc_events,
+                                   self.adaptation_events,
+                                   self.noise_adaptation_events])
 
     def get_event_rate_data(self):
         """return dataframe with event rate data and time as index values"""
