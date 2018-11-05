@@ -413,7 +413,8 @@ class IntegrateEquations:
         self.F0 = {Fc0: 1. / self.N * (self.kappac + self.pi) * self.bc * self.Kc ** self.kappac
                         * self.P ** self.pi * self.C ** self.xi,
                    Fd0: 1. / self.N * (1 - self.bR / self.e) * (self.kappad + self.pi)
-                        * self.bd * self.P ** self.pi}
+                        * self.bd * self.Kd ** self.kappad * self.P ** self.pi
+                   }
 
         # in terms of the equilibrium capital and knowledge stock from above:
         self.F0[Fc0] = self.F0[Fc0].subs(clean_steady_state)
@@ -430,6 +431,7 @@ class IntegrateEquations:
         self.subs_F0 = {Fc0: 1. / 2. * (self.F0[Fc0] + self.F0[Fd0]),
                         Fd0: 1. / 2. * (self.F0[Fc0] + self.F0[Fd0])
                         }
+        self.TAref = Fc0.subs(self.subs_F0)
 
         if interaction == 0:
             self.subs1[self.Pcd] = (1./2.*(self.Wd - self.Wc + 1))
@@ -455,6 +457,10 @@ class IntegrateEquations:
                                            + sp.diff(full_Pdc, self.Wd).subs(sbs0) * (self.Wd - Fd0)
                                            )
                      }
+
+            # Fallback:
+            # subsP = {self.Pcd: full_Pcd.subs({a: 8.}), self.Pdc: full_Pdc.subs({a: 8.})}
+
             for key, item in subsP.items():
                 self.subs1[key] = item.subs(self.subs_F0)
 
@@ -490,7 +496,7 @@ class IntegrateEquations:
                                    'l': self.p, 'Nc': self.Nc, 'Nd': self.Nd, 'P': self.P,
                                    'W_i_cd': self.W_imitation_cd, 'W_i_dc': self.W_imitation_dc,
                                    'W_in_cd': self.W_imitation_noise_cd, 'W_in_dc': self.W_imitation_noise_dc,
-                                   'W_a': self.W_adaptation, 'W_an': self.W_adaptation_noise
+                                   'W_a': self.W_adaptation, 'W_an': self.W_adaptation_noise, 'W_0': self.TAref
                                    }
 
         # Some dummy attributes to be specified by child classes.
@@ -518,7 +524,7 @@ class IntegrateEquations:
         for key in self.dependent_vars_raw.keys():
             self.dependent_vars_raw[key] = self.dependent_vars_raw[key].subs(self.subs1)\
                 .subs(self.subs2).subs(self.subs3) \
-                .subs(self.subs1).subs(self.subs4).subs({self.N: 1})
+                .subs(self.subs1).subs(self.subs4).subs({self.N: self.p_n})
 
     def list_parameters(self):
         # link parameter symbols to values,
