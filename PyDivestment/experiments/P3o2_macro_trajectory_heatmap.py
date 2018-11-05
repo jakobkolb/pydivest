@@ -135,10 +135,10 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
                   'P_d', 'L', 'R', 'P_c_cost', 'P_d_cost', 'K_c_cost',
                   'K_d_cost', 'c_R', 'consensus', 'decision state', 'G_alpha', '[0]',
                   '[1]', 'c[0]', 'c[1]', 'd[0]', 'd[1]']
-
-    for column in df_out.columns:
-        if column in rm_columns:
-            df_out.drop(column, axis=1, inplace=True)
+    if not test:
+        for column in df_out.columns:
+            if column in rm_columns:
+                df_out.drop(column, axis=1, inplace=True)
 
     return exit_status, df_out
 
@@ -225,13 +225,13 @@ def run_experiment(argv):
 
     phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 21))]
     taus = [round(x, 5) for x in list(np.linspace(.5, 10., 20))]
-    xis = [round(x, 5) for x in list(np.linspace(.1, .15, 3))]
+    xis = [round(x, 5) for x in list(np.linspace(.1, .15, 2))]
     tau, phi = [1.], [.5]
 
     if test:
         PARAM_COMBS = list(it.product(tau, phi, [0.1], [0.5], [approximate], [test]))
     else:
-        PARAM_COMBS = list(it.product(taus, phis, xis, [0.5], [approximate], [test]))
+        PARAM_COMBS = list(it.product(taus, phis, [0.1], [0.5], [approximate], [test]))
 
     """
     run computation and/or post processing and/or plotting
@@ -249,7 +249,7 @@ def run_experiment(argv):
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    SAMPLE_SIZE = 100 if not (test or approximate in [2, 3]) else 10
+    SAMPLE_SIZE = 50 if not (test or approximate in [2, 3]) else 10
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,
@@ -268,7 +268,7 @@ def run_experiment(argv):
         query = f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappa_c} & approximate={approximate} & test={test}'
 
         with SafeHDFStore(compute_handle.path_raw) as store:
-            trj = store.select("dat", where=query)
+            trj = store.select("dat_0", where=query)
 
         return 1, trj.groupby(level='tstep').mean()
 
@@ -279,7 +279,7 @@ def run_experiment(argv):
         query = f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappa_c} & approximate={approximate} & test={test}'
 
         with SafeHDFStore(compute_handle.path_raw) as store:
-            trj = store.select("dat", where=query)
+            trj = store.select("dat_0", where=query)
 
         df_out = trj.groupby(level='tstep').std()
 
