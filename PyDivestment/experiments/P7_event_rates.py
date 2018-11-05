@@ -88,7 +88,7 @@ def run_func(approximate, test):
     else:
         raise ValueError('approximate must be in [1, 2] but is {}'.format(approximate))
 
-    t_max = 30
+    t_max = 300
     exit_status = m.run(t_max=t_max)
 
     # transition phase with resource depletion
@@ -205,7 +205,7 @@ def run_experiment(argv):
 
         pd.to_pickle(run_func_output, SAVE_PATH_RAW+'rfof.pkl')
 
-    SAMPLE_SIZE = 10 if (test or approximate in [2, 3]) else 100
+    SAMPLE_SIZE = 3 if (test or approximate in [2, 3]) else 10
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=run_func,
@@ -284,10 +284,11 @@ def run_experiment(argv):
     compute_handle.compute()
     eva_1_handle.compute()
     eva_2_handle.compute()
-    try:
-        eva_3_handle.compute()
-    except KeyError:
-        pass
+    if approximate == 1:
+        try:
+            eva_3_handle.compute()
+        except KeyError:
+            pass
     return 1
 
 
