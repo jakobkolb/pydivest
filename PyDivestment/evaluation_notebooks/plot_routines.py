@@ -55,7 +55,7 @@ class plot_routines(object):
                              ['$\mu^{(c)}_c$', '$\mu^{(d)}_d$'],
                              ['$\mu^{(c)}_d$', '$\mu^{(d)}_c$']]
 
-        self.colors = 'gkby'
+        self.colors = ['#E37222', '#8E908F', '#009FDA', '#69923A']
 
     def mk_plots(self, bd):
 
@@ -320,6 +320,7 @@ class plot_routines(object):
             if j == 1:
                 # clone axis for plot of knowledge stock
                 c_ax = axes[ax_id].twinx()
+                axes.append(c_ax)
                 c_ax.set_xlim([tmin, tmax])
                 ldp[0][variables[0]] \
                     .plot(
