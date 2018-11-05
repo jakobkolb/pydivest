@@ -126,8 +126,10 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         self.independent_vars = {name: symbol for name, symbol in zip(self.var_names, self.var_symbols)}
 
         # define expected wealth as expected income
-        self.subs1[self.Wc] = ((self.rc * self.Kcc + self.rd * self.Kdc) / self.Nc).subs(self.subs1)
-        self.subs1[self.Wd] = ((self.rc * self.Kcd + self.rd * self.Kdd) / self.Nd).subs(self.subs1)
+        self.subs1[self.Wc] = ((self.rc * self.Kcc + self.rd * self.Kdc + self.w * self.P * self.Nc / self.N)
+                               / self.Nc).subs(self.subs1)
+        self.subs1[self.Wd] = ((self.rc * self.Kcd + self.rd * self.Kdd + self.w * self.P * self.Nd / self.N)
+                               / self.Nd).subs(self.subs1)
 
         if interaction == 0:
             raise ValueError('only interactions depending on relative differences of agent properties are'
@@ -230,11 +232,8 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                                   self.v_Kcc, self.v_Kcd,
                                   self.v_Kdc, self.v_Kdd,
                                   self.v_C, self.v_G]
-            print(initial_conditions)
 
             trajectory = odeint(self.dot_rhs, initial_conditions, t)
-
-            print(trajectory)
 
             df = pd.DataFrame(trajectory, index=t, columns=self.var_names)
             self.m_trajectory = pd.concat([self.m_trajectory, df])
@@ -328,17 +327,20 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                 else return -1 for TypeError and -2 for ValueError
                 """
 
-        columns = ['W_tot', 'W_i_cd', 'W_i_dc', 'W_in_cd', 'W_in_dc', 'W_a', 'W_an']
+        columns = ['W_tot', 'W_i_cd', 'W_i_dc', 'W_in_cd', 'W_in_dc', 'W_a', 'W_an', 'I_c', 'I_d', 'Pcd', 'Pdc', 'W_0']
         var_expressions = [1./self.p_tau,
                            self.dependent_vars['W_i_cd'],
                            self.dependent_vars['W_i_dc'],
                            self.dependent_vars['W_in_cd'],
                            self.dependent_vars['W_in_dc'],
                            self.dependent_vars['W_a'],
-                           self.dependent_vars['W_an']
+                           self.dependent_vars['W_an'],
+                           self.dependent_vars['W_c'],
+                           self.dependent_vars['W_d'],
+                           self.dependent_vars['Pcd'],
+                           self.dependent_vars['Pdc'],
+                           self.dependent_vars['W_0']
                            ]
-
-        print(var_expressions)
 
         df_out = self.calculate_unified_trajectory(columns=columns,
                                                  var_expressions=var_expressions)

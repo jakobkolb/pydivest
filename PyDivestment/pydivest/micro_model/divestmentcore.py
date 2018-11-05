@@ -190,7 +190,7 @@ class DivestmentCore:
         self.m_trajectory = []
         self.ag_trajectory = []
         # list of data for switching events
-        self.switchlist = []
+        self.switchlist = None
         # dictionary for final state
         self.final_state = {}
 
@@ -936,8 +936,8 @@ class DivestmentCore:
                 new_opinion = np.random.randint(len(self.possible_que_orders))
                 self.opinions[candidate] = new_opinion
                 # if required save switching data
-                if old_opinion != new_opinion and self.switchlist_output:
-                    self.save_switch(candidate, old_opinion)
+                # if old_opinion != new_opinion and self.switchlist_output:
+                #     self.save_switch(candidate, old_opinion)
                 # and count event to determine rates - if it changes macro properties.
                 if old_opinion != new_opinion:
                     if new_opinion == 1:
@@ -1053,16 +1053,28 @@ class DivestmentCore:
             if ((self.campaign is False or opinion[candidate] != (len(self.possible_cue_orders) - 1))
                     and (np.random.uniform() < p_imitate)
                     and self.imitation):
-                    # copy opinion
-                    self.opinions[candidate] = self.opinions[neighbor]
-                    # count event:
-                    if self.opinions[candidate] == 1:
-                        self.imitation_dc_events += 1. / self.n
-                    else:
-                        self.imitation_cd_events += 1. / self.n
-                    # and if required, save imitation data.
-                    if self.switchlist_output:
-                        self.save_switch(candidate, self.opinions[candidate])
+                imitation_happened = True
+                # copy opinion
+                self.opinions[candidate] = self.opinions[neighbor]
+                # count event:
+                if self.opinions[candidate] == 1:
+                    self.imitation_dc_events += 1. / self.n
+                else:
+                    self.imitation_cd_events += 1. / self.n
+            else:
+                imitation_happened = False
+
+            # and if required, save imitation data.
+            if self.switchlist_output:
+
+                direction = self.opinions[neighbor]
+
+                self.save_switch(household_index=candidate,
+                                 direction=direction,
+                                 probability=p_imitate,
+                                 income_1=Wi,
+                                 income_2=Wj,
+                                 event=imitation_happened)
         return 0
 
     def update_decision_making(self):
@@ -1324,12 +1336,13 @@ class DivestmentCore:
         pair based proxy.
         :return: None
         """
-        element = ['time', 'x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d', 'C',
-                   'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d',
+        element = ['time', 'x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d',
+                   'C', 'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d',
                    'N_c over N', '[cc] over M', '[cd] over M']
         self.ag_trajectory.append(element)
 
-        if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
+        if (self.trj_output_window[0] - self.tau
+                < self.t < self.trj_output_window[1] + self.tau):
             self.update_aggregate_trajectory()
 
     def update_aggregate_trajectory(self):
@@ -1406,27 +1419,46 @@ class DivestmentCore:
 
     def init_switchlist(self):
         """Initializes the switchlist by naming the columns"""
-        self.switchlist = [['time', '$K^{(c)}$', '$K^{(d)}$', 'direction']]
+        self.switchlist = [['time', '$K^{(c)}$', '$K^{(d)}$', 'Direction',
+                            'Income of active agent', 'Income of neighbor',
+                            'Imitation', 'Probability']]
 
-    def save_switch(self, i, direction):
+    def save_switch(self, household_index, direction, probability,
+                    income_1, income_2, event):
         """
         Adds an entry to the switchlist.
 
         Parameters
         ----------
-        i : int
-            the index of the household that switched its opinion
+        household_index : int
+            the index of the household that [might have] switched its opinion
         direction : int
             the direction that it switched in
+            0 neighbors opinion is dirty
+            1 neighbors opinion is clean
+        probability: float
+            probability of imitation
+        income_1: float
+            income of active agent
+        income_2: float
+            income of neighbor
+        event: bool
+            indicates if imitation actually happened
         """
-        self.switchlist.append([self.t,
-                                self.investment_clean[i],
-                                self.investment_dirty[i],
-                                direction])
+        if self.switchlist is None:
+            self.init_switchlist()
+
+        self.switchlist.append([float(self.t),
+                                float(self.investment_clean[household_index]),
+                                float(self.investment_dirty[household_index]),
+                                int(direction),
+                                float(income_1), float(income_2),
+                                bool(event), float(probability)])
 
     def get_switch_list(self):
         columns = self.switchlist[0]
-        df = pd.DataFrame(self.switchlist[1:], columns=columns)
+        df = pd.DataFrame(self.switchlist[1:],
+                          columns=columns).convert_objects()
         df = df.set_index('time')
 
         return df
@@ -1434,13 +1466,17 @@ class DivestmentCore:
     def update_event_rate_data(self):
         """write rate data to trajectory"""
         if self.rate_data is None:
-            self.rate_data = [['time', 'E_tot', 'E_i_cd', 'E_i_dc', 'E_in_cd', 'E_in_dc', 'E_a', 'E_an']]
+            self.rate_data = [['time', 'E_tot', 'E_i_cd', 'E_i_dc', 'E_in_cd',
+                               'E_in_dc', 'E_a', 'E_an']]
             self.rate_data.append([0, 0, 0, 0, 0])
         else:
             self.rate_data.append([self.t, self.total_events,
-                                   self.imitation_cd_events, self.imitation_dc_events,
-                                   self.noise_imitation_cd_events, self.noise_imitation_dc_events,
-                                   self.adaptation_events, self.noise_adaptation_events])
+                                   self.imitation_cd_events,
+                                   self.imitation_dc_events,
+                                   self.noise_imitation_cd_events,
+                                   self.noise_imitation_dc_events,
+                                   self.adaptation_events,
+                                   self.noise_adaptation_events])
 
     def get_event_rate_data(self):
         """return dataframe with event rate data and time as index values"""

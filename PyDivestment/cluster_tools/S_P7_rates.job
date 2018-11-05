@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
 #SBATCH --qos=short
-#SBATCH --job-name=P5_ba
-#SBATCH --output=%A_P5_ba.out
-#SBATCH --error=%A_P5_ba.err
-#SBATCH --nodes=16
+#SBATCH --job-name=P4_mic
+#SBATCH --output=%A_P4_mic.out
+#SBATCH --error=%A_P4_mic.err
+#SBATCH --nodes=4
 #SBATCH --tasks-per-node=16
 
 
@@ -21,4 +21,4 @@ echo "_______________________________________________"
 
 cd ../experiments
 
-srun -n $SLURM_NTASKS python P5_Bifurcation_analysis.py 0
+srun -n $SLURM_NTASKS python P7_event_rates.py 0
