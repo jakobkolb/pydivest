@@ -1,0 +1,21 @@
+#!/bin/bash
+#SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
+#SBATCH --qos=short
+#SBATCH --job-name=X5_N
+#SBATCH --output=%A_X5_N%a_.out
+#SBATCH --error=%A_X5_N%a_.err
+#SBATCH --time=0-24
+#SBATCH --nodes=2
+#SBATCH --tasks-per-node=16
+
+
+module load hpc/2015 anaconda/5.0.0_py3
+export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
+
+echo "_______________________________________________"
+echo "SLURM JOB ID: $SLURM_JOBID"
+echo "$SLURM_NTASKS tasks"
+echo "_______________________________________________"
+
+cd ../experiments
+srun -n $SLURM_NTASKS python X5.1_Cue_Orders.py 1 1

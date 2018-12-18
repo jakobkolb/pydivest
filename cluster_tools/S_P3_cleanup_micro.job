@@ -1,0 +1,23 @@
+#!/bin/bash
+#SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
+#SBATCH --qos=short
+#SBATCH --job-name=P3_micro_cleanup
+#SBATCH --output=%A_P3_micro_cleanup.out
+#SBATCH --error=%A_P3_micro_cleanup.err
+#SBATCH --nodes=1
+#SBATCH --tasks-per-node=16
+
+module load hpc/2015 anaconda/5.0.0_py3
+export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
+export OMP_NUM_THREADS=1
+
+echo "_______________________________________________"
+echo "SLURM JOB ID: $SLURM_JOBID"
+echo "$SLURM_NTASKS tasks"
+echo "_______________________________________________"
+
+cd ../experiments
+
+echo 'production'
+srun -n $SLURM_NTASKS python P3_macro_trajectory_heatmap.py 0 2 1
+
