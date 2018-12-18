@@ -1,5 +1,11 @@
 
-# coding: utf-8
+# Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
+# Impact Research
+#
+# Contact: kolb@pik-potsdam.de
+# License: GNU AGPL Version 3
+
+
 import numpy as np
 import networkx as nx
 from random import shuffle

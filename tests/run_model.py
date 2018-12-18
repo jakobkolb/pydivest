@@ -1,6 +1,13 @@
 """
 Generic setup, run and plot routine to test the functionality of different model approximations
 """
+# Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
+# Impact Research
+#
+# Contact: kolb@pik-potsdam.de
+# License: GNU AGPL Version 3
+
+
 import networkx as nx
 from random import shuffle
 import numpy as np
