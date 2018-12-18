@@ -287,7 +287,7 @@ class plot_routines(object):
                   figsize=(8, 6)):
 
         self.variable_combos = [['N_c over N', '[cc] over M', '[cd] over M'],
-                                ['c', 'g'], ['K_c^c', 'K_d^d'],
+                                ['C', 'G'], ['K_c^c', 'K_d^d'],
                                 ['K_c^d', 'K_d^c']]
         self.variable_combos_backup = [['N_c over N', '[cc] over M', '[cd] over M'],
                                 ['c', 'g'], ['K_c^c', 'K_d^d'],
@@ -317,6 +317,7 @@ class plot_routines(object):
             axes[ax_id].set_xlim([tmin, tmax])
             # local data set for specify value of phi
             ldp = local_datasets
+            print(j, variables)
             if j == 1:
                 # clone axis for plot of knowledge stock
                 c_ax = axes[ax_id].twinx()
@@ -340,7 +341,7 @@ class plot_routines(object):
                     alpha=micro_alpha)
             for k, variable in enumerate(variables):
                 ax = axes[ax_id]
-                if variable == 'g':
+                if variable == 'g' or variable == 'G':
                     ax = c_ax
                     c_ax.set_ylim([lower_limits[-1], upper_limits[-1]])
 
@@ -371,7 +372,8 @@ class plot_routines(object):
                               linewidth=2,
                               alpha=macro_alpha)
                 except KeyError:
-                    ldp[2][self.variable_combos_backup[j][k]] \
+                    print(f'Key Error for {self.variable_combos[j]} in dataset {k}')
+                    (100 * ldp[2][self.variable_combos_backup[j][k]]) \
                         .plot(ax=ax,
                               color=self.colors[k],
                               legend=False,
