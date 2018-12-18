@@ -1,1 +1,0 @@
-rsync -tv -r --progress kolb@aix.pik-potsdam.de:/home/kolb/Divest_Experiments/output_data/* ./output_data/ || rsync -tv -r --progress kolb@cluster:/home/kolb/Divest_Experiments/output_data/* ./output_data/

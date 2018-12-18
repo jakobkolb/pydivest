@@ -1,7 +1,0 @@
-output_data/
-divestdata/
-tests/__pycache__/
-*.pyc
-*.pkl
-.*.swp
-*.dump
