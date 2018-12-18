@@ -1,9 +1,9 @@
 """
-This experiment is meant to create trajectories of macroscopic variables from
-1) the numeric micro model and
-2) the analytic macro model
-From these trajectories, I will calculate the distance
-The variable Parameters are tau and phi.
+Scan the economic variables of the system especially
+b_R: the resource cost,
+b_d: the total factor productivity in the dirty sector,
+xi: the elasticity of knowledge in the clean sector.
+to see, which of the two sectors dominates.
 """
 
 import getpass
@@ -15,17 +15,17 @@ from pathlib import Path
 import networkx as nx
 import numpy as np
 import pandas as pd
-from parameters import ExperimentDefaults
 from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
 
-from pydivest.macro_model.integrate_equations_aggregate \
-    import IntegrateEquationsAggregate
-from pydivest.macro_model.integrate_equations_rep \
-    import Integrate_Equations as IntegrateEquationsRep
+from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
 from pydivest.micro_model.divestmentcore import DivestmentCore
+try:
+    from parameters import ExperimentDefaults
+except ImportError:
+    from .parameters import ExperimentDefaults
 
 
-def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
+def run_func(approximate, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -35,19 +35,15 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
 
     Parameters:
     -----------
-    tau : float > 0
-        the frequency of social interactions
-    phi : float \in [0,1]
-        the rewiring probability for the network update
-    xi : float
-        elasticity of knowledge in the clean sector
     kappa_c: float
         elasticity of capital in the clean sector
+    xi: float
+        elasticity of knowledge in the clean sector
     approximate: bool
         if True: run macroscopic approximation
         if False: run micro-model
     test: int \in [0,1]
-        wheter this is a test run, e.g.
+        whether this is a test run, e.g.
         can be executed with lower runtime
     filename: string
         filename for the results of the run
@@ -55,14 +51,11 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
 
     # Parameters:
 
-    ed = ExperimentDefaults()
-    input_params = ed.input_params
+    input_params = ExperimentDefaults.input_params
 
-    input_params['phi'] = phi
-    input_params['tau'] = tau
-    input_params['xi'] = xi
-    input_params['kappa_c'] = kappa_c
-    input_params['test'] = False  # test
+    input_params['phi'] = .5
+    input_params['test'] = test
+    input_params['interaction'] = 1
 
     # investment_decisions:
     nopinions = [100, 100]
@@ -89,58 +82,36 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
     # initializing the model
     if approximate == 1:
         m = DivestmentCore(*init_conditions, **input_params)
+        m.switchlist_output = True
     elif approximate == 2:
         m = IntegrateEquationsAggregate(*init_conditions, **input_params)
-    elif approximate == 3:
-        m = IntegrateEquationsRep(*init_conditions, **input_params)
     else:
-        raise ValueError('approximate must be in [1, 2, 3, 4] but is {}'.format(approximate))
+        raise ValueError('approximate must be in [1, 2] but is {}'.format(approximate))
 
-    t_max = 300
-    m.set_parameters()
+    t_max = 30
     exit_status = m.run(t_max=t_max)
+
+    # transition phase with resource depletion
 
     # store data in case of successful run
     if exit_status in [0, 1]:
-        if approximate in [0, 1, 4]:
-            df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0, t_max)
-            df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0, t_max)
-            if test:
-                df3 = even_time_series_spacing(m.get_economic_trajectory(), 201, 0, t_max)
-        else:
-            df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0, t_max)
-            df1 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0, t_max)
-            if test:
-                df3 = df2
-
-        for c in df1.columns:
-            if c in df2.columns:
-                df2.drop(c, axis=1, inplace=True)
-        if not test:
-            df_out = pd.concat([df1, df2], axis=1)
-        else:
-            df_tmp = pd.concat([df1, df2], axis=1)
-            for c in df_tmp.columns:
-                if c in df3.columns:
-                    df3.drop(c, axis=1, inplace=True)
-            df_out = pd.concat([df_tmp, df3], axis=1)
-
+        df1 = even_time_series_spacing(m.get_event_rate_data(), 201, 0, t_max)
+        if 'time' in df1.columns:
+            df1.drop('time', axis=1, inplace=True)
+        df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0, t_max)
+        df_out = pd.concat([df1, df2], axis=1)
         df_out.index.name = 'tstep'
+        if approximate == 1:
+            df_out_2 = m.get_switch_list()
+        else:
+            df_out_2 = None
     else:
         df_out = None
+        df_out_2 = None
 
-    # remove output that is not needed for production plot to write less on database
-    rm_columns = ['mu_c^c','mu_c^d','mu_d^c','mu_d^d','l_c','l_d','r','r_c','r_d',
-                  'w', 'W_c', 'W_d', 'n_c', 'i_c', 'wage', 'r_c_dot', 'r_d_dot', 'K_c', 'K_d', 'P_c',
-                  'P_d', 'L', 'R', 'P_c_cost', 'P_d_cost', 'K_c_cost',
-                  'K_d_cost', 'c_R', 'consensus', 'decision state', 'G_alpha', '[0]',
-                  '[1]', 'c[0]', 'c[1]', 'd[0]', 'd[1]']
-    if not test:
-        for column in df_out.columns:
-            if column in rm_columns:
-                df_out.drop(column, axis=1, inplace=True)
+    print(f'output of {len([df_out, df_out_2])} dataframes')
 
-    return exit_status, df_out
+    return exit_status, [df_out, df_out_2]
 
 
 # get sub experiment and mode from command line
@@ -183,14 +154,9 @@ def run_experiment(argv):
         test = bool(int(argv[1]))
     else:
         test = False
-    # switch sub_experiment mode
-    if len(argv) > 2:
-        mode = int(argv[2])
-    else:
-        mode = 0
     # switch micro macro model
-    if len(argv) > 3:
-        approximate = int(argv[3])
+    if len(argv) > 2:
+        approximate = int(argv[2])
     else:
         approximate = 1
 
@@ -206,32 +172,21 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    sub_experiment = ['micro', 'aggregate', 'representative'][approximate - 1]
-    folder = 'P3o2'
+    sub_experiment = ['micro', 'aggregate'][approximate - 1]
+    folder = 'P7'
 
     # make sure, testing output goes to its own folder:
 
     test_folder = ['', 'test_output/'][int(test)]
 
-    SAVE_PATH_RAW = \
-        "{}/{}{}/{}/" \
-            .format(tmppath, test_folder, folder, sub_experiment)
-    SAVE_PATH_RES = \
-        "{}/{}{}/{}/" \
-            .format(respath, test_folder, folder, sub_experiment)
+    SAVE_PATH_RAW = f"{tmppath}/{test_folder}{folder}/{sub_experiment}/"
+    SAVE_PATH_RES = f"{respath}/{test_folder}{folder}/{sub_experiment}/"
+
     """
     create parameter combinations and index
     """
 
-    phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 21))]
-    taus = [round(x, 5) for x in list(np.linspace(.5, 10., 20))]
-    xis = [round(x, 5) for x in list(np.linspace(.1, .15, 2))]
-    tau, phi = [1.], [.5]
-
-    if test:
-        PARAM_COMBS = list(it.product(tau, phi, [0.1], [0.5], [approximate], [test]))
-    else:
-        PARAM_COMBS = list(it.product(taus, phis, [0.1], [0.5], [approximate], [test]))
+    PARAM_COMBS = list(it.product([approximate], [test]))
 
     """
     run computation and/or post processing and/or plotting
@@ -243,16 +198,17 @@ def run_experiment(argv):
         if not Path(SAVE_PATH_RAW).exists():
             Path(SAVE_PATH_RAW).mkdir(parents=True, exist_ok=True)
         run_func_output = pd.read_pickle(SAVE_PATH_RAW + 'rfof.pkl')
-    except:
+    except FileNotFoundError:
         params = list(PARAM_COMBS[0])
-        run_func_output = RUN_FUNC(*params)[1]
-        with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
-            pd.to_pickle(run_func_output, dmp)
+        params[-1] = False
+        run_func_output = run_func(*params)[1]
 
-    SAMPLE_SIZE = 50 if not (test or approximate in [2, 3]) else 10
+        pd.to_pickle(run_func_output, SAVE_PATH_RAW+'rfof.pkl')
+
+    SAMPLE_SIZE = 1 if (test or approximate in [2, 3]) else 10
 
     # initialize computation handle
-    compute_handle = experiment_handling(run_func=RUN_FUNC,
+    compute_handle = experiment_handling(run_func=run_func,
                                          runfunc_output=run_func_output,
                                          sample_size=SAMPLE_SIZE,
                                          parameter_combinations=PARAM_COMBS,
@@ -261,22 +217,24 @@ def run_experiment(argv):
 
     # define eva functions
 
-    def mean(tau, phi, xi, kappa_c, approximate, test):
+    def mean(approximate, test):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappa_c} & approximate={approximate} & test={test}'
+        query = f'approximate={approximate} & test={test}'
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat_0", where=query)
 
-        return 1, trj.groupby(level='tstep').mean()
+        df_out = trj.groupby(level='tstep').mean()
 
-    def std(tau, phi, xi, kappa_c, approximate, test):
+        return 1, df_out
+
+    def std(approximate, test):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappa_c} & approximate={approximate} & test={test}'
+        query = f'approximate={approximate} & test={test}'
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat_0", where=query)
@@ -284,6 +242,25 @@ def run_experiment(argv):
         df_out = trj.groupby(level='tstep').std()
 
         return 1, df_out
+
+    def collect_switching_events(approximate, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = f'approximate={approximate} & test={test}'
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat_0", where=query)
+
+        df_out1 = trj.groupby(level='tstep').std()
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            df_out2 = store.select("dat_1", where=query)
+        df_out2.index = df_out2.index.droplevel(['approximate', 'test', 'sample'])
+
+        print(df_out2)
+
+        return 1, [df_out1, df_out2]
 
     eva_1_handle = experiment_handling(run_func=mean,
                                        runfunc_output=run_func_output,
@@ -297,18 +274,22 @@ def run_experiment(argv):
                                        parameter_combinations=PARAM_COMBS,
                                        path_raw=SAVE_PATH_RES + '/std.h5'
                                        )
+    eva_3_handle = experiment_handling(run_func=collect_switching_events,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=PARAM_COMBS,
+                                       path_raw=SAVE_PATH_RES + '/switch.h5'
+                                       )
 
-    if mode == 0:
-        compute_handle.compute()
-        return 1
-    elif mode == 1:
-
-        eva_1_handle.compute()
-        eva_2_handle.compute()
-        return 1
-    else:
-        # in case nothing happened:
-        return 0
+    compute_handle.compute()
+    eva_1_handle.compute()
+    eva_2_handle.compute()
+    if approximate == 1:
+        try:
+            eva_3_handle.compute()
+        except KeyError:
+            pass
+    return 1
 
 
 if __name__ == "__main__":
