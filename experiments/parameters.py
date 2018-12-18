@@ -1,3 +1,10 @@
+
+# Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
+# Impact Research
+#
+# Contact: kolb@pik-potsdam.de
+# License: GNU AGPL Version 3
+
 class ExperimentDefaults:
     """contains default values for experiment default parameters to keep them consistent"""
 

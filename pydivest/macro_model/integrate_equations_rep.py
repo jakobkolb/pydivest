@@ -3,6 +3,12 @@
 # Equations for Representative Household approximation of
 # Network-based micro-model for divestment of bounded rational households.
 
+# Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
+# Impact Research
+#
+# Contact: kolb@pik-potsdam.de
+# License: GNU AGPL Version 3
+
 # Imports and setup
 
 import sys

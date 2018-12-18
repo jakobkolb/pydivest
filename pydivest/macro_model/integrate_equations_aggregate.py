@@ -1,5 +1,9 @@
-"""Part of the pydivestment package
-authored by Jakob J. Kolb (kolb@pik-potsdam.de)"""
+
+# Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
+# Impact Research
+#
+# Contact: kolb@pik-potsdam.de
+# License: GNU AGPL Version 3
 
 import numpy as np
 import pandas as pd

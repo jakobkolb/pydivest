@@ -2,6 +2,13 @@
 Compare Trajectory from micro simulation for new and old interaction between households.
 """
 
+# Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
+# Impact Research
+#
+# Contact: kolb@pik-potsdam.de
+# License: GNU AGPL Version 3
+
+
 import getpass
 import itertools as it
 import os
