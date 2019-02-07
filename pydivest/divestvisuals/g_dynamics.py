@@ -3,6 +3,13 @@ This little script is meant to evaluate the resource depletion
 dynamic and the actual relevance of the resource depletion timescale.
 """
 
+# Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
+# Impact Research
+#
+# Contact: kolb@pik-potsdam.de
+# License: GNU AGPL Version 3
+
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import odeint

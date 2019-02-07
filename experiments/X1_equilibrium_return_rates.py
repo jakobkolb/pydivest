@@ -9,6 +9,13 @@ This should only work in the equilibrium condition where the environment stays c
 
 """
 
+# Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
+# Impact Research
+#
+# Contact: kolb@pik-potsdam.de
+# License: GNU AGPL Version 3
+
+
 try:
     import cPickle as cp
 except ImportError:

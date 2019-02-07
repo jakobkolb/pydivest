@@ -1,5 +1,11 @@
 """Naming convention: p_ precedes parameter names, and v_precedes variable names"""
 
+# Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
+# Impact Research
+#
+# Contact: kolb@pik-potsdam.de
+# License: GNU AGPL Version 3
+
 import sys
 
 import numpy as np

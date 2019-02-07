@@ -6,6 +6,13 @@ with abundant fossil resource) as well as the same campaign starting size and
 dynamics.
 """
 
+# Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
+# Impact Research
+#
+# Contact: kolb@pik-potsdam.de
+# License: GNU AGPL Version 3
+
+
 import getpass
 import glob
 import itertools as it

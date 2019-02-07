@@ -26,6 +26,13 @@ the ratio alpha = b_R/e<0 determines the share of the initial
 resource that can be economically harvested.
 """
 
+# Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
+# Impact Research
+#
+# Contact: kolb@pik-potsdam.de
+# License: GNU AGPL Version 3
+
+
 try:
     import pickle as cp
 except ImportError:
