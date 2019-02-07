@@ -176,7 +176,30 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
     if test:
         print('getting output')
 
-    df_out = pd.DataFrame(PC['EQ1'].sol.todict()).set_index('xi')
+    def to_df(PC):
+
+        index = np.arange(len(PC['EQ1'].sol))
+        columns = PC['EQ1'].sol.keys() + ['stability', 'labels']
+
+        df = pd.DataFrame(columns=columns,
+                          index=index)
+
+        def strcomp(ls):
+            x = ''
+            for l in ls:
+                x += l + ', '
+            return x[:-2]
+
+        for i, point in enumerate(PC['EQ1'].sol):
+            values = point.values()
+            labels = strcomp(list(point.labels.keys()))
+            stability = point.labels['EP']['stab']
+            row = values + [labels] + [stability]
+            df.iloc[i] = row
+
+        return df
+
+    df_out = to_df(PC)
 
     if test:
         print(df_out)
