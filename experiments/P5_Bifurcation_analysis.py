@@ -20,10 +20,12 @@ import getpass
 import itertools as it
 import os
 import sys
+import time
 from pathlib import Path
 import PyDSTool as pdt
 import sympy as sp
 import matplotlib.pyplot as plt
+import datetime
 
 
 import networkx as nx
@@ -142,6 +144,8 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
     if test:
         print('initializing curve')
 
+    tsteps = 10000
+
     DSargs.pars = params_updated
     DSargs.varspecs = equations_updated
     DSargs.ics = initial_conditions
@@ -155,7 +159,7 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
     PC = pdt.ContClass(ode)
     PCargs = pdt.args(name='EQ1', type='EP-C')
     PCargs.freepars = ['xi']
-    PCargs.MaxNumPoints = 100000 if not test else 100
+    PCargs.MaxNumPoints = tsteps if not test else 100
     PCargs.MaxStepSize = 2
     PCargs.MinStepSize = 1e-10
     PCargs.StepSize = 2e-3
@@ -163,9 +167,11 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
     PCargs.LocBifPoints = 'LP'
     PC.newCurve(PCargs)
 
-    if test:
-        print('continuation')
+    print(f'starting continuation, {b_d}, {kappa_c}, {d_c}, {e}, {b_R}, {eps}', flush=True)
+    start = time.clock()
     PC['EQ1'].forward()
+    stop = time.clock()
+    print(datetime.datetime.now(), f'continuation took {stop - start} seconds for {tsteps} steps', b_d, kappa_c, d_c, e, b_R, eps, test, flush=True)
 
     if test:
         print('plotting')
@@ -186,7 +192,11 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
     def to_df(PC):
 
         index = np.arange(len(PC['EQ1'].sol))
-        columns = PC['EQ1'].sol.keys() + ['stability', 'labels']
+
+        ncolumns = PC['EQ1'].sol.keys()
+        scolumns = ['stability'] + ['labels']
+
+        columns = ncolumns + scolumns
 
         df = pd.DataFrame(columns=columns,
                           index=index)
@@ -201,16 +211,16 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
             values = point.values()
             labels = strcomp(list(point.labels.keys()))
             stability = point.labels['EP']['stab']
-            row = values + [labels] + [stability]
+            row = values + [stability] + [labels]
             df.iloc[i] = row
 
+        for col in columns:
+            df[col] = df[col].astype(str)
         return df
 
     df_out = to_df(PC)
 
-    if test:
-        print(df_out)
-
+    # print(f'saving, {b_d}, {kappa_c}, {d_c}, {e}, {b_R}, {eps}', flush=True)
     return exit_status, df_out
 
 
@@ -259,7 +269,7 @@ def run_experiment(argv):
     set input/output paths
     """
 
-    respath = os.path.dirname(os.path.realpath(__file__)) + "/../output_data"
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/output_data"
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":
@@ -286,8 +296,8 @@ def run_experiment(argv):
     b_ds = [round(x, 5) for x in list(np.linspace(1., 4., 21))]
     kappa_cs = [round(x, 5) for x in list(np.linspace(.4, .5, 2))]
     d_cs = [round(x, 5) for x in list(np.linspace(.05, .12, 8))]
-    es = [round(x, 5) for x in list(np.linspace(1., 51, 6))]
-    b_Rs = [round(x, 5) for x in list(np.linspace(.1, .5, 6))]
+    es = [round(x, 5) for x in list(np.linspace(1., 51, 3))]
+    b_Rs = [round(x, 5) for x in list(np.linspace(.1, .5, 3))]
     epss = [round(x, 5) for x in list(np.linspace(.01, .05, 3))]
 
 
@@ -320,7 +330,8 @@ def run_experiment(argv):
                                          runfunc_output=run_func_output,
                                          sample_size=SAMPLE_SIZE,
                                          parameter_combinations=PARAM_COMBS,
-                                         path_raw=SAVE_PATH_RAW
+                                         path_raw=SAVE_PATH_RAW,
+                                         min_itemsize=30
                                          )
 
     compute_handle.compute()
