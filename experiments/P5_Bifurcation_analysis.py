@@ -144,7 +144,7 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
     if test:
         print('initializing curve')
 
-    tsteps = 10000
+    tsteps = 100000
 
     DSargs.pars = params_updated
     DSargs.varspecs = equations_updated
@@ -293,9 +293,9 @@ def run_experiment(argv):
     # default parameter values:
     b_d, kappa_c, d_c, e, b_R, eps = [3.2], [.5], [.12], [1.], [.1], [0.01]
 
-    b_ds = [round(x, 5) for x in list(np.linspace(1., 4., 21))]
+    b_ds = [round(x, 5) for x in list(np.linspace(1., 4., 41))]
     kappa_cs = [round(x, 5) for x in list(np.linspace(.4, .5, 2))]
-    d_cs = [round(x, 5) for x in list(np.linspace(.05, .12, 8))]
+    d_cs = [round(x, 5) for x in list(np.linspace(.05, .12, 4))]
     es = [round(x, 5) for x in list(np.linspace(1., 51, 3))]
     b_Rs = [round(x, 5) for x in list(np.linspace(.1, .5, 3))]
     epss = [round(x, 5) for x in list(np.linspace(.01, .05, 3))]
@@ -304,7 +304,7 @@ def run_experiment(argv):
     if test:
         PARAM_COMBS = list(it.product(b_d, kappa_c, d_c, e, b_R, eps, [test]))
     else:
-        PARAM_COMBS = list(it.product(b_ds, kappa_cs, d_cs, e, b_R, epss, [test]))
+        PARAM_COMBS = list(it.product(b_ds, kappa_c, d_cs, e, b_R, epss, [test]))
 
     """
     run computation and/or post processing and/or plotting
