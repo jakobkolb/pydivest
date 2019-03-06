@@ -23,13 +23,17 @@ setup(name="pydivest",
             "pymofa>=0.1.0",
             "pylama>=7.0.0",
             "pytest-cov>=2.5.1",
-            "scipy==0.19.1",
+            "scipy",
             "pandas",
             "scipy",
             "networkx",
             'matplotlib',
-            'Assimulo', 'sympy'
+            'Assimulo',
+            'sympy',
+            'pydstool'
       ],
+      # fork of pydstool that works with scipy > 0.19
+      dependency_links=['https://github.com/robclewley/pydstool/tarball/master#pydstool'],
       # see http://stackoverflow.com/questions/15869473/what-is-the-advantage-
       # of-setting-zip-safe-to-true-when-packaging-a-python-projec
       zip_safe=False)
