@@ -73,7 +73,7 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, phi, test):
 
     input_params['b_d'] = b_d
     input_params['kappa_c'] = kappa_c
-    input_params['xi'] = 0.1
+    input_params['xi'] = 0.04
     input_params['test'] = test
     input_params['d_c'] = d_c
     input_params['e'] = e
@@ -147,7 +147,7 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, phi, test):
     if test:
         print('initializing curve')
 
-    tsteps = 40000
+    tsteps = 50000
 
     initial_conditions['C'] = 4
     initial_conditions['K_cc'] = 5
@@ -156,7 +156,7 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, phi, test):
     DSargs.pars = params_updated
     DSargs.varspecs = equations_updated
     DSargs.ics = initial_conditions
-    DSargs.pdomain = {'xi': [0.1, 0.15], 'b_d': [1., 4.]}
+    DSargs.pdomain = {'xi': [0., 0.15], 'b_d': [1., 4.]}
     DSargs.tdata = [0, 300]
     DSargs.algparams = {'init_step': 0.2}
 
@@ -169,18 +169,18 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, phi, test):
     PCargs.freepars = ['xi']
     PCargs.MaxNumPoints = tsteps if not test else 100
     PCargs.MaxStepSize = 2
-    PCargs.MinStepSize = 1e-10
+    PCargs.MinStepSize = 1e-5
     PCargs.StepSize = 2e-3
     PCargs.SaveEigen = True
     PCargs.LocBifPoints = 'LP'
     PCargs.StopAtPoints = ['B']
     PC.newCurve(PCargs)
 
-    print(f'starting continuation, {b_d}, {kappa_c}, {d_c}, {e}, {b_R}, {eps}', flush=True)
+    print(f'starting continuation, {b_d}, {kappa_c}, {d_c}, {e}, {b_R}, {eps}, {phi}', flush=True)
     start = time.clock()
     PC['EQ1'].forward()
     stop = time.clock()
-    print(datetime.datetime.now(), f'continuation took {stop - start} seconds for {tsteps} steps', b_d, kappa_c, d_c, e, b_R, eps, test, flush=True)
+    print(datetime.datetime.now(), f'continuation took {stop - start} seconds for {tsteps} steps with phi={phi}', b_d, kappa_c, d_c, e, b_R, eps, test, flush=True)
 
     if test:
         print('plotting')
@@ -295,12 +295,15 @@ def run_experiment(argv):
     SAVE_PATH_RAW = f'{tmppath}/{test_folder}{folder}/'
     SAVE_PATH_RES = f'{respath}/{test_folder}{folder}/'
 
+    print(SAVE_PATH_RAW)
+    print(SAVE_PATH_RES)
+
     """
     create parameter combinations and index
     """
 
     # default parameter values:
-    b_d, kappa_c, d_c, e, b_R, eps = [3.2], [.5], [.12], [1.], [.1], [0.01]
+    b_d, kappa_c, d_c, e, b_R, eps = [4], [.5], [.12], [1.], [.1], [0.01]
 
     b_ds = [round(x, 5) for x in list(np.linspace(1., 4., 41))]
     kappa_cs = [round(x, 5) for x in list(np.linspace(.4, .5, 2))]
@@ -308,13 +311,14 @@ def run_experiment(argv):
     es = [round(x, 5) for x in list(np.linspace(1., 51, 3))]
     b_Rs = [round(x, 5) for x in list(np.linspace(.1, .5, 3))]
     epss = [round(x, 5) for x in list(np.linspace(.01, .05, 3))]
+
     t_phis = [0.0, 0.4, 0.8]
     phis = [round(x, 5) for x in list(np.linspace(0., .8, 41))]
 
     if test:
         PARAM_COMBS = list(it.product(b_d, kappa_c, d_c, e, b_R, eps, t_phis, [test]))
     else:
-        PARAM_COMBS = list(it.product(b_d, kappa_c, d_c, e, b_R, eps, t_phis, [test]))
+        PARAM_COMBS = list(it.product([2., 3.2], kappa_c, d_c, e, b_R, eps, t_phis, [test]))
         # PARAM_COMBS = list(it.product(b_ds, kappa_c, d_cs, e, b_R, epss, phis, [test]))
 
     """
