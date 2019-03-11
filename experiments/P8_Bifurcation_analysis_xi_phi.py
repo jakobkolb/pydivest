@@ -69,11 +69,20 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, phi, test):
 
     # Parameters:
 
+    b_d = 2.
+    kappa_c = .5
+    d_c = .12
+    e = 1.
+    b_R = .1
+    eps = .01
+    phi = 0.
+    test = True
+
     input_params = ExperimentDefaults.input_params
 
     input_params['b_d'] = b_d
     input_params['kappa_c'] = kappa_c
-    input_params['xi'] = 0.04
+    input_params['xi'] = 0.06
     input_params['test'] = test
     input_params['d_c'] = d_c
     input_params['e'] = e
@@ -145,13 +154,20 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, phi, test):
     initial_conditions['C'] = 1
 
     if test:
-        print('initializing curve')
+        print(f'initializing, {b_d}, {kappa_c}, {d_c}, {e}, {b_R}, {eps}, {phi}', flush=True)
 
     tsteps = 50000
 
+    initial_conditions['C'] = 1
     initial_conditions['C'] = 4
-    initial_conditions['K_cc'] = 5
-    initial_conditions['K_dd'] = 10000
+    initial_conditions['K_cc'] = 50
+    initial_conditions['K_cd'] = 250
+    initial_conditions['K_dc'] = 250
+    initial_conditions['K_dd'] = 4000
+    initial_conditions['C'] = 380
+    initial_conditions['x'] = -.9
+    initial_conditions['y'] = -.9
+    initial_conditions['z'] = .1
 
     DSargs.pars = params_updated
     DSargs.varspecs = equations_updated
@@ -316,7 +332,8 @@ def run_experiment(argv):
     phis = [round(x, 5) for x in list(np.linspace(0., .8, 41))]
 
     if test:
-        PARAM_COMBS = list(it.product(b_d, kappa_c, d_c, e, b_R, eps, t_phis, [test]))
+        PARAM_COMBS = list(it.product([2., 3.2], kappa_c, d_c, e, b_R, eps, t_phis, [test]))
+        #PARAM_COMBS = list(it.product(b_d, kappa_c, d_c, e, b_R, eps, t_phis, [test]))
     else:
         PARAM_COMBS = list(it.product([2., 3.2], kappa_c, d_c, e, b_R, eps, t_phis, [test]))
         # PARAM_COMBS = list(it.product(b_ds, kappa_c, d_cs, e, b_R, epss, phis, [test]))
