@@ -22,7 +22,7 @@ from pathlib import Path
 import networkx as nx
 import numpy as np
 import pandas as pd
-from parameters import ExperimentDefaults
+from pydivest.default_params import ExperimentDefaults
 from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
 
 from pydivest.macro_model.integrate_equations_aggregate \

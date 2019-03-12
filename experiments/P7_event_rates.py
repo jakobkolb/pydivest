@@ -26,10 +26,7 @@ from pymofa.experiment_handling import experiment_handling, even_time_series_spa
 
 from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
 from pydivest.micro_model.divestmentcore import DivestmentCore
-try:
-    from parameters import ExperimentDefaults
-except ImportError:
-    from .parameters import ExperimentDefaults
+from pydivest.default_params import ExperimentDefaults
 
 
 def run_func(approximate, test):

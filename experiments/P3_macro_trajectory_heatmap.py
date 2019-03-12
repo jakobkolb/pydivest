@@ -27,7 +27,8 @@ from pymofa.experiment_handling import experiment_handling, even_time_series_spa
 from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
 from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as IntegrateEquationsRep
 from pydivest.micro_model.divestmentcore import DivestmentCore
-from parameters import ExperimentDefaults
+
+from pydivest.default_params import ExperimentDefaults
 
 
 def RUN_FUNC(tau, phi, eps, approximate, test):

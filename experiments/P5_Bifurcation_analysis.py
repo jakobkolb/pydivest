@@ -35,7 +35,7 @@ from pymofa.experiment_handling import experiment_handling, even_time_series_spa
 
 from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
 
-from parameters import ExperimentDefaults
+from pydivest.default_params import ExperimentDefaults
 
 
 def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):

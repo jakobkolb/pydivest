@@ -31,7 +31,8 @@ from pydivest.macro_model.integrate_equations_aggregate \
 from pydivest.macro_model.integrate_equations_rep \
     import Integrate_Equations as IntegrateEquationsRep
 from pydivest.micro_model.divestmentcore import DivestmentCore
-from parameters import ExperimentDefaults
+
+from pydivest.default_params import ExperimentDefaults
 
 
 def RUN_FUNC(b_d, phi, eps, approximate, test):

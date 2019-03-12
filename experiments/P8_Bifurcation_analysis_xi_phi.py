@@ -35,10 +35,10 @@ from pymofa.experiment_handling import experiment_handling, even_time_series_spa
 
 from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
 
-from parameters import ExperimentDefaults
+from pydivest.default_params import ExperimentDefaults
 
 
-def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, phi, test):
+def run_func(b_d, kappa_c, d_c, e, b_R, eps, phi, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -66,17 +66,6 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, phi, test):
         whether this is a test run, e.g.
         can be executed with lower runtime
     """
-
-    # Parameters:
-
-    b_d = 2.
-    kappa_c = .5
-    d_c = .12
-    e = 1.
-    b_R = .1
-    eps = .01
-    phi = 0.
-    test = True
 
     input_params = ExperimentDefaults.input_params
 
@@ -150,21 +139,18 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, phi, test):
     del initial_conditions['G']
 
     params_updated['G'] = m.p_G_0
-
-    initial_conditions['C'] = 1
+    params_updated['xi'] = 0.04
 
     if test:
         print(f'initializing, {b_d}, {kappa_c}, {d_c}, {e}, {b_R}, {eps}, {phi}', flush=True)
 
     tsteps = 50000
 
-    initial_conditions['C'] = 1
-    initial_conditions['C'] = 4
     initial_conditions['K_cc'] = 50
     initial_conditions['K_cd'] = 250
     initial_conditions['K_dc'] = 250
     initial_conditions['K_dd'] = 4000
-    initial_conditions['C'] = 380
+    initial_conditions['C'] = 200
     initial_conditions['x'] = -.9
     initial_conditions['y'] = -.9
     initial_conditions['z'] = .1
@@ -351,14 +337,14 @@ def run_experiment(argv):
     except:
         params = list(PARAM_COMBS[0])
         params[-1] = True
-        run_func_output = RUN_FUNC(*params)[1]
+        run_func_output = run_func(*params)[1]
         with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
     SAMPLE_SIZE = 1
 
     # initialize computation handle
-    compute_handle = experiment_handling(run_func=RUN_FUNC,
+    compute_handle = experiment_handling(run_func=run_func,
                                          runfunc_output=run_func_output,
                                          sample_size=SAMPLE_SIZE,
                                          parameter_combinations=PARAM_COMBS,

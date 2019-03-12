@@ -24,7 +24,8 @@ even_time_series_spacing
 from pydivest.micro_model.divestmentcore import DivestmentCore as micro
 from pydivest.macro_model.integrate_equations_aggregate \
     import IntegrateEquationsAggregate as aggregate
-from parameters import ExperimentDefaults
+
+from pydivest.default_params import ExperimentDefaults
 
 
 def RUN_FUNC(interaction, phi, b_d, model, test):

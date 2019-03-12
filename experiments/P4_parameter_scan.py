@@ -1,4 +1,5 @@
 """
+from parameters import ExperimentDefaults
 Scan the economic variables of the system especially
 b_R: the resource cost,
 b_d: the total factor productivity in the dirty sector,
@@ -28,7 +29,7 @@ from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquation
 from pydivest.macro_model.integrate_equations_rep import Integrate_Equations as IntegrateEquationsRep
 from pydivest.micro_model.divestmentcore import DivestmentCore
 
-from parameters import ExperimentDefaults
+from pydivest.default_params import ExperimentDefaults
 
 
 def RUN_FUNC(b_d, b_R, xi, approximate, test):
