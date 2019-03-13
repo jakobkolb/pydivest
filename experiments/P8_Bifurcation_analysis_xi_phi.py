@@ -307,21 +307,21 @@ def run_experiment(argv):
     # default parameter values:
     b_d, kappa_c, d_c, e, b_R, eps = [4], [.5], [.12], [1.], [.1], [0.01]
 
-    b_ds = [round(x, 5) for x in list(np.linspace(1., 4., 41))]
+    b_ds = [round(x, 5) for x in list(np.linspace(1., 4., 7))]
     kappa_cs = [round(x, 5) for x in list(np.linspace(.4, .5, 2))]
     d_cs = [round(x, 5) for x in list(np.linspace(.05, .12, 4))]
     es = [round(x, 5) for x in list(np.linspace(1., 51, 3))]
     b_Rs = [round(x, 5) for x in list(np.linspace(.1, .5, 3))]
     epss = [round(x, 5) for x in list(np.linspace(.01, .05, 3))]
 
-    t_phis = [0.0, 0.4, 0.8]
+    t_phis = [0.0, 0.2, 0.4, 0.6, 0.8]
     phis = [round(x, 5) for x in list(np.linspace(0., .8, 41))]
 
     if test:
         PARAM_COMBS = list(it.product([2., 3.2], kappa_c, d_c, e, b_R, eps, t_phis, [test]))
         #PARAM_COMBS = list(it.product(b_d, kappa_c, d_c, e, b_R, eps, t_phis, [test]))
     else:
-        PARAM_COMBS = list(it.product([2., 3.2], kappa_c, d_c, e, b_R, eps, t_phis, [test]))
+        PARAM_COMBS = list(it.product(b_ds, kappa_c, d_c, e, b_R, eps, t_phis, [test]))
         # PARAM_COMBS = list(it.product(b_ds, kappa_c, d_cs, e, b_R, epss, phis, [test]))
 
     """
