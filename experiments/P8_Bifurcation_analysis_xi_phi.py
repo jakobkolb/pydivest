@@ -71,7 +71,7 @@ def run_func(b_d, kappa_c, d_c, e, b_R, eps, phi, test):
 
     input_params['b_d'] = b_d
     input_params['kappa_c'] = kappa_c
-    input_params['xi'] = 0.06
+    input_params['xi'] = 0.02
     input_params['test'] = test
     input_params['d_c'] = d_c
     input_params['e'] = e
@@ -139,7 +139,7 @@ def run_func(b_d, kappa_c, d_c, e, b_R, eps, phi, test):
     del initial_conditions['G']
 
     params_updated['G'] = m.p_G_0
-    params_updated['xi'] = 0.04
+    params_updated['xi'] = 0.02
 
     if test:
         print(f'initializing, {b_d}, {kappa_c}, {d_c}, {e}, {b_R}, {eps}, {phi}', flush=True)
@@ -313,7 +313,7 @@ def run_experiment(argv):
     es = [round(x, 5) for x in list(np.linspace(1., 51, 3))]
     b_Rs = [round(x, 5) for x in list(np.linspace(.1, .5, 3))]
     epss = [round(x, 5) for x in list(np.linspace(.01, .05, 3))]
-
+    b_ds += [1.2, 1.3, 1.4]
     t_phis = [0.0, 0.2, 0.4, 0.6, 0.8]
     phis = [round(x, 5) for x in list(np.linspace(0., .8, 41))]
 
