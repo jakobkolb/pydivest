@@ -284,18 +284,23 @@ class plot_routines(object):
                   legend_locations: list = [4, 7, 1, 7],
                   tmax: int = 1000, tmin: int = 0,
                   plot_rep=False,
-                  figsize=(8, 6)):
+                  figsize=(8, 6),
+                  setup=[0, 1, 2, 3]):
 
         self.variable_combos = [['N_c over N', '[cc] over M', '[cd] over M'],
-                                ['C', 'G'], ['K_c^c', 'K_d^d'],
+                                ['C', 'G'], 
+                                ['K_c^c', 'K_d^d'],
                                 ['K_c^d', 'K_d^c']]
         self.variable_combos_backup = [['N_c over N', '[cc] over M', '[cd] over M'],
-                                ['c', 'g'], ['K_c^c', 'K_d^d'],
-                                ['K_c^d', 'K_d^c']]
+                                ['c', 'g'], 
+                                ['K_c^c', 'K_d^d'],
+                                ['K_c^d', 'K_d^c']
+                                ]
         self.latex_labels = [['$N_c / N$', '$[cc] / M$', '$[cd] / M$'],
                              ['$C$', '$G$'],
                              ['$K^{(c)}_c$', '$K^{(d)}_d$'],
-                             ['$K^{(c)}_d$', '$K^{(d)}_c$']]
+                             ['$K^{(c)}_d$', '$K^{(d)}_c$']
+                             ]
 
         # set opacity for plots of micro data:
         micro_alpha = 0.8
@@ -312,8 +317,14 @@ class plot_routines(object):
         fig = plt.figure(figsize=figsize)
         axes = [fig.add_subplot(2, 2, i + 1) for i in range(l_vars)]
 
-        for j, variables in enumerate(self.variable_combos):
-            ax_id = j
+#        for j, variables in enumerate(self.variable_combos):
+        for i in range(4):
+            # rearrange plots. Run axis id from 
+            # 0 to 4 but run j according to order in setup.
+            j = setup[i]
+            variables = self.variable_combos[j]
+            ax_id = i
+
             axes[ax_id].set_xlim([tmin, tmax])
             # local data set for specify value of phi
             ldp = local_datasets
