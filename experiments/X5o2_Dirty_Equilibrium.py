@@ -55,10 +55,15 @@ from pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
 
 save_path_init = ""
+possible_opinions = []
+
+def load(*args, **kwargs):
+    return np.load(*args, allow_pickle=True, **kwargs)
 
 
 def RUN_FUNC(t_a, phi, alpha,
-             t_d, possible_opinions, eps, transition, test, filename):
+             t_d, eps, transition, test,
+             filename='./'):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -154,7 +159,7 @@ def RUN_FUNC(t_a, phi, alpha,
                         'opinions': opinions,
                         'investment_clean': investment_clean,
                         'investment_dirty': investment_dirty,
-                        'possible_que_orders': possible_opinions,
+                        'possible_cue_orders': possible_opinions,
                         'tau': tau, 'phi': phi, 'eps': eps,
                         'L': P, 'b_d': b_d, 'b_r0': b_R0, 'G_0': G_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
@@ -174,7 +179,7 @@ def RUN_FUNC(t_a, phi, alpha,
                 + '*.pkl_final')
         init_files = glob.glob(path)
         init_file = init_files[np.random.randint(0, len(init_files))]
-        input_params = np.load(init_file)['final_state']
+        input_params = load(init_file)['final_state']
 
         # adapt parameters where necessary
 
@@ -192,27 +197,6 @@ def RUN_FUNC(t_a, phi, alpha,
     # storing initial conditions and parameters
 
     res = {}
-
-    res["parameters"] = \
-        pd.Series({"tau": m.tau,
-                   "phi": m.phi,
-                   "n": m.n,
-                   "L": p,
-                   "L": m.P,
-                   "birth rate": m.r_b,
-                   "savings rate": m.s,
-                   "clean capital depreciation rate": m.d_c,
-                   "dirty capital depreciation rate": m.d_d,
-                   "resource extraction efficiency": m.b_r0,
-                   "Solov residual clean": m.b_c,
-                   "Solov residual dirty": m.b_d,
-                   "pi": m.pi,
-                   "kappa_c": m.kappa_c,
-                   "kappa_d": m.kappa_d,
-                   "xi": m.xi,
-                   "resource efficiency": m.e,
-                   "epsilon": m.eps,
-                   "initial resource stock": m.G_0})
 
     # run the model
     start = time.clock()
@@ -307,7 +291,7 @@ def run_experiment(argv):
     conditions for transition in run function.
     """
 
-    respath = os.path.dirname(os.path.realpath(__file__)) + "/divestdata"
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/output_data"
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":
@@ -344,7 +328,10 @@ def run_experiment(argv):
             2: 'capital rent',
             3: 'capital rent trend',
             4: 'peer pressure'}
-    opinion_presets = [[2, 3],  # short term investor
+
+    global possible_opinions
+
+    possible_opinions = [[2, 3],  # short term investor
                        [3, 2],  # long term investor
                        [4, 2],  # short term herder
                        [4, 3],  # trending herder
@@ -353,7 +340,7 @@ def run_experiment(argv):
                        [1],     # gutmensch
                        [0]]     # redneck
     if no_heuristics:
-        opinion_presets = [[1], [0]]
+        possible_opinions = [[1], [0]]
 
     """
     set different times for resource depletion
@@ -387,68 +374,65 @@ def run_experiment(argv):
     t_a, phi, alpha, t_d, eps = [0.1], [0.8], [0.1], [30.], [0.05]
 
     NAME = 'Cue_order_testing'
-    INDEX = {
-            parameters["t_a"]: "t_a",
-            parameters['phi']: "phi",
-            parameters['alpha']: "alpha"}
+    INDEX = {0: 't_a', 1: 'phi', 2: 'alpha',
+             3: 't_d', 4: 'eps', 5: 'transition',
+             6: 'test'}
 
     """
     create list of parameter combinations according to testing mode.
-    Make sure, opinion_presets are not expanded
+    Make sure, possible_opinions are not expanded
     """
     if not test:
         PARAM_COMBS = list(it.product(
             t_as, phis, alphas, t_d,
-            [opinion_presets], eps,
-            [transition], [test]))
+            eps, [transition], [test]))
         file_extension = '.pdf'
     else:
         PARAM_COMBS = list(it.product(
             t_as[:2], phis[:2], alphas, t_d,
-            [opinion_presets], eps,
-            [transition], [test]))
+            eps, [transition], [test]))
         file_extension = '.png'
 
     # names and function dictionaries for post processing:
 
     NAME1 = NAME+'_trajectory'
     EVA1 = {"<mean_trajectory>":
-            lambda fnames: pd.concat([np.load(f)["e_trajectory"]
+            lambda fnames: pd.concat([load(f)["e_trajectory"]
                                       for f in fnames]).groupby(level=0).mean(),
             "<sem_trajectory>":
-            lambda fnames: pd.concat([np.load(f)["e_trajectory"]
+            lambda fnames: pd.concat([load(f)["e_trajectory"]
                                       for f in fnames]).groupby(level=0).sem(),
             "<min_trajectory>":
-            lambda fnames: pd.concat([np.load(f)["e_trajectory"]
+            lambda fnames: pd.concat([load(f)["e_trajectory"]
                                       for f in
                                       fnames]).groupby(level=0).min(),
             "<max_trajectory>":
-            lambda fnames: pd.concat([np.load(f)["e_trajectory"]
+            lambda fnames: pd.concat([load(f)["e_trajectory"]
                                       for f in
                                       fnames]).groupby(level=0).max()
             }
 
     NAME2 = NAME+'_convergence'
     EVA2 = {"<mean_convergence_state>":
-            lambda fnames: np.nanmean([np.load(f)["convergence_state"]
+            lambda fnames: np.nanmean([load(f)["convergence_state"]
                                        for f in fnames]),
             "<mean_convergence_time>":
-            lambda fnames: np.nanmean([np.load(f)["convergence_time"]
+            lambda fnames: np.nanmean([load(f)["convergence_time"]
                                        for f in fnames]),
             "<min_convergence_time>":
-            lambda fnames: np.nanmin([np.load(f)["convergence_time"]
+            lambda fnames: np.nanmin([load(f)["convergence_time"]
                                       for f in fnames]),
             "<max_convergence_time>":
-            lambda fnames: np.max([np.load(f)["convergence_time"]
+            lambda fnames: np.max([load(f)["convergence_time"]
                                    for f in fnames]),
             "<nanmax_convergence_time>":
-            lambda fnames: np.nanmax([np.load(f)["convergence_time"]
+            lambda fnames: np.nanmax([load(f)["convergence_time"]
                                       for f in fnames]),
             "<sem_convergence_time>":
-            lambda fnames: st.sem([np.load(f)["convergence_time"]
+            lambda fnames: st.sem([load(f)["convergence_time"]
                                    for f in fnames]),
             "<runtime>":
-            lambda fnames: st.sem([np.load(f)["runtime"]
+            lambda fnames: st.sem([load(f)["runtime"]
                                    for f in fnames]),
             }
 
@@ -462,14 +446,14 @@ def run_experiment(argv):
             handle.resave(EVA1, NAME1)  # economic trajectories
             handle.resave(EVA2, NAME2)  # final states
             plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-            plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
+            plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, possible_opinions,
                           file_extension=file_extension, test=test)
 
     # Local - only plotting
     elif mode == 1:
         if transition:
             plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-            plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets,
+            plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, possible_opinions,
                           file_extension=file_extension, test=test)
     # No valid mode - exit
     else:

@@ -256,10 +256,10 @@ if getpass.getuser() == "kolb":
         + folder + "/results"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_RAW = \
-        "/home/jakob/PhD/Project_Divestment/output_data/test/"\
+        "/home/jakob/Project_Divestment/output_data/test/"\
         + folder + "/raw_data"
     SAVE_PATH_RES = \
-        "/home/jakob/PhD/Project_Divestment/output_data/test/"\
+        "/home/jakob/Project_Divestment/output_data/test/"\
         + folder + "/results"
 
 """
