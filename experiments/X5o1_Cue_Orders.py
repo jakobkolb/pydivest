@@ -33,33 +33,67 @@ resource that can be economically harvested.
 # License: GNU AGPL Version 3
 
 
-try:
-    import pickle as cp
-except ImportError:
-    import pickle as cp
+import pickle as cp
 import getpass
-import glob
 import itertools as it
 import sys
 import time
-import types
+
+from random import shuffle
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 import scipy.stats as st
 
-from random import shuffle
 
-from pydivest.divestvisuals.data_visualization \
-    import plot_obs_grid, plot_tau_phi, tau_phi_final
-from pydivest.micro_model import divestmentcore as model
 from pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
 
+from pydivest.micro_model import divestmentcore as model
+
+
+def load(*args, **kwargs):
+    return np.load(*args, allow_pickle=True, **kwargs)
+
+
+"""
+Make different types of decision makers. Cues are
+"""
+cue_names = {
+        0: 'always dirty',
+        1: 'always clean',
+        2: 'capital rent',
+        3: 'capital rent trend',
+        4: 'peer pressure'}
+
+opinion_presets = [[2, 3],  # short term investor
+                   [3, 2],  # long term investor
+                   [4, 2],  # short term herder
+                   [4, 3],  # trending herder
+                   [4, 1],  # green conformer
+                   [4, 0],  # dirty conformer
+                   [1],     # gutmensch
+                   [0]]     # redneck
+
+
+"""
+Define different mixtures of decision makers to test
+"""
+opinion_dists = [[100, 0, 0, 0, 0, 0, 0, 0],
+                   [0, 100, 0, 0, 0, 0, 0, 0],
+                   [0, 0, 100, 0, 0, 0, 0, 0],
+                   [0, 0, 0, 100, 0, 0, 0, 0],
+                   [0, 0, 0, 0, 100, 0, 0, 0],
+                   [0, 0, 0, 0, 0, 100, 0, 0],
+                   [0, 0, 0, 0, 0, 0, 100, 0],
+                   [0, 0, 0, 0, 0, 0, 0, 100]]
+
 
 def RUN_FUNC(t_G, nopinions, alpha,
-             possible_opinions, eps, avm, test, filename):
+             eps, avm, test,
+             opinion_dists=opinion_dists,
+             possible_cue_orders=opinion_presets, filename='./'):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -92,7 +126,7 @@ def RUN_FUNC(t_G, nopinions, alpha,
         fraction of rewiring events that are random.
     avm: bool
         switch for adaptive voter dynamics in the model
-    test: int \in [0,1]
+    test: int in [0,1]
         whether this is a test run, e.g.
         can be executed with lower runtime
     filename: string
@@ -103,6 +137,7 @@ def RUN_FUNC(t_G, nopinions, alpha,
     assert alpha < 1,\
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
+    nopinions = opinion_dists[nopinions]
     (N, p, tau, phi, P, b_d, b_R0, e, d_c, s) =\
         (sum(nopinions), 0.125, .1, .8, 500, 1.2, 1., 100, 0.06, 0.23)
 
@@ -124,10 +159,10 @@ def RUN_FUNC(t_G, nopinions, alpha,
     # input parameters
 
     input_params = {
-            'possible_que_orders': possible_opinions,
+            'possible_cue_orders': possible_cue_orders,
             'tau': tau, 'phi': phi, 'eps': eps,
-        'L': P, 'b_d': b_d, 'b_r0': b_R0, 'G_0': G_0,
-            'e': e, 'd_c': d_c, 'test': bool(test)}
+            'L': P, 'b_d': b_d, 'b_r0': b_R0, 'G_0': G_0,
+        'e': e, 'd_c': d_c, 'test': bool(test), 'verbosity': 1}
 
     # building initial conditions
 
@@ -153,42 +188,17 @@ def RUN_FUNC(t_G, nopinions, alpha,
 
     # storing initial conditions and parameters
 
-    res = {}
-    res["initials"] = {
-            "adjacency matrix": adjacency_matrix,
-        "investment_decisions": opinions,
-        "possible investment_decisions": possible_opinions}
-
-    res["parameters"] = \
-        pd.Series({"tau": m.tau,
-                   "phi": m.phi,
-                   "n": m.n,
-                   "L": p,
-                   "L": m.P,
-                   "birth rate": m.r_b,
-                   "savings rate": m.s,
-                   "clean capital depreciation rate": m.d_c,
-                   "dirty capital depreciation rate": m.d_d,
-                   "resource extraction efficiency": m.b_r0,
-                   "Solov residual clean": m.b_c,
-                   "Solov residual dirty": m.b_d,
-                   "pi": m.pi,
-                   "kappa_c": m.kappa_c,
-                   "kappa_d": m.kappa_d,
-                   "rho": m.rho,
-                   "resource efficiency": m.e,
-                   "epsilon": m.eps,
-                   "initial resource stock": m.g_0})
-
     # run the model
+    print(test)
     if test:
         print(input_params)
 
-    t_max = 300 if test == 0 else 50
+    t_max = 300 if test == 0 else 3
     start = time.clock()
     exit_status = m.run(t_max=t_max)
 
     # store exit status
+    res = {}
     res["convergence"] = exit_status
     if test:
         print('test output of variables')
@@ -205,12 +215,8 @@ def RUN_FUNC(t_G, nopinions, alpha,
         res["convergence_time"] = m.convergence_time
 
         # interpolate e_trajectory to get evenly spaced time series.
-        trajectory = m.e_trajectory
-        headers = trajectory.pop(0)
-
-        df = pd.DataFrame(trajectory, columns=headers)
-        df = df.set_index('time')
-        dfo = even_time_series_spacing(df, 101, 0., t_max)
+        trajectory = m.get_economic_trajectory()
+        dfo = even_time_series_spacing(trajectory, 101, 0., t_max)
         res["economic_trajectory"] = dfo
 
     end = time.clock()
@@ -222,6 +228,7 @@ def RUN_FUNC(t_G, nopinions, alpha,
 
     return exit_status
 
+
 # get sub experiment and mode from command line
 if len(sys.argv) > 1:
     mode = int(sys.argv[1])     # sets mode (1:production, 2:test, 3:messy)
@@ -231,6 +238,11 @@ if len(sys.argv) > 2:
     noise = bool(int(sys.argv[2]))
 else:
     noise = False
+
+if mode > 1:
+    test = 1
+else:
+    test = 0
 
 folder = 'X5.1_Cue_Orders'
 
@@ -244,30 +256,12 @@ if getpass.getuser() == "kolb":
         + folder + "/results"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_RAW = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
+        "/home/jakob/PhD/Project_Divestment/output_data/test/"\
         + folder + "/raw_data"
     SAVE_PATH_RES = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
+        "/home/jakob/PhD/Project_Divestment/output_data/test/"\
         + folder + "/results"
 
-"""
-Make different types of decision makers. Cues are
-"""
-cue_names = {
-        0: 'always dirty',
-        1: 'always clean',
-        2: 'capital rent',
-        3: 'capital rent trend',
-        4: 'peer pressure'}
-
-opinion_presets = [[2, 3],  # short term investor
-                   [3, 2],  # long term investor
-                   [4, 2],  # short term herder
-                   [4, 3],  # trending herder
-                   [4, 1],  # green conformer
-                   [4, 0],  # dirty conformer
-                   [1],     # gutmensch
-                   [0]]     # redneck
 """
 set different times for resource depletion
 in units of capital accumulation time t_d = 1/(d_c*(1-kappa_d))
@@ -275,23 +269,14 @@ in units of capital accumulation time t_d = 1/(d_c*(1-kappa_d))
 t_Gs = [round(x, 5) for x in list(10**np.linspace(1.0, 2.0, 3))]
 
 """
-Define different mixtures of decision makers to test
-"""
-opinions = [
-        [100, 0, 0, 0, 0, 0, 0, 0],
-        [0, 100, 0, 0, 0, 0, 0, 0],
-        [0, 0, 100, 0, 0, 0, 0, 0],
-        [0, 0, 0, 100, 0, 0, 0, 0],
-        [0, 0, 0, 0, 100, 0, 0, 0],
-        [0, 0, 0, 0, 0, 100, 0, 0],
-        [0, 0, 0, 0, 0, 0, 100, 0],
-        [0, 0, 0, 0, 0, 0, 0, 100]]
-"""
 Define set of alphas that will be tested against the sets of resource depletion
 times and cue order mixtures
 """
 alphas = [round(x, 5) for x in list(10**np.linspace(-3.0, -1.0, 3))]
-
+"""
+Iterate over the preset opinion distributions
+"""
+opinions = list(range(len(opinion_dists)))
 """
 dictionary of the variable parameters in this experiment together with their
 position in the index of the dictionary of results
@@ -304,13 +289,15 @@ parameters = {
 """
 Default values of variable parameter in this experiment
 """
-t_G, cue_order, alpha, test = [5.], [2, 3], [0.001], [0]
+t_G, cue_order, alpha, test = [5.], [2, 3], [0.001], [test]
 
 NAME = 'Cue_order_testing'
-INDEX = {
-        0: "t_G",
-        parameters['cue_order']: "cue_order",
-        parameters['alpha']: "alpha"}
+INDEX = {0: "t_G",
+         1: "nopinions",
+         2: "alpha",
+         3: "eps",
+         4: "avm",
+         5: "test"}
 """
 set eps according to nose settings
 """
@@ -330,14 +317,14 @@ Make sure, opinion_presets are not expanded
 """
 if mode == 1:
     PARAM_COMBS = list(it.product(
-            t_Gs, opinions, alphas, [opinion_presets], eps, avm, test))
+            t_Gs, opinions, alphas, eps, avm, test))
 
 elif mode == 2:
     PARAM_COMBS = list(it.product(
-            t_Gs, opinions, alphas, [opinion_presets], eps, avm, test))
+            t_G, opinions, alphas, eps, avm, test))
 elif mode == 3:
     PARAM_COMBS = list(it.product(
-            t_Gs, opinions, alpha, [opinion_presets], eps, avm, test))
+            t_G, opinions, alpha, eps, avm, test))
 else:
     print(mode, ' is not a valid experiment mode.\
     valid modes are 1: production, 2: test, 3: messy')
@@ -348,34 +335,34 @@ else:
 
 NAME1 = NAME+'_trajectory'
 EVA1 = {"<mean_trajectory>":
-        lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+        lambda fnames: pd.concat([load(f)["economic_trajectory"]
                                   for f in fnames]).groupby(level=0).mean(),
         "<sem_trajectory>":
-        lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+        lambda fnames: pd.concat([load(f)["economic_trajectory"]
                                   for f in fnames]).groupby(level=0).sem()
         }
 
 NAME2 = NAME+'_convergence'
 EVA2 = {"<mean_convergence_state>":
-        lambda fnames: np.nanmean([np.load(f)["convergence_state"]
+        lambda fnames: np.nanmean([load(f)["convergence_state"]
                                    for f in fnames]),
         "<mean_convergence_time>":
-        lambda fnames: np.nanmean([np.load(f)["convergence_time"]
+        lambda fnames: np.nanmean([load(f)["convergence_time"]
                                    for f in fnames]),
         "<min_convergence_time>":
-        lambda fnames: np.nanmin([np.load(f)["convergence_time"]
+        lambda fnames: np.nanmin([load(f)["convergence_time"]
                                   for f in fnames]),
         "<max_convergence_time>":
-        lambda fnames: np.max([np.load(f)["convergence_time"]
+        lambda fnames: np.max([load(f)["convergence_time"]
                                for f in fnames]),
         "<nanmax_convergence_time>":
-        lambda fnames: np.nanmax([np.load(f)["convergence_time"]
+        lambda fnames: np.nanmax([load(f)["convergence_time"]
                                   for f in fnames]),
         "<sem_convergence_time>":
-        lambda fnames: st.sem([np.load(f)["convergence_time"]
+        lambda fnames: st.sem([load(f)["convergence_time"]
                                for f in fnames]),
         "<runtime>":
-        lambda fnames: st.sem([np.load(f)["runtime"]
+        lambda fnames: st.sem([load(f)["runtime"]
                                for f in fnames]),
         }
 
@@ -387,7 +374,6 @@ if mode == 1:
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets)
 
 # test run
 if mode == 2:
@@ -397,7 +383,6 @@ if mode == 2:
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets)
 
 # debug and mess around mode:
 if mode == 3:
@@ -407,4 +392,3 @@ if mode == 3:
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets)

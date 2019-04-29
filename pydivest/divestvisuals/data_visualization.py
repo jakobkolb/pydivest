@@ -19,6 +19,10 @@ import networkx as nx
 import numpy as np
 
 
+def load(*args, **kwargs):
+    return np.load(*args, allow_pickle=True, **kwargs)
+
+
 def plot_tau_phi(SAVE_PATH, NAME, xlog=False,
                  ylog=False, fextension='.png'):
     """
@@ -41,7 +45,7 @@ def plot_tau_phi(SAVE_PATH, NAME, xlog=False,
     """
     if not SAVE_PATH.endswith('/'):
         SAVE_PATH += '/'
-    data = np.load(SAVE_PATH + NAME)
+    data = load(SAVE_PATH + NAME)
 
     parameter_levels = [list(p.values) for p in data.index.levels[2:]]
     parameter_level_names = [name for name in data.index.names[2:]]
@@ -85,7 +89,7 @@ def tau_phi_linear(SAVE_PATH, NAME, xlog=False,
     if not SAVE_PATH.endswith('/'):
         SAVE_PATH += '/'
 
-    data = np.load(SAVE_PATH + NAME)
+    data = load(SAVE_PATH + NAME)
 
     parameter_levels = [list(p.values) for p in data.index.levels[2:]]
     parameter_level_names = [name for name in data.index.names[2:]]
@@ -110,7 +114,7 @@ def tau_phi_final(SAVE_PATH, NAME, xlog=False,
     if not SAVE_PATH.endswith('/'):
         SAVE_PATH += '/'
 
-    data = np.load(SAVE_PATH + NAME)['<mean_trajectory>'] \
+    data = load(SAVE_PATH + NAME)['<mean_trajectory>'] \
         .xs(key=('R', 0.05, 300),
             level=('observables', 'alpha', 'timesteps'))
     fig = plt.figure()
@@ -173,8 +177,8 @@ def explore_Parameterspace(TwoDFrame, title="",
 
 
 def plot_network(loc):
-    adjacency = np.loadtxt(loc + '_network')
-    labels = np.loadtxt(loc + '_labels')
+    adjacency = loadtxt(loc + '_network')
+    labels = loadtxt(loc + '_labels')
 
     fig2 = plt.figure()
 
@@ -191,7 +195,7 @@ def plot_amsterdam(path, name, cues=['[0]', '[1]']):
     if not path.endswith('/'):
         path += '/'
 
-    data = np.load(path + name)
+    data = load(path + name)
     colors = [x for x in "brwcmygk"][:len(cues)]
     if cues[-1] == '[5]':
         colors.append('#2E8B57')
@@ -256,7 +260,7 @@ def plot_parameter_dict(SAVE_PATH, NAME):
     if not SAVE_PATH.endswith('/'):
         SAVE_PATH += '/'
 
-    data = np.load(SAVE_PATH + NAME)
+    data = load(SAVE_PATH + NAME)
 
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -277,7 +281,7 @@ def plot_trajectories(loc, name, params, indices):
 
     print('plotting trajectories')
 
-    tmp = np.load(loc + name)
+    tmp = load(loc + name)
     tmp = tmp.replace([np.inf, -np.inf], np.nan)
     dataframe = tmp.where(tmp < 10 ** 300, np.nan)
 
@@ -370,8 +374,8 @@ def plot_obs_grid(SAVE_PATH, NAME_TRJ, NAME_CNS, pos=None, t_max=None,
 
     print('plotting observable grid')
 
-    trj_data = np.load(SAVE_PATH + NAME_TRJ)
-    cns_data = np.load(SAVE_PATH + NAME_CNS)
+    trj_data = load(SAVE_PATH + NAME_TRJ)
+    cns_data = load(SAVE_PATH + NAME_CNS)
 
     parameter_levels = [list(p.values) for p in trj_data.index.levels[2:-2]]
     parameter_level_names = [name for name in trj_data.index.names[2:-2]]
@@ -691,7 +695,7 @@ def plot_phase_transition(loc, name, ):
         loc += '/'
 
     with open(loc + name) as target:
-        tmp = np.load(target)
+        tmp = load(target)
     tmp = tmp.xs(0.5, level='alpha')[['<mean_remaining_resource_fraction>']]
 
     tmp.unstack('N').plot()

@@ -29,7 +29,7 @@ setup(name="pydivest",
             'matplotlib',
             'Assimulo',
             'sympy',
-            "pymofa @ git+https://github.com/jakobkolb/pymofa",
+#            "pymofa @ git+https://github.com/jakobkolb/pymofa",
             'pydstool @ git+https://github.com/robclewley/pydstool'
       ],
       # see http://stackoverflow.com/questions/15869473/what-is-the-advantage-

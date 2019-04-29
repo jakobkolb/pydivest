@@ -30,7 +30,8 @@ class DivestmentCore:
                  xi=1./8., pi=1./2., kappa_c=1./2., kappa_d=1./2.,
                  R_depletion=True, test=False,
                  beta=0.06, learning=False,
-                 campaign=False, interaction=1, **kwargs):
+                 campaign=False, interaction=1,
+                 verbosity=0, **kwargs):
 
         """
 
@@ -108,13 +109,18 @@ class DivestmentCore:
 
         if test:
             def verboseprint(*args):
-                for stuff in args:
-                    print(stuff)
+                if self.verbosity > 2:
+                    for stuff in args:
+                        print(stuff)
         else:
             def verboseprint(*args):
                 pass
 
         self.verboseprint = verboseprint
+        if test:
+            self.verbosity = 2
+        else:
+            self.verbosity = verbosity
 
         # Modes:
         #  1: only economy,
@@ -241,7 +247,7 @@ class DivestmentCore:
         self.possible_que_orders = possible_cue_orders
         # investment_decisions as indices of possible_cue_orders
         self.opinions = np.array(opinions)
-        # to keep track of the current ration of investment_decisions
+        # to keep track of the current ratio of investment_decisions
         self.clean_opinions = np.zeros((len(possible_cue_orders)))
         self.dirty_opinions = np.zeros((len(possible_cue_orders)))
 
@@ -360,7 +366,7 @@ class DivestmentCore:
 
         self.G = G_0
 
-        #calculate initial variables:
+        # calculate initial variables:
 
         dt = [self.t, self.t + 0.0001]
         x0 = np.fromiter(chain.from_iterable([
@@ -368,7 +374,8 @@ class DivestmentCore:
             list(self.investment_dirty),
             [self.P, self.G, self.C]]), dtype='float')
 
-        [x0, x1], self.db_out = odeint(self.economy_dot_leontief, x0, dt, full_output=True)
+        [x0, x1], self.db_out = odeint(self.economy_dot_leontief,
+                                       x0, dt, full_output=True)
 
         self.investment_clean = x1[0:self.n]
         self.investment_dirty = x1[self.n:2 * self.n]
@@ -568,7 +575,7 @@ class DivestmentCore:
         candidate = 0
         while self.t < t_max:
 
-            if self.debug:
+            if self.verbosity > 0:
                 self.progress(self.t, t_max, 'abm running')
 
             self.verboseprint(self.t, t_max)
@@ -578,12 +585,14 @@ class DivestmentCore:
              neighbors, update_time) = self.find_update_candidates()
 
             # 2 integrate economic model until t=update_time:
-            # dont make steps too large. The integrator handles that badly..
+            # don't make steps too large. The integrator handles that badly..
             if update_time - self.t < 1.:
                 self.update_economy(update_time)
             else:
                 while True:
-                    inter_update_time = self.t + 1. if not self.t + 1. > update_time else update_time
+                    inter_update_time = (self.t + 1. 
+                                         if not self.t + 1. > update_time
+                                         else update_time)
                     self.update_economy(inter_update_time)
                     if inter_update_time >= update_time:
                         break
@@ -729,11 +738,11 @@ class DivestmentCore:
             assert C >= 0, 'negative knowledge'
         except AssertionError:
             _, _, tb = sys.exc_info()
-            traceback.print_tb(tb) # Fixed format
+            traceback.print_tb(tb)  # Fixed format
             tb_info = traceback.extract_tb(tb)
             filename, line, func, text = tb_info[-1]
-            print('An error occurred on line {} in statement {} with'.format(line, text))
-            print('K_c = {}, K_d = {}, G = {}, C = {}'.format(K_c, K_d, G, C))
+            print(f'An error occurred on line {line} in statement {text} with')
+            print(f'K_c = {K_c}, K_d = {K_d}, G = {G}, C = {C}')
             print('the trajectory tail:')
             trj = self.get_economic_trajectory()
             print(trj.tail(10))
@@ -771,10 +780,10 @@ class DivestmentCore:
             P_d = 0
             P_c = P
             R = 0
-            self.w = self.b_c * C ** self.xi * K_c ** self.kappa_c * self.pi * P ** (
-                self.pi - 1.)
-            self.r_c = self.b_c * C ** self.xi * self.kappa_c * \
-                K_c ** (self.kappa_c - 1.) * P ** self.pi
+            self.w = self.b_c * C ** self.xi * K_c ** self.kappa_c\
+                    * self.pi * P ** (self.pi - 1.)
+            self.r_c = self.b_c * C ** self.xi * self.kappa_c\
+                    * K_c ** (self.kappa_c - 1.) * P ** self.pi
             self.r_d = 0
 
         self.R = R
@@ -792,8 +801,8 @@ class DivestmentCore:
             assert all([x > 0 for x in self.income])
 
         except AssertionError:
-            print('after time t = {}'.format(t))
-            print('tau = {}, phi = {}, b_d = {}'.format(self.tau, self.phi, self.b_d))
+            print(f'after time t = {t}')
+            print(f'tau = {self.tau}, phi = {self.phi}, b_d = {self.b_d}')
             print('income is negative, X_R: {}, X_d: {}, X_c: {}, \n '
                   'K_d: {}, K_c: {} , G = {}, C = {} \n '
                   'r_c = {}, r_d = {}, w = {}, R = {} \n '
@@ -944,7 +953,8 @@ class DivestmentCore:
                 # if required save switching data
                 # if old_opinion != new_opinion and self.switchlist_output:
                 #     self.save_switch(candidate, old_opinion)
-                # and count event to determine rates - if it changes macro properties.
+                # and count event to determine rates - if it changes macro
+                # properties.
                 if old_opinion != new_opinion:
                     if new_opinion == 1:
                         self.noise_imitation_dc_events += 1. / self.n

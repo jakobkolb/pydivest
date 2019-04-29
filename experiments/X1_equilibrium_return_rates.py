@@ -1,11 +1,13 @@
 """
-I want to know, whether the imitation process leads to equal return rates in both sectors.
+I want to know, whether the imitation process leads to equal return rates in
+both sectors.
 Parameters that this could depend on are
 
 1) the rate of exploration (random changes in opinion and rewiring),
 2) also, the rate of rewiring could have an effect.
 
-This should only work in the equilibrium condition where the environment stays constant.
+This should only work in the equilibrium condition where the environment stays
+constant.
 
 """
 
@@ -15,49 +17,47 @@ This should only work in the equilibrium condition where the environment stays c
 # Contact: kolb@pik-potsdam.de
 # License: GNU AGPL Version 3
 
-
-try:
-    import cPickle as cp
-except ImportError:
-    import pickle as cp
+import pickle as cp
 import getpass
-import glob
 import itertools as it
 import sys
 import time
-import types
 import os
+import copy
 
 import networkx as nx
 import numpy as np
 import pandas as pd
-import scipy.stats as st
 
+from pymofa.experiment_handling \
+    import experiment_handling, even_time_series_spacing
 from pydivest.divestvisuals.data_visualization \
     import plot_amsterdam, plot_trajectories
 from pydivest.micro_model import divestmentcore as model
-from pymofa.experiment_handling \
-    import experiment_handling, even_time_series_spacing
+
+
+def load(*args, **kwargs):
+    return np.load(*args, allow_pickle=True, **kwargs)
 
 
 def RUN_FUNC(eps, phi, ffh, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
-    Output is saved in pickled dictionaries including the 
-    initial values, parameters and convergence state and time 
+    Output is saved in pickled dictionaries including the
+    initial values, parameters and convergence state and time
     for each run.
 
     Parameters:
     -----------
     b_d : float > 0
         the solow residual in the dirty sector
-    xi : float \in [0,0.5]
+    xi : float in [0,0.5]
         exponent for knowledge stock in the clean production function
     ffh: bool
         if True: run with fast and frugal heuristics
         if False: run with imitation only
-    test: int \in [0,1]
+    test: int in [0,1]
         whether this is a test run, e.g.
         can be executed with lower runtime
     filename: string
@@ -83,11 +83,11 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
                     'eps': eps, 'b_d': 1.5, 'e': 100.,
                     'b_r0': 0.1 ** 2 * 100.,  # alpha^2 * e
-                    'possible_que_orders': possible_opinions,
+                    'possible_cue_orders': possible_opinions,
                     'xi': 1. / 8., 'beta': 0.06,
                     'L': 100., 'C': 100., 'G_0': 1600.,
                     'campaign': False, 'learning': True,
-                    'test': test, 'R_depletion': False}
+                    'test': False, 'R_depletion': False}
 
     # building initial conditions
 
@@ -115,33 +115,10 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     init_conditions = (adjacency_matrix, opinions,
                        clean_investment, dirty_investment)
 
-    t_1 = 400
+    t_1 = 400 if not test else 4
 
     # initializing the model
     m = model.DivestmentCore(*init_conditions, **input_params)
-
-    # storing initial conditions and parameters
-    res = {
-        "initials": pd.DataFrame({"opinions": opinions,
-                                  "Investment clean": m.investment_clean,
-                                  "Investment dirty": m.investment_dirty}),
-        "parameters": pd.Series({"tau": m.tau,
-                                 "phi": m.phi,
-                                 "n": m.n,
-                                 "L": m.P,
-                                 "savings rate": m.s,
-                                 "clean capital depreciation rate": m.d_c,
-                                 "dirty capital depreciation rate": m.d_d,
-                                 "resource extraction efficiency": m.b_r0,
-                                 "Solov residual clean": m.b_c,
-                                 "Solov residual dirty": m.b_d,
-                                 "pi": m.pi,
-                                 "kappa_c": m.kappa_c,
-                                 "kappa_d": m.kappa_d,
-                                 "xi": m.xi,
-                                 "resource efficiency": m.e,
-                                 "epsilon": m.eps,
-                                 "initial resource stock": m.G_0})}
 
     # start timer
     t_start = time.clock()
@@ -151,12 +128,14 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     m.R_depletion = False
     exit_status = m.run(t_max=t_max)
 
+    res = {}
     res["runtime"] = time.clock() - t_start
 
     # store data in case of successful run
     if exit_status in [0, 1] or test:
         res["micro_trajectory"] = \
-            even_time_series_spacing(m.get_economic_trajectory(), 401, 0., t_max)
+            even_time_series_spacing(m.get_economic_trajectory(),
+                                     401, 0., t_max)
         res["convergence_state"] = m.convergence_state
         res["convergence_time"] = m.convergence_time
 
@@ -164,10 +143,10 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     with open(filename, 'wb') as dumpfile:
         cp.dump(res, dumpfile)
     try:
-        np.load(filename)
+        load(filename)
     except IOError:
         print("writing results failed for " + filename)
-
+    print(exit_status)
     return exit_status
 
 
@@ -230,7 +209,7 @@ def run_experiment(argv):
         tmppath = "./"
 
     sub_experiment = ['imitation', 'ffh'][int(ffh)]
-    folder = 'X7'
+    folder = 'X1'
 
     # make sure, testing output goes to its own folder:
 
@@ -285,36 +264,36 @@ def run_experiment(argv):
 
     name1 = name + '_trajectory'
     eva1 = {"mean_trajectory":
-            lambda fnames: pd.concat([np.load(f)["micro_trajectory"]
+            lambda fnames: pd.concat([load(f)["micro_trajectory"]
                                       for f in fnames]).groupby(
                     level=0).mean(),
             "sem_trajectory":
-            lambda fnames: pd.concat([np.load(f)["micro_trajectory"]
+            lambda fnames: pd.concat([load(f)["micro_trajectory"]
                                       for f in fnames]).groupby(
                     level=0).std()
             }
     name2 = name + '_convergence'
     eva2 = {'times_mean':
-            lambda fnames: np.nanmean([np.load(f)["convergence_time"]
+            lambda fnames: np.nanmean([load(f)["convergence_time"]
                                        for f in fnames]),
             'states_mean':
-            lambda fnames: np.nanmean([np.load(f)["convergence_state"]
+            lambda fnames: np.nanmean([load(f)["convergence_state"]
                                        for f in fnames]),
             'times_std':
-            lambda fnames: np.std([np.load(f)["convergence_time"]
+            lambda fnames: np.std([load(f)["convergence_time"]
                                    for f in fnames]),
             'states_std':
-            lambda fnames: np.std([np.load(f)["convergence_state"]
+            lambda fnames: np.std([load(f)["convergence_state"]
                                    for f in fnames])
             }
     name3 = name + '_convergence_times'
     cf3 = {'times':
-           lambda fnames: pd.DataFrame(data=[np.load(f)["convergence_time"]
+           lambda fnames: pd.DataFrame(data=[load(f)["convergence_time"]
                                              for f in fnames]).sortlevel(
                    level=0),
            'states':
            lambda fnames: pd.DataFrame(
-                   data=[np.load(f)["convergence_state"]
+                   data=[load(f)["convergence_state"]
                          for f in fnames]).sortlevel(level=0)
            }
 
@@ -334,7 +313,6 @@ def run_experiment(argv):
         handle.compute(RUN_FUNC)
         handle.resave(eva1, name1)
         handle.resave(eva2, name2)
-        handle.collect(cf3, name3)
 
         return 1
 

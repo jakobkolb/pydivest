@@ -5,10 +5,7 @@
 # Contact: kolb@pik-potsdam.de
 # License: GNU AGPL Version 3
 
-try:
-    import pickle as cp
-except ImportError:
-    import pickle as cp
+import pickle as cp
 import getpass
 import glob
 import itertools as it
@@ -26,6 +23,10 @@ from pydivest.divestvisuals.data_visualization \
 from pydivest.micro_model import divestmentcore as model
 from pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
+
+
+def load(*args, **kwargs):
+    return np.load(*args, allow_pickle=True, **kwargs)
 
 
 def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
@@ -79,7 +80,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
 
     input_params = {'tau': tau, 'phi': phi, 'eps': eps,
                     'L': P, 'b_d': b_d, 'b_r0': b_R0,
-                    'e': e, 'd_c': d_c, 'test': bool(test)}
+                    'e': e, 'd_c': d_c, 'test': bool(test), 'verbosity': 1}
 
     # building initial conditions
 
@@ -89,7 +90,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
     investment_decisions = np.random.randint(low=0, high=2, size=N)
-    
+
     init_conditions = (adjacency_matrix, investment_decisions)
 
     # initializing the model
@@ -98,27 +99,7 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
 
     # storing initial conditions and parameters
 
-    res = {
-        "initials": pd.DataFrame({"Investment decisions": investment_decisions,
-                                  "Investment clean": m.investment_clean,
-                                  "Investment dirty": m.investment_dirty}),
-        "parameters": pd.Series({"tau": m.tau,
-                                 "phi": m.phi,
-                                 "n": m.n,
-                                 "L": m.P,
-                                 "birth rate": m.r_b,
-                                 "savings rate": m.s,
-                                 "clean capital depreciation rate": m.d_c,
-                                 "dirty capital depreciation rate": m.d_d,
-                                 "resource extraction efficiency": m.b_r0,
-                                 "Solov residual clean": m.b_c,
-                                 "Solov residual dirty": m.b_d,
-                                 "pi": m.pi,
-                                 "kappa_c": m.kappa_c,
-                                 "kappa_d": m.kappa_d,
-                                 "resource efficiency": m.e,
-                                 "epsilon": m.eps,
-                                 "initial resource stock": m.G_0})}
+    res = dict()
 
     # run the model
 
@@ -129,8 +110,8 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
     # store exit status
     res["convergence"] = exit_status
     if test:
-        print(m.tau, m.phi, exit_status, \
-            m.convergence_state, m.convergence_time)
+        print(m.tau, m.phi, exit_status,
+              m.convergence_state, m.convergence_time)
 
     # store data in case of successful run
 
@@ -143,12 +124,8 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
         res["convergence_time"] = m.convergence_time
 
         # interpolate e_trajectory to get evenly spaced time series.
-        trajectory = m.e_trajectory
-        headers = trajectory.pop(0)
-
-        df = pd.DataFrame(trajectory, columns=headers)
-        df = df.set_index('time')
-        dfo = even_time_series_spacing(df, 101, 0., t_max)
+        trajectory = m.get_economic_trajectory()
+        dfo = even_time_series_spacing(trajectory, 101, 0., t_max)
         res["economic_trajectory"] = dfo
 
     end = time.clock()
@@ -158,10 +135,10 @@ def RUN_FUNC(tau, phi, eps, N, p, P, b_d, b_R0, e, d_c, test, filename):
     with open(filename, 'wb') as dumpfile:
         cp.dump(res, dumpfile)
     try:
-        tmp = np.load(filename)
+        tmp = load(filename)
     except IOError:
         print("writing results failed for " + filename)
-    
+
     return exit_status
 
 
@@ -209,12 +186,12 @@ tests = [1]
 parameters = {'tau': 0, 'phi': 1, 'eps': 2, 'n': 3, 'L': 4, 'b_d': 5,
               'b_R': 6, 'e': 7, 'd_c': 8, 'test': 9}
 tau, phi, eps, N, p, P, b_d, b_R, e, d_c, test = \
-    [.8], [.8], [0.0], [100], [0.125], [500], [1.2], [1.], [100], [0.06], [0]
+    [.1, .5, .8], [0., .5, .8], [0.0], [100], [0.125], [500], [1.2], [1.], [100], [0.06], [0]
 if noise:
     eps = [0.05]
 
 NAME = 'tau_vs_phi_' + sub_experiment + '_sensitivity'
-INDEX = {0: "tau", 1: "phi", parameters[sub_experiment]: sub_experiment}
+INDEX = {0: "tau", 1: "phi", 2: sub_experiment}
 
 if sub_experiment == 'b_d':
     PARAM_COMBS = list(it.product(taus,
@@ -231,9 +208,9 @@ elif sub_experiment == 'e':
 elif sub_experiment == 'L':
     PARAM_COMBS = list(it.product(taus, phis, eps, N, ps, P, b_d,
                                   b_R, e, d_c, test))
-    
+
 elif sub_experiment == 'test':
-    PARAM_COMBS = list(it.product(taus, phis, eps, N, p, P, b_d,
+    PARAM_COMBS = list(it.product(tau, phi, eps, N, p, P, b_d,
                                   b_R, e, d_c, tests))
 
 
@@ -245,34 +222,34 @@ else:
 
 NAME1 = NAME+'_trajectory'
 EVA1 = {"<mean_trajectory>":
-            lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+            lambda fnames: pd.concat([load(f)["economic_trajectory"]
                                       for f in fnames]).groupby(
                 level=0).mean(),
         "<sem_trajectory>":
-            lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+            lambda fnames: pd.concat([load(f)["economic_trajectory"]
                                       for f in fnames]).groupby(level=0).sem()}
 
 NAME2 = NAME+'_convergence'
 EVA2 = {"<mean_convergence_state>":
-            lambda fnames: np.nanmean([np.load(f)["convergence_state"]
+            lambda fnames: np.nanmean([load(f)["convergence_state"]
                                        for f in fnames]),
         "<mean_convergence_time>":
-            lambda fnames: np.nanmean([np.load(f)["convergence_time"]
+            lambda fnames: np.nanmean([load(f)["convergence_time"]
                                        for f in fnames]),
         "<min_convergence_time>":
-            lambda fnames: np.nanmin([np.load(f)["convergence_time"]
+            lambda fnames: np.nanmin([load(f)["convergence_time"]
                                       for f in fnames]),
         "<max_convergence_time>":
-            lambda fnames: np.max([np.load(f)["convergence_time"]
+            lambda fnames: np.max([load(f)["convergence_time"]
                                    for f in fnames]),
         "<nanmax_convergence_time>":
-            lambda fnames: np.nanmax([np.load(f)["convergence_time"]
+            lambda fnames: np.nanmax([load(f)["convergence_time"]
                                       for f in fnames]),
         "<sem_convergence_time>":
-            lambda fnames: st.sem([np.load(f)["convergence_time"]
+            lambda fnames: st.sem([load(f)["convergence_time"]
                                    for f in fnames]),
         "<runtime>":
-            lambda fnames: st.sem([np.load(f)["runtime"]
+            lambda fnames: st.sem([load(f)["runtime"]
                                    for f in fnames]),
         }
 
@@ -284,8 +261,9 @@ if mode == 0:
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
-    plot_tau_phi(SAVE_PATH_RES, NAME2)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2)
+    # FixMe: Plotting routines not working anymore 
+    # plot_tau_phi(SAVE_PATH_RES, NAME2)
+    # plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2)
 
 # test run
 if mode == 1:
@@ -295,8 +273,9 @@ if mode == 1:
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
-    plot_tau_phi(SAVE_PATH_RES, NAME2)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2)
+    # FixMe: Plotting routines not working anymore 
+    # plot_tau_phi(SAVE_PATH_RES, NAME2)
+    # plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2)
 
 # debug and mess around mode:
 if mode is None:
