@@ -244,7 +244,7 @@ class DivestmentCore:
         self.neighbors = adjacency
         # to select random investment_decisions,
         # all possible investment_decisions must be known
-        self.possible_que_orders = possible_cue_orders
+        self.possible_cue_orders = possible_cue_orders
         # investment_decisions as indices of possible_cue_orders
         self.opinions = np.array(opinions)
         # to keep track of the current ratio of investment_decisions
@@ -259,7 +259,7 @@ class DivestmentCore:
                 i = np.append(i, [j])
         self.opinion_state = [n[list(i).index(j)]
                               if j in i else 0
-                              for j in range(len(self.possible_que_orders))]
+                              for j in range(len(self.possible_cue_orders))]
 
         # to keep track of investment decisions.
         self.decision_state = 0.
@@ -619,7 +619,7 @@ class DivestmentCore:
             'investment_decisions': self.investment_decisions,
             'investment_clean': self.investment_clean,
             'investment_dirty': self.investment_dirty,
-            'possible_que_orders': self.possible_que_orders,
+            'possible_cue_orders': self.possible_cue_orders,
             'tau': self.tau, 'phi': self.phi, 'eps': self.eps,
             'L': self.P, 'r_b': self.r_b, 'b_c': self.b_c,
             'b_d': self.b_d, 's': self.s, 'd_c': self.d_c,
@@ -917,7 +917,7 @@ class DivestmentCore:
                          return_counts=True)
         self.opinion_state = [n[list(i).index(j)] if j in i
                               else 0
-                              for j in range(len(self.possible_que_orders))]
+                              for j in range(len(self.possible_cue_orders))]
         i = 0
         i_max = 1000 * self.n
         candidate = 0
@@ -948,7 +948,7 @@ class DivestmentCore:
                 # save old opinion
                 old_opinion = self.opinions[candidate]
                 # determine new opinion
-                new_opinion = np.random.randint(len(self.possible_que_orders))
+                new_opinion = np.random.randint(len(self.possible_cue_orders))
                 self.opinions[candidate] = new_opinion
                 # if required save switching data
                 # if old_opinion != new_opinion and self.switchlist_output:
@@ -1031,7 +1031,7 @@ class DivestmentCore:
                 # find potential new neighbors:
                 # campaigners rewire to everybody
                 if (self.campaign is True and
-                            opinion[candidate] == len(self.possible_que_orders)):
+                            opinion[candidate] == len(self.possible_cue_orders)):
                     same_unconnected[i] = 1
 
                 # everybody else rewires to people with same opinion
@@ -1099,11 +1099,11 @@ class DivestmentCore:
         cue orders (opinion) and the state of the economy
         """
 
-        self.dirty_opinions = np.zeros((len(self.possible_que_orders)))
-        self.clean_opinions = np.zeros((len(self.possible_que_orders)))
+        self.dirty_opinions = np.zeros((len(self.possible_cue_orders)))
+        self.clean_opinions = np.zeros((len(self.possible_cue_orders)))
 
         for i in range(self.n):
-            for cue in self.possible_que_orders[self.opinions[i]]:
+            for cue in self.possible_cue_orders[self.opinions[i]]:
                 decision = self.cues[cue](i)
                 if decision != -1:
                     self.investment_decisions[i] = decision
@@ -1202,9 +1202,9 @@ class DivestmentCore:
               'decision state',
               'G_alpha',
               'i_c'],
-             [str(x) for x in self.possible_que_orders],
-             ['c' + str(x) for x in self.possible_que_orders],
-             ['d' + str(x) for x in self.possible_que_orders]]))
+             [str(x) for x in self.possible_cue_orders],
+             ['c' + str(x) for x in self.possible_cue_orders],
+             ['d' + str(x) for x in self.possible_cue_orders]]))
         self.e_trajectory.append(element)
 
         dt = [self.t, self.t]
@@ -1568,7 +1568,7 @@ if __name__ == '__main__':
         input_parameters = {'tau': 1, 'eps': 0.05, 'b_d': 1.2,
                             'b_c': 1., 'phi': 0.8, 'e': 100,
                             'G_0': 1500, 'b_r0': 0.1 ** 2 * 100,
-                            'possible_que_orders': possible_opinions,
+                            'possible_cue_orders': possible_opinions,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
                             'campaign': False, 'learning': True}
 
@@ -1582,7 +1582,7 @@ if __name__ == '__main__':
         input_parameters = {'tau': 1, 'eps': 0.01, 'b_d': 1.2,
                             'b_c': 1., 'phi': 0.8, 'e': 100,
                             'G_0': 800, 'b_r0': 0.1 ** 2 * 100,
-                            'possible_que_orders': possible_cue_orders,
+                            'possible_cue_orders': possible_cue_orders,
                             'C': 1, 'xi': 1. / 8., 'beta': 0.06,
                             'campaign': False, 'learning': True}
 
