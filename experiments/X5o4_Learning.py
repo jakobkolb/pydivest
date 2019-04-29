@@ -86,9 +86,14 @@ from pydivest.micro_model import divestmentcore as model
 from pymofa.experiment_handling \
     import experiment_handling, even_time_series_spacing
 
+possible_opinions = []
+
+def load(*args, **kwargs):
+    return np.load(*args, allow_pickle=True, **kwargs)
+
 
 def RUN_FUNC(t_a, phi, alpha,
-             t_d, possible_opinions, eps, transition, test, filename):
+             t_d, eps, transition, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -103,7 +108,7 @@ def RUN_FUNC(t_a, phi, alpha,
         one opinion dominates. Timescale is
         given in units of the timescale of
         capital accumulation t_c
-        such that the actual depletion time is
+        such that the actual spreading time is
         t_a*t_c
     phi : list of integers
         rewiring probability of the adaptive voter
@@ -136,7 +141,7 @@ def RUN_FUNC(t_a, phi, alpha,
     assert alpha < 1,\
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
-    (n, p, tau, p, b_d, b_c, b_r0, e, s) =\
+    (n, pn, tau, p, b_d, b_c, b_r0, e, s) =\
         (100, 0.125, 0.8, 500, 1.2, 0.32, 1., 100, 0.23)
 
     # ROUND ONE: FIND EQUILIBRIUM DISTRIBUTIONS:
@@ -162,18 +167,17 @@ def RUN_FUNC(t_a, phi, alpha,
         k_d0 = (s / d_c * b_d * p ** (1. / 2.) * (1 - alpha ** 2)) ** 2.
 
         # set t_max for run
-        t_max = 300
+        t_max = 300 if not test else 3
 
         # building initial conditions
 
         while True:
-            net = nx.erdos_renyi_graph(n, p)
+            net = nx.erdos_renyi_graph(n, pn)
             if len(list(net)) > 1:
                 break
         adjacency_matrix = nx.adj_matrix(net).toarray()
-
-        opinions = [np.random.randint(0, len(possible_opinions))
-                    for x in range(n)]
+        print(possible_opinions)
+        opinions = [np.random.randint(0, len(possible_opinions)) for x in range(n)]
         if len(possible_opinions) == 2:
             opinions = [1 for x in range(n)]
         investment_clean = np.full((n, ), 0.1)
@@ -182,15 +186,15 @@ def RUN_FUNC(t_a, phi, alpha,
         # input parameters
 
         input_params = {'adjacency': adjacency_matrix,
-                        'investment_decisions': opinions,
+                        'opinions': opinions,
                         'investment_clean': investment_clean,
                         'investment_dirty': investment_dirty,
-                        'possible_que_orders': possible_opinions,
+                        'possible_cue_orders': possible_opinions,
                         'tau': tau, 'phi': phi, 'eps': eps,
                         'L': p, 'b_d': b_d, 'b_r0': b_r0, 'G_0': g_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
                         'b_c': b_c, 'learning': True,
-                        'r_depletion': transition}
+                        'R_depletion': transition}
     # ROUND TWO: TRANSITION
     else:
         # build list of initial conditions
@@ -204,13 +208,14 @@ def RUN_FUNC(t_a, phi, alpha,
                 + filename.split('/')[-1].split('_', 1)[-1].split('True')[0]
                 + '*_final')
         init_files = glob.glob(path)
-        input_params = np.load(
+        input_params = load(
             init_files[np.random.randint(0, len(init_files))])
 
         # adapt parameters where necessary
 
         # set tau according to t_a and phi
-        input_params['r_depletion'] = True
+        input_params['tau'] = t_a/(1-phi)*t_d
+        input_params['R_depletion'] = True
         input_params['learning'] = True
 
         # set t_max for run
@@ -225,25 +230,6 @@ def RUN_FUNC(t_a, phi, alpha,
 
     # storing initial conditions and parameters
 
-    res = {"parameters": pd.Series({"tau": m.tau,
-                                    "phi": m.phi,
-                                    "n": m.n,
-                                    "L": m.P,
-                                    "birth rate": m.r_b,
-                                    "savings rate": m.s,
-                                    "clean capital depreciation rate": m.d_c,
-                                    "dirty capital depreciation rate": m.d_d,
-                                    "resource extraction efficiency": m.b_r0,
-                                    "Solov residual clean": m.b_c,
-                                    "Solov residual dirty": m.b_d,
-                                    "pi": m.pi,
-                                    "kappa_c": m.kappa_c,
-                                    "kappa_d": m.kappa_d,
-                                    "rho": m.rho,
-                                    "resource efficiency": m.e,
-                                    "epsilon": m.eps,
-                                    "initial resource stock": m.g_0})}
-
     # run the model
     start = time.clock()
     exit_status = m.run(t_max=t_max)
@@ -255,6 +241,7 @@ def RUN_FUNC(t_a, phi, alpha,
             cp.dump(final_state, dumpfile)
 
     # store exit status
+    res = {}
     res["convergence"] = exit_status
     if test:
         print('test output of variables')
@@ -262,7 +249,7 @@ def RUN_FUNC(t_a, phi, alpha,
                m.convergence_state, m.convergence_time))
     # store data in case of successful run
 
-    if exit_status in [0, 1]:
+    if not transition or exit_status in [0, 1]:
         res["convergence_data"] = \
                 pd.DataFrame({"Investment decisions": m.investment_decisions,
                               "Investment clean": m.investment_clean,
@@ -285,8 +272,10 @@ def RUN_FUNC(t_a, phi, alpha,
     # save data
     with open(filename, 'wb') as dumpfile:
         cp.dump(res, dumpfile)
-
-    return exit_status
+    if transition:
+        return exit_status
+    else:
+        return 1
 
 # get sub experiment and mode from command line
 if len(sys.argv) > 1:
@@ -328,17 +317,17 @@ set path variables according to local of cluster environment
 """
 if getpass.getuser() == "kolb":
     SAVE_PATH_RAW = \
-        "/L/tmp/kolb/Divest_Experiments/divestdata/" \
+        "/p/tmp/kolb/Divest_Experiments/divestdata/" \
         + folder + "/raw_data"
     SAVE_PATH_RES =\
         "/home/kolb/Divest_Experiments/divestdata/"\
         + folder + "/results"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_RAW = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
+        "/home/jakob/Project_Divestment/output_data/test/"\
         + folder + "/raw_data"
     SAVE_PATH_RES = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
+        "/home/jakob/Project_Divestment/output_data/test/"\
         + folder + "/results"
 else:
     SAVE_PATH_RAW = \
@@ -351,11 +340,11 @@ set path variable for initial conditions for transition runs
 """
 if getpass.getuser() == "kolb":
     SAVE_PATH_INIT = \
-        "/L/tmp/kolb/Divest_Experiments/divestdata/" \
+        "/p/tmp/kolb/Divest_Experiments/divestdata/" \
         + FOLDER_EQUI + "/raw_data"
 elif getpass.getuser() == "jakob":
     SAVE_PATH_INIT = \
-        "/home/jakob/PhD/Project_Divestment/Implementation/divestdata/"\
+        "/home/jakob/Project_Divestment/output_data/test/"\
         + FOLDER_EQUI + "/raw_data"
 else:
     SAVE_PATH_INIT = \
@@ -370,7 +359,8 @@ cue_names = {
         2: 'capital rent',
         3: 'capital rent trend',
         4: 'peer pressure'}
-opinion_presets = [[2, 3],  # short term investor
+
+possible_opinions = [[2, 3],  # short term investor
                    [3, 2],  # long term investor
                    [4, 2],  # short term herder
                    [4, 3],  # trending herder
@@ -399,24 +389,14 @@ times and cue order mixtures
 alphas = [0.1, 0.08, 0.05]
 
 """
-dictionary of the variable parameters in this experiment together with their
-position in the index of the dictionary of results
-"""
-parameters = {
-    'b_c': 0,
-        'phi': 1,
-        'alpha': 2,
-        'test': 3}
-"""
 Default values of variable parameter in this experiment
 """
-t_a, phi, alpha, t_d, test = [0.1], [0.8], [0.1], [30.], [0]
+b_c, phi, alpha, t_d, test = [0.1], [0.8], [0.1], [30.], [0]
 
 NAME = 'Cue_order_testing'
-INDEX = {
-        0: "t_a",
-        parameters['phi']: "phi",
-        parameters['alpha']: "alpha"}
+INDEX = {0: "b_c", 1: 'phi', 2: 'alpha',
+         3: 't_d', 4: 'eps', 5: 'transition',
+         6: 'test'}
 """
 set eps according to nose settings
 """
@@ -430,26 +410,26 @@ create list of parameter combinations for
 different experiment modes.
 Make sure, opinion_presets are not expanded
 """
+# def RUN_FUNC(t_a, phi, alpha,
+#              t_d, eps, transition, test, filename):
 print(mode)
 if mode == 1:  # Production
     PARAM_COMBS = list(itertools.product(
         b_cs, phis, alphas, t_d,
-        [opinion_presets], eps,
-        transition, test))
+        eps, transition, test))
 
 elif mode == 2:  # test
+    test = [True]
     PARAM_COMBS = list(itertools.product(
-        b_cs, phis, alphas, t_d,
-        [opinion_presets], eps,
-        transition, test))
+        b_c, phi, alpha, t_d,
+        eps, transition, test))
 
 elif mode == 3:  # messy
     test = [True]
     phis = [round(x, 2) for x in list(np.linspace(0.0, 1.0, 5))[1:-1]]
     PARAM_COMBS = list(itertools.product(
         b_cs, phis, alpha, t_d,
-        [opinion_presets], eps,
-        transition, test))
+        eps, transition, test))
 elif mode == 4:
     print('just experimental plotting')
 else:
@@ -461,17 +441,17 @@ else:
 
 NAME1 = NAME+'_trajectory'
 EVA1 = {"<mean_trajectory>":
-        lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+        lambda fnames: pd.concat([load(f)["economic_trajectory"]
                                   for f in fnames]).groupby(level=0).mean(),
         "<sem_trajectory>":
-        lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+        lambda fnames: pd.concat([load(f)["economic_trajectory"]
                                   for f in fnames]).groupby(level=0).sem(),
         "<min_trajectory>":
-        lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+        lambda fnames: pd.concat([load(f)["economic_trajectory"]
                                   for f in
                                   fnames]).groupby(level=0).min(),
         "<max_trajectory>":
-        lambda fnames: pd.concat([np.load(f)["economic_trajectory"]
+        lambda fnames: pd.concat([load(f)["economic_trajectory"]
                                   for f in
                                   fnames]).groupby(level=0).max()
         }
@@ -479,30 +459,30 @@ EVA1 = {"<mean_trajectory>":
 
 def foo(fnames):
     for f in fnames:
-        print(np.load(f)['convergence_state'])
+        print(load(f)['convergence_state'])
         print(f)
 
 NAME2 = NAME+'_convergence'
 EVA2 = {"<mean_convergence_state>":
-        lambda fnames: np.nanmean([np.load(f)["convergence_state"]
+        lambda fnames: np.nanmean([load(f)["convergence_state"]
                                    for f in fnames]),
         "<mean_convergence_time>":
-        lambda fnames: np.nanmean([np.load(f)["convergence_time"]
+        lambda fnames: np.nanmean([load(f)["convergence_time"]
                                    for f in fnames]),
         "<min_convergence_time>":
-        lambda fnames: np.nanmin([np.load(f)["convergence_time"]
+        lambda fnames: np.nanmin([load(f)["convergence_time"]
                                   for f in fnames]),
         "<max_convergence_time>":
-        lambda fnames: np.max([np.load(f)["convergence_time"]
+        lambda fnames: np.max([load(f)["convergence_time"]
                                for f in fnames]),
         "<nanmax_convergence_time>":
-        lambda fnames: np.nanmax([np.load(f)["convergence_time"]
+        lambda fnames: np.nanmax([load(f)["convergence_time"]
                                   for f in fnames]),
         "<sem_convergence_time>":
-        lambda fnames: st.sem([np.load(f)["convergence_time"]
+        lambda fnames: st.sem([load(f)["convergence_time"]
                                for f in fnames]),
         "<runtime>":
-        lambda fnames: st.sem([np.load(f)["runtime"]
+        lambda fnames: st.sem([load(f)["runtime"]
                                for f in fnames]),
         }
 
@@ -514,20 +494,15 @@ if mode == 1:
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
-    plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets)
 
 # test run
 if mode == 2:
-    SAMPLE_SIZE = 100
+    SAMPLE_SIZE = 2
     handle = experiment_handling(
             SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
-    # handle.compute(run_func)
-    # handle.resave(EVA1, NAME1)
-    # handle.resave(EVA2, NAME2)
-    # plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets, t_max=400,
-                  file_extension='.pdf')
+    handle.compute(RUN_FUNC)
+    handle.resave(EVA1, NAME1)
+    handle.resave(EVA2, NAME2)
 
 # debug and mess around mode:
 if mode == 3:
@@ -537,8 +512,6 @@ if mode == 3:
     handle.compute(RUN_FUNC)
     handle.resave(EVA1, NAME1)
     handle.resave(EVA2, NAME2)
-    plot_tau_phi(SAVE_PATH_RES, NAME2, ylog=True)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2, opinion_presets)
 
 if mode == 4:
     #tau_phi_linear(SAVE_PATH_RES, NAME2)
