@@ -134,7 +134,7 @@ def RUN_FUNC(nopinions, phi, alpha,
     assert alpha < 1,\
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
-    (N, p, tau, p, b_d, b_r0, e, s) = \
+    (N, pn, tau, p, b_d, b_r0, e, s) = \
         (sum(opinion_presets[nopinions]), 0.125, 1, 500, 1.2, 1., 100, 0.23)
 
     # ROUND ONE: FIND EQUILIBRIUM DISTRIBUTIONS:
@@ -165,8 +165,8 @@ def RUN_FUNC(nopinions, phi, alpha,
 
         # building initial conditions
 
-        while True:
-            net = nx.erdos_renyi_graph(N, p)
+        while True
+            net = nx.erdos_renyi_graph(N, pn)
             if len(list(net)) > 1:
                 break
         adjacency_matrix = nx.adj_matrix(net).toarray()
@@ -190,7 +190,7 @@ def RUN_FUNC(nopinions, phi, alpha,
                         'tau': tau, 'phi': phi, 'eps': eps,
                         'L': p, 'b_d': b_d, 'b_r0': b_r0, 'G_0': g_0,
                         'e': e, 'd_c': d_c, 'test': bool(test),
-                        'r_depletion': transition}
+                        'R_depletion': transition}
     # ROUND TWO: TRANSITION
     if transition:
         print('trans')
@@ -285,7 +285,6 @@ def RUN_FUNC(nopinions, phi, alpha,
     # store data in case of successful run
 
     if exit_status in [0, 1]:
-        print('saving trajectory data')
         res["convergence_data"] = \
                 pd.DataFrame({"Investment decisions": m.investment_decisions,
                               "Investment clean": m.investment_clean,
@@ -296,7 +295,6 @@ def RUN_FUNC(nopinions, phi, alpha,
         # interpolate e_trajectory to get evenly spaced time series.
         dfo = even_time_series_spacing(m.get_economic_trajectory(), 101, 0., t_max)
         res["economic_trajectory"] = dfo
-    print(exit_status)
     end = time.clock()
     res["runtime"] = end-start
 

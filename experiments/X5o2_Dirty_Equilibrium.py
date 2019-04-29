@@ -111,7 +111,7 @@ def RUN_FUNC(t_a, phi, alpha,
     assert alpha < 1,\
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
-    (N, p, tau, P, b_d, b_R0, e, s) =\
+    (N, pn, tau, P, b_d, b_R0, e, s) =\
         (100, 0.125, 0.8, 500, 1.2, 1., 100, 0.23)
 
     # ROUND ONE: FIND EQUILIBRIUM DISTRIBUTIONS:
@@ -143,7 +143,7 @@ def RUN_FUNC(t_a, phi, alpha,
         # building initial conditions
 
         while True:
-            net = nx.erdos_renyi_graph(N, p)
+            net = nx.erdos_renyi_graph(N, pn)
             if len(list(net)) > 1:
                 break
         adjacency_matrix = nx.adj_matrix(net).toarray()

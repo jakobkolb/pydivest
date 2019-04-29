@@ -138,7 +138,7 @@ def RUN_FUNC(t_G, nopinions, alpha,
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
     nopinions = opinion_dists[nopinions]
-    (N, p, tau, phi, P, b_d, b_R0, e, d_c, s) =\
+    (N, pn, tau, phi, P, b_d, b_R0, e, d_c, s) =\
         (sum(nopinions), 0.125, .1, .8, 500, 1.2, 1., 100, 0.06, 0.23)
 
     # capital accumulation of dirty capital
@@ -167,7 +167,7 @@ def RUN_FUNC(t_G, nopinions, alpha,
     # building initial conditions
 
     while True:
-        net = nx.erdos_renyi_graph(N, p)
+        net = nx.erdos_renyi_graph(N, pn)
         if len(list(net)) > 1:
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
