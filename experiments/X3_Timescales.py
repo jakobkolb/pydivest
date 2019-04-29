@@ -106,7 +106,7 @@ def RUN_FUNC(t_a, phi, eps, t_G, alpha, test, filename):
 
     # capital accumulation of dirty capital (t_d = 1/(d_c*(1-kappa_c)) with kappa_c = 0.5 :
     t_d = 1/(2.*d_c)
-    
+
     # Rescale input times to capital accumulation time:
     t_G = t_G*t_d
     t_a = t_a*t_d
