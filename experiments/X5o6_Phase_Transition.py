@@ -1,4 +1,3 @@
-
 """
 This experiment investigates the phase transition in the adaptive voter
 dynamics and finite size scaling for the number of households.
@@ -44,33 +43,36 @@ voter case against the case with heuristic decision making.
 # Contact: kolb@pik-potsdam.de
 # License: GNU AGPL Version 3
 
-
 from __future__ import print_function
 
-
-import numpy as np
-import scipy.stats as st
-import networkx as nx
-import pandas as pd
-import pickle as cp
+import getpass
+import glob
 import itertools as it
 import os
+import pickle as cp
 import sys
-import getpass
 import time
 import types
-import glob
 
-from pymofa.experiment_handling import \
-    experiment_handling, even_time_series_spacing
-from pydivest.micro_model import divestmentcore as model
+import networkx as nx
+import numpy as np
+import pandas as pd
+import scipy.stats as st
+from pymofa.experiment_handling import (even_time_series_spacing,
+                                        experiment_handling)
+
 from pydivest.divestvisuals.data_visualization import plot_phase_transition
+from pydivest.micro_model import divestmentcore as model
 
 save_path_init = ""
+possible_opinions = []
 
 
-def RUN_FUNC(phi, N, alpha,
-             possible_opinions, eps, transition, test, filename):
+def load(*args, **kwargs):
+    return np.load(*args, allow_pickle=True, **kwargs)
+
+
+def RUN_FUNC(phi, N, alpha, eps, transition, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -94,7 +96,7 @@ def RUN_FUNC(phi, N, alpha,
     t_d : float
         the capital accumulation timescale
         t_d = 1/(d_c(1-kappa_d))
-    possible_que_orders : list of list of integers
+    possible_cue_orders : list of list of integers
         the set of cue orders that are allowed in the
         model. investment_decisions determine the individual cue
         order, that a household uses.
@@ -114,7 +116,7 @@ def RUN_FUNC(phi, N, alpha,
         'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
     # CHOCES OF PARAMETERS:
-    # L = 0.125  # question: SHOULDN'T THE MEAN DEGREE STAY CONSTANT?? Yes!
+    # L = 0.125  # cuestion: SHOULDN'T THE MEAN DEGREE STAY CONSTANT?? Yes!
     p = 10. / N
     tau = 1.
     P = float(N) * 10
@@ -126,18 +128,19 @@ def RUN_FUNC(phi, N, alpha,
     t_g = 100.
 
     # ROUND ONE: FIND EQUILIBRIUM DISTRIBUTIONS:
+
     if not transition:
         # set G_0 according to resource depletion time:
         # t_g = G_0*e*d_c/(L*s*b_d**2)
-        G_0 = t_g * P * s * b_d ** 2 / (e * d_c)
+        G_0 = t_g * P * s * b_d**2 / (e * d_c)
 
         # set b_r0 according to alpha and e:
         # alpha = (b_r0/e)**(1/2)
-        b_R0 = alpha ** 2 * e
+        b_R0 = alpha**2 * e
 
         # calculate equilibrium dirty capital
         # for full on dirty economy
-        k_d0 = (s / d_c * b_d * P ** (1. / 2.) * (1 - alpha ** 2)) ** 2.
+        k_d0 = (s / d_c * b_d * P**(1. / 2.) * (1 - alpha**2))**2.
 
         # set t_max for run in units of the social
         # equilibration time (since this is the
@@ -148,27 +151,39 @@ def RUN_FUNC(phi, N, alpha,
 
         while True:
             net = nx.erdos_renyi_graph(N, p)
+
             if len(list(net)) > 1:
                 break
         adjacency_matrix = nx.adj_matrix(net).toarray()
 
-        opinions = [np.random.randint(0, len(possible_opinions))
-                    for x in range(N)]
+        opinions = [
+            np.random.randint(0, len(possible_opinions)) for x in range(N)
+        ]
         investment_clean = np.full(N, 0.1)
         investment_dirty = np.full(N, k_d0 / N)
 
         # input parameters
 
-        input_params = {'adjacency': adjacency_matrix,
-                        'opinions': opinions,
-                        'investment_clean': investment_clean,
-                        'investment_dirty': investment_dirty,
-                        'possible_que_orders': possible_opinions,
-                        'tau': tau, 'phi': phi, 'eps': eps,
-                        'L': P, 'b_d': b_d, 'b_c': b_c,
-                        'b_r0': b_R0, 'G_0': G_0,
-                        'e': e, 'd_c': d_c, 'test': bool(test),
-                        'R_depletion': transition, 'learning': True}
+        input_params = {
+            'adjacency': adjacency_matrix,
+            'opinions': opinions,
+            'investment_clean': investment_clean,
+            'investment_dirty': investment_dirty,
+            'possible_cue_orders': possible_opinions,
+            'tau': tau,
+            'phi': phi,
+            'eps': eps,
+            'L': P,
+            'b_d': b_d,
+            'b_c': b_c,
+            'b_r0': b_R0,
+            'G_0': G_0,
+            'e': e,
+            'd_c': d_c,
+            'test': bool(test),
+            'R_depletion': transition,
+            'learning': True
+        }
 
     # ROUND TWO: TRANSITION
     elif transition:
@@ -178,13 +193,12 @@ def RUN_FUNC(phi, N, alpha,
         # wildcard for all relevant files.
         # replace characters before first
         # underscore with *
-        path = (save_path_init
-                + "/*_"
-                + filename.split('/')[-1].split('_', 1)[-1].split('True')[0]
-                + '*_final')
+        path = (save_path_init + "/*_" +
+                filename.split('/')[-1].split('_', 1)[-1].split('True')[0] +
+                '*_final')
         init_files = glob.glob(path)
         init_file = init_files[np.random.randint(0, len(init_files))]
-        input_params = np.load(init_file)['final_state']
+        input_params = load(init_file)['final_state']
 
         # adapt parameters where necessary
 
@@ -200,31 +214,14 @@ def RUN_FUNC(phi, N, alpha,
 
     # storing initial conditions and parameters
 
-    res = {"parameters": pd.Series({"tau": m.tau,
-                                    "phi": m.phi,
-                                    "n": m.n,
-                                    "L": P,
-                                    "p": p,
-                                    "birth rate": m.r_b,
-                                    "savings rate": m.s,
-                                    "clean capital depreciation rate": m.d_c,
-                                    "dirty capital depreciation rate": m.d_d,
-                                    "resource extraction efficiency": m.b_r0,
-                                    "Solov residual clean": m.b_c,
-                                    "Solov residual dirty": m.b_d,
-                                    "pi": m.pi,
-                                    "kappa_c": m.kappa_c,
-                                    "kappa_d": m.kappa_d,
-                                    "xi": m.xi,
-                                    "resource efficiency": m.e,
-                                    "epsilon": m.eps,
-                                    "initial resource stock": m.G_0})}
+    res = {}
 
     # run the model
     start = time.clock()
     exit_status = m.run(t_max=t_max)
 
     # for equilibration runs, save final state of the model:
+
     if not transition:
         res['final_state'] = m.final_state
 
@@ -248,6 +245,7 @@ def RUN_FUNC(phi, N, alpha,
     res["runtime"] = end - start
 
     # save data
+
     if transition:
         with open(filename, 'wb') as dumpfile:
             cp.dump(res, dumpfile)
@@ -281,29 +279,32 @@ def run_experiment(argv):
     -------
     rt: int
         some return value to show whether sub_experiment succeeded
-        return 1 if sucessfull.
+        return 1 if successful.
     """
 
     # switch testing mode
+
     if len(argv) > 1:
         test = bool(int(argv[1]))
     else:
         test = False
     # switch sub_experiment mode
+
     if len(argv) > 2:
         mode = int(argv[2])
     else:
         mode = 1
     # switch
+
     if len(argv) > 3:
         transition = bool(int(argv[3]))
     else:
         transition = False
+
     if len(argv) > 4:
         no_heuristics = bool(int(argv[4]))
     else:
         no_heuristics = False
-
     """
     Set different output folders for equilibrium and transition.
     Differentiate between runs with and without Heuristics.
@@ -311,7 +312,8 @@ def run_experiment(argv):
     conditions for transition in run function.
     """
 
-    respath = os.path.dirname(os.path.realpath(__file__)) + "/divestdata"
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/output_data"
+
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":
@@ -321,48 +323,49 @@ def run_experiment(argv):
 
     folder = 'X5o6'
 
-    sub_experiments = ['Dirty_Equilibrium',
-                       'Dirty_Clean_Transition']
+    sub_experiments = ['Dirty_Equilibrium', 'Dirty_Clean_Transition']
     sub_experiment = sub_experiments[int(transition)]
     heuristics = ['TTB', 'No_TTB'][int(no_heuristics)]
     test_folder = 'test_output/' if test else ''
 
-    SAVE_PATH_RAW = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw', folder,
-                                              sub_experiment, heuristics)
+    SAVE_PATH_RAW = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw',
+                                              folder, sub_experiment,
+                                              heuristics)
     SAVE_PATH_RES = "{}/{}{}_{}_{}".format(respath, test_folder, folder,
                                            sub_experiment, heuristics)
-    SAVE_PATH_INIT = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw', folder,
-                                               sub_experiments[0], heuristics)
+    SAVE_PATH_INIT = "{}/{}{}/{}_{}_{}".format(tmppath, test_folder, 'raw',
+                                               folder, sub_experiments[0],
+                                               heuristics)
 
     # make init path global, so run function can access it.
     global save_path_init
     save_path_init = SAVE_PATH_INIT
-
     """
     Make different types of decision makers. Cues are
+    0: 'always dirty',
+    1: 'always clean',
+    2: 'capital rent',
+    3: 'capital rent trend',
+    4: 'peer pressure'
     """
-    cue_names = {
-        0: 'always dirty',
-        1: 'always clean',
-        2: 'capital rent',
-        3: 'capital rent trend',
-        4: 'peer pressure'}
-    opinion_presets = [[2, 3],  # short term investor
-                       [3, 2],  # long term investor
-                       [4, 2],  # short term herder
-                       [4, 3],  # trending herder
-                       [4, 1],  # green conformer
-                       [4, 0],  # dirty conformer
-                       [1],  # gutmensch
-                       [0]]  # redneck
-    if no_heuristics:
-        opinion_presets = [[1], [0]]
+    global possible_opinions
+    possible_opinions = [
+        [2, 3],  # short term investor
+        [3, 2],  # long term investor
+        [4, 2],  # short term herder
+        [4, 3],  # trending herder
+        [4, 1],  # green conformer
+        [4, 0],  # dirty conformer
+        [1],  # gutmensch
+        [0]  # redneck
+    ]
 
+    if no_heuristics:
+        possible_opinions = [[1], [0]]
     """
     set array of fractions of rewiring events phi
     """
     phis = [round(x, 2) for x in list(np.linspace(0.0, 1.0, 21))[:-1]]
-
     """
     set array of numbers of households N
     """
@@ -375,16 +378,11 @@ def run_experiment(argv):
     smother transition.
     """
     alphas = [0.01, 0.1, 0.5]
-
     """
     dictionary of the variable parameters in this experiment together with their
     position in the index of the dictionary of results
     """
-    parameters = {
-        'phi': 0,
-        'N': 1,
-        'alpha': 2,
-        'test': 3}
+    parameters = {'phi': 0, 'N': 1, 'alpha': 2, 'test': 3}
     """
     Default values of variable parameter in this experiment
     """
@@ -392,10 +390,13 @@ def run_experiment(argv):
 
     NAME = 'Cue_order_testing'
     INDEX = {
-        parameters['phi']: "phi",
-        parameters['N']: "N",
-        parameters['alpha']: "alpha"}
-
+        0: 'phi',
+        1: 'N',
+        2: 'alpha',
+        3: 'eps',
+        4: 'transition',
+        5: 'test'
+    }
     """
     create list of parameter combinations for
     different experiment modes.
@@ -405,72 +406,62 @@ def run_experiment(argv):
     # TO DO: det mode and test switch straight!
 
     if not test == 0:  # Production
-        PARAM_COMBS = list(it.product(
-            phis, Ns, alphas,
-            [opinion_presets], eps,
-            [transition], [test]))
+        PARAM_COMBS = list(
+            it.product(phis, Ns, alphas, eps, [transition], [test]))
 
     else:  # test
         """define reduced parameter sets for testing"""
         phis = [round(x, 2) for x in list(np.linspace(0.0, 1.0, 5))[:-1]]
-        Ns = [10, 100]
-        alphas = [0.01,0.5]
-        PARAM_COMBS = list(it.product(
-            phis, Ns, alphas,
-            [opinion_presets], eps,
-            [transition], [test]))
+        PARAM_COMBS = list(
+            it.product(phi, N, alpha, eps, [transition], [test]))
 
     # names and function dictionaries for post processing:
 
     NAME2 = NAME + '_convergence'
-    EVA2 = {"mean_remaining_resource_fraction":
-                lambda fnames: np.nanmean(
-                    [np.load(f)["remaining_resource_fraction"]
-                     for f in fnames]),
-            "sem_remaining_resource_fraction":
-                lambda fnames: st.sem(
-                    [np.load(f)["remaining_resource_fraction"]
-                     for f in fnames]),
-            "mean_remaining_resource":
-                lambda fnames: np.nanmean(
-                    [np.load(f)["remaining_resource"]
-                     for f in fnames]),
-            "mean_majority_time":
-                lambda fnames: np.nanmean([np.load(f)["majority_time"]
-                                           for f in fnames]),
-            "min_majority_time":
-                lambda fnames: np.nanmin([np.load(f)["majority_time"]
-                                          for f in fnames]),
-            "max_majority_time":
-                lambda fnames: np.max([np.load(f)["majority_time"]
-                                       for f in fnames]),
-            "nanmax_majority_time":
-                lambda fnames: np.nanmax([np.load(f)["majority_time"]
-                                          for f in fnames]),
-            "sem_majority_time":
-                lambda fnames: st.sem([np.load(f)["majority_time"]
-                                       for f in fnames]),
-            "runtime":
-                lambda fnames: st.sem([np.load(f)["runtime"]
-                                       for f in fnames]),
-            }
+    EVA2 = {
+        "mean_remaining_resource_fraction":
+        lambda fnames: np.nanmean(
+            [load(f)["remaining_resource_fraction"] for f in fnames]),
+        "sem_remaining_resource_fraction":
+        lambda fnames: st.sem(
+            [load(f)["remaining_resource_fraction"] for f in fnames]),
+        "mean_remaining_resource":
+        lambda fnames: np.nanmean(
+            [load(f)["remaining_resource"] for f in fnames]),
+        "mean_majority_time":
+        lambda fnames: np.nanmean([load(f)["majority_time"] for f in fnames]),
+        "min_majority_time":
+        lambda fnames: np.nanmin([load(f)["majority_time"] for f in fnames]),
+        "max_majority_time":
+        lambda fnames: np.max([load(f)["majority_time"] for f in fnames]),
+        "nanmax_majority_time":
+        lambda fnames: np.nanmax([load(f)["majority_time"] for f in fnames]),
+        "sem_majority_time":
+        lambda fnames: st.sem([load(f)["majority_time"] for f in fnames]),
+        "runtime":
+        lambda fnames: st.sem([load(f)["runtime"] for f in fnames]),
+    }
 
     # Cluster - computation and plotting
+
     if mode == 0:
         SAMPLE_SIZE = 100 if not test else 2
-        handle = experiment_handling(
-            SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
+        handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
+                                     SAVE_PATH_RAW, SAVE_PATH_RES)
         handle.compute(RUN_FUNC)
+
         if transition:
             handle.resave(EVA2, NAME2)
             plot_phase_transition(SAVE_PATH_RES, NAME2)
 
     # Local - only plotting
+
     if mode == 1:
         if transition:
             plot_phase_transition(SAVE_PATH_RES, NAME2)
     else:
-        print(mode, ' is not a valid experiment mode.\
+        print(
+            mode, ' is not a valid experiment mode.\
         valid modes are 1: production, 2: test, 3: messy')
         sys.exit()
 

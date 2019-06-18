@@ -13,7 +13,6 @@ The variable Parameters are b_d and phi.
 # Contact: kolb@pik-potsdam.de
 # License: GNU AGPL Version 3
 
-
 import getpass
 import itertools as it
 import os
@@ -24,20 +23,25 @@ import time
 import networkx as nx
 import numpy as np
 import pandas as pd
+from pymofa.experiment_handling import (even_time_series_spacing,
+                                        experiment_handling)
 
 from pydivest.divestvisuals.data_visualization import plot_trajectories
-from pydivest.macro_model.integrate_equations_mean import IntegrateEquationsMean
+from pydivest.macro_model.integrate_equations_mean import \
+    IntegrateEquationsMean
 from pydivest.micro_model.divestmentcore import DivestmentCore
-from pymofa.experiment_handling import experiment_handling, \
-    even_time_series_spacing
+
+
+def load(*args, **kwargs):
+    return np.load(*args, allow_pickle=True, **kwargs)
 
 
 def RUN_FUNC(b_d, phi, approximate, test, filename):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
-    Output is saved in pickled dictionaries including the 
-    initial values, parameters and convergence state and time 
+    Output is saved in pickled dictionaries including the
+    initial values, parameters and convergence state and time
     for each run.
 
     Parameters:
@@ -58,13 +62,23 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
 
     # Parameters:
 
-    input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
-                    'eps': 0.05, 'b_d': b_d, 'e': 100.,
-                    'b_r0': 0.1 ** 2 * 100.,
-                    'possible_que_orders': [[0], [1]],
-                    'xi': 1. / 8., 'beta': 0.06,
-                    'L': 100., 'C': 100., 'G_0': 800.,
-                    'campaign': False, 'learning': True}
+    input_params = {
+        "b_c": 1.0,
+        "phi": phi,
+        "tau": 1.0,
+        "eps": 0.05,
+        "b_d": b_d,
+        "e": 100.0,
+        "b_r0": 0.1**2 * 100.0,
+        "possible_cue_orders": [[0], [1]],
+        "xi": 1.0 / 8.0,
+        "beta": 0.06,
+        "L": 100.0,
+        "C": 100.0,
+        "G_0": 800.0,
+        "campaign": False,
+        "learning": True,
+    }
 
     # investment_decisions:
     nopinions = [100, 100]
@@ -75,21 +89,28 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
 
     # building initial conditions
     p = float(k) / N
+
     while True:
         net = nx.erdos_renyi_graph(N, p)
+
         if len(list(net)) > 1:
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
     investment_decisions = np.random.randint(low=0, high=2, size=N)
 
-    clean_investment = np.ones(N) * 50. / float(N)
-    dirty_investment = np.ones(N) * 50. / float(N)
+    clean_investment = np.ones(N) * 50.0 / float(N)
+    dirty_investment = np.ones(N) * 50.0 / float(N)
 
-    init_conditions = (adjacency_matrix, investment_decisions,
-                       clean_investment, dirty_investment)
+    init_conditions = (
+        adjacency_matrix,
+        investment_decisions,
+        clean_investment,
+        dirty_investment,
+    )
 
     # initializing the model
-    print('approximate', approximate)
+    print("approximate", approximate)
+
     if approximate:
         m = IntegrateEquationsMean(*init_conditions, **input_params)
     else:
@@ -106,16 +127,17 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
     res = {}
 
     # store data in case of successful run
+
     if exit_status in [0, 1]:
         # interpolate m_trajectory to get evenly spaced time series.
-        res["macro_trajectory"] = \
-            even_time_series_spacing(m.get_mean_trajectory(), 201, 0., t_max)
+        res["macro_trajectory"] = even_time_series_spacing(
+            m.get_mean_trajectory(), 201, 0.0, t_max)
 
     # save data
-    with open(filename, 'wb') as dumpfile:
+    with open(filename, "wb") as dumpfile:
         cp.dump(res, dumpfile)
     try:
-        np.load(filename)
+        load(filename)
     except IOError:
         print("writing results failed for " + filename)
 
@@ -125,6 +147,7 @@ def RUN_FUNC(b_d, phi, approximate, test, filename):
 # get sub experiment and mode from command line
 
 # experiment, mode, test
+
 
 def run_experiment(argv):
     """
@@ -157,26 +180,29 @@ def run_experiment(argv):
     """
 
     # switch testing mode
+
     if len(argv) > 1:
         test = bool(int(argv[1]))
     else:
         test = False
     # switch sub_experiment mode
+
     if len(argv) > 2:
         mode = int(argv[2])
     else:
         mode = 0
     # switch micro macro model
+
     if len(argv) > 3:
         approximate = int(argv[3])
     else:
         approximate = 0
-
     """
     set input/output paths
     """
 
     respath = os.path.dirname(os.path.realpath(__file__)) + "/output_data"
+
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":
@@ -184,27 +210,24 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    sub_experiment = ['micro', 'macro'][approximate]
-    folder = 'X6'
+    sub_experiment = "macro" if approximate else "micro"
+    folder = "X6"
 
     # make sure, testing output goes to its own folder:
 
-    test_folder = ['', 'test_output/'][int(test)]
+    test_folder = ["", "test_output/"][int(test)]
 
-    SAVE_PATH_RAW = \
-        "{}/{}{}/{}/" \
-        .format(tmppath, test_folder, folder, sub_experiment)
-    SAVE_PATH_RES = \
-        "{}/{}{}/{}/" \
-        .format(respath, test_folder, folder, sub_experiment)
-
+    SAVE_PATH_RAW = "{}/{}{}/{}/".format(tmppath, test_folder, folder,
+                                         sub_experiment)
+    SAVE_PATH_RES = "{}/{}{}/{}/".format(respath, test_folder, folder,
+                                         sub_experiment)
     """
     create parameter combinations and index
     """
 
     phis = [round(x, 5) for x in list(np.linspace(0.0, 0.9, 10))]
-    b_ds = [round(x, 5) for x in list(np.linspace(1., 1.5, 3))]
-    b_d, phi, exact = [1.2], [.8], [False]
+    b_ds = [round(x, 5) for x in list(np.linspace(1.0, 1.5, 3))]
+    b_d, phi = [1.2], [0.8]
 
     if test:
         PARAM_COMBS = list(it.product(b_d, phi, [bool(approximate)], [test]))
@@ -212,30 +235,29 @@ def run_experiment(argv):
         PARAM_COMBS = list(it.product(b_ds, phis, [bool(approximate)], [test]))
 
     INDEX = {0: "b_d", 1: "phi"}
-
     """
     create names and dicts of callables for post processing
     """
 
-    NAME = 'b_c_scan_' + sub_experiment + '_trajectory'
+    NAME = "b_c_scan_" + sub_experiment + "_trajectory"
 
-    NAME1 = NAME + '_trajectory'
-    EVA1 = {"mean_trajectory":
-            lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
-                                      for f in fnames]).groupby(
-                    level=0).mean(),
-            "sem_trajectory":
-            lambda fnames: pd.concat([np.load(f)["macro_trajectory"]
-                                      for f in fnames]).groupby(level=0).std()
-            }
-
+    NAME1 = NAME + "_trajectory"
+    EVA1 = {
+        "mean_trajectory":
+        lambda fnames: pd.concat([load(f)["macro_trajectory"] for f in fnames]
+                                 ).groupby(level=0).mean(),
+        "sem_trajectory":
+        lambda fnames: pd.concat([load(f)["macro_trajectory"] for f in fnames])
+        .groupby(level=0).std(),
+    }
     """
     run computation and/or post processing and/or plotting
     """
 
     # cluster mode: computation and post processing
+
     if mode == 0:
-        print('cluster mode')
+        print("cluster mode")
         sys.stdout.flush()
         SAMPLE_SIZE = 100 if not (test or approximate == 1) else 2
         handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX,
@@ -246,14 +268,16 @@ def run_experiment(argv):
         return 1
 
     # local mode: plotting only
+
     if mode == 1:
-        print('plot mode')
+        print("plot mode")
         sys.stdout.flush()
         plot_trajectories(SAVE_PATH_RES, NAME1, None, None)
 
         return 1
 
     # in case nothing happened:
+
     return 0
 
 
