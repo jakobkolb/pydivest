@@ -29,7 +29,7 @@ class DivestmentCore:
                  b_r0=1., e=10,
                  xi=1./8., pi=1./2., kappa_c=1./2., kappa_d=1./2.,
                  R_depletion=True, test=False,
-                 beta=0.06, learning=False,
+                 learning=False,
                  campaign=False, interaction=1,
                  verbosity=0, **kwargs):
 
@@ -38,9 +38,11 @@ class DivestmentCore:
         Parameters
         ----------
         adjacency: np.ndarray
-            Acquaintance matrix between the households. Has to be symmetric unweighted and without self loops.
+            Acquaintance matrix between the households. Has to be symmetric
+            unweighted and without self loops.
         possible_cue_orders: list
-            A list of possible cue orders. Cue orders are integers that have to be implemented in the dict of
+            A list of possible cue orders. Cue orders are integers that have
+            to be implemented in the dict of
             possible cues with their respective callables in the init.
         opinions: list[int]
             A list, specifying for each household a cue order of the above
@@ -56,7 +58,8 @@ class DivestmentCore:
         phi: float
             Rewiring probability in the network adaptation process
         eps: float
-            fraction of exploration events (noise) in the opinion formation process
+            fraction of exploration events (noise) in the opinion formation
+            process
         L: float
             Total labor (fixed)
         G_0: float
@@ -81,8 +84,6 @@ class DivestmentCore:
             Switch to turn resource depreciation on or off
         test: bool
             switch for verbose output for debugging
-        beta: float
-            Knowledge depreciation (forgetting) rate in the clean sector
         pi: float
             labor elasticity (equal in both sectors)
         kappa_c: float
@@ -90,17 +91,21 @@ class DivestmentCore:
         kappa_d: float
             capital elasticity in the dirty sector.
         xi: float
-            Elasticity of knowledge stock in the production process in the clean sector
+            Elasticity of knowledge stock in the production process in the
+            clean sector
         learning: bool
             Switch to toggle learning in the clean sector.
-            If False, the knowledge stock is set to 1 and its dynamics are turned off.
+            If False, the knowledge stock is set to 1 and its dynamics are
+            turned off.
         campaign: bool
-            Switch to toggle separate treatment of zealots (campaigners) in the model, such that they do not immiatate
+            Switch to toggle separate treatment of zealots (campaigners)
+            in the model, such that they do not immiatate
             other households decisions.
         interaction: int
             Switch for different imitation probabilities.
             if 0: tanh(Wi-Wj) interaction,
-            if 1: interaction as in Traulsen, 2010 but with relative differences
+            if 1: interaction as in Traulsen, 2010 but with relative
+            differences
             if 2: (Wi-Wj)/(Wi+Wj) interaction.
             if 3: random imitation e.g. p_cd = p_dc = .5
         t_trend: float
@@ -117,6 +122,7 @@ class DivestmentCore:
                 pass
 
         self.verboseprint = verboseprint
+
         if test:
             self.verbosity = 2
         else:
@@ -131,6 +137,7 @@ class DivestmentCore:
 
         # check, if heuristic decision making of imitation only
         self.heuristic_decision_making = False
+
         for p in possible_cue_orders:
             if p not in [[0], [1]]:
                 self.heuristic_decision_making = True
@@ -145,6 +152,7 @@ class DivestmentCore:
         self.interaction = interaction
 
         # trajectory output time window
+
         if 'trj_output_window' in kwargs.keys():
             self.verboseprint('found trj_output_window')
             self.trj_output_window = kwargs['trj_output_window']
@@ -253,17 +261,20 @@ class DivestmentCore:
 
         i, n = np.unique(self.opinions,
                          return_counts=True)
+
         for j in range(len(possible_cue_orders)):
             if j not in list(i):
                 n = np.append(n, [0])
                 i = np.append(i, [j])
         self.opinion_state = [n[list(i).index(j)]
                               if j in i else 0
+
                               for j in range(len(self.possible_cue_orders))]
 
         # to keep track of investment decisions.
         self.decision_state = 0.
         # investment decision vector, so far equal to investment_decisions
+
         if investment_decisions is None:
             if possible_cue_orders == [[0], [1]]:
                 self.investment_decisions = np.array(opinions)
@@ -272,16 +283,18 @@ class DivestmentCore:
         else:
             self.investment_decisions = investment_decisions
 
-        # members of ALL household = population   
+        # members of ALL household = population
         self.P = L
 
         # household investment in dirty capital
+
         if investment_dirty is None:
             self.investment_dirty = np.ones(self.n)
         else:
             self.investment_dirty = investment_dirty
 
         # household investment in clean capital
+
         if investment_clean is None:
             self.investment_clean = np.ones(self.n)
         else:
@@ -385,9 +398,11 @@ class DivestmentCore:
 
         if self.e_trajectory_output:
             self.init_economic_trajectory()
+
         if self.m_trajectory_output:
             self.init_mean_trajectory()
             self.init_aggregate_trajectory()
+
         if self.switchlist_output:
             self.init_switchlist()
 
@@ -469,6 +484,7 @@ class DivestmentCore:
              1 decide for clean investment
         """
         dif = 1.
+
         if self.r_c > self.r_d * dif:
             dec = 1
         elif self.r_d > self.r_c * dif:
@@ -496,6 +512,7 @@ class DivestmentCore:
              0 decide for dirty investment
              1 decide for clean investment
         """
+
         if self.r_c_dot > self.r_d_dot * 1.1 and self.r_c > self.d_k:
             dec = 1
         elif self.r_d_dot > self.r_c_dot * 1.1 and self.r_d > self.d_k:
@@ -528,6 +545,7 @@ class DivestmentCore:
         neighbors = self.neighbors[:, i].nonzero()[0]
         n_ops = sum(self.investment_decisions[neighbors]) \
                 / float(len(neighbors)) if len(neighbors) != 0 else .5
+
         if n_ops - threshold > 0.5:
             dec = 1
         elif n_ops + threshold < 0.5:
@@ -538,7 +556,8 @@ class DivestmentCore:
         return dec
 
     def set_parameters(self):
-        """dummy function to mimic the interface of the approximation modules"""
+        """dummy function to mimic the interface of the
+        approximation modules"""
         pass
 
     @staticmethod
@@ -573,6 +592,7 @@ class DivestmentCore:
         """
 
         candidate = 0
+
         while self.t < t_max:
 
             if self.verbosity > 0:
@@ -586,19 +606,22 @@ class DivestmentCore:
 
             # 2 integrate economic model until t=update_time:
             # don't make steps too large. The integrator handles that badly..
+
             if update_time - self.t < 1.:
                 self.update_economy(update_time)
             else:
                 while True:
-                    inter_update_time = (self.t + 1. 
+                    inter_update_time = (self.t + 1.
                                          if not self.t + 1. > update_time
                                          else update_time)
                     self.update_economy(inter_update_time)
+
                     if inter_update_time >= update_time:
                         break
 
             # 3 update opinion formation in case,
             # update candidate was found:
+
             if candidate >= 0:
                 self.update_opinion_formation(candidate,
                                               neighbor, neighbors)
@@ -634,6 +657,7 @@ class DivestmentCore:
         elif not self.converged and self.R_depletion:
             self.convergence_state = float('nan')
             self.convergence_time = self.t
+
             return 0  # no consensus found during run time
         elif candidate == -2:
             return -1  # bad run - opinion formation broken
@@ -665,6 +689,7 @@ class DivestmentCore:
             b_r = self.b_r0 * (self.G_0 / resource) ** 2
         else:
             b_r = float('inf')
+
         return b_r
 
     def economy_dot_leontief(self, x0, t):
@@ -750,8 +775,10 @@ class DivestmentCore:
             print(self.db_out)
             print('model configuration is:')
             print(dir(self))
+
             if G < 0:
                 G = 0
+
             if C < 0:
                 C = 0
 
@@ -776,14 +803,15 @@ class DivestmentCore:
 
         # check if dirty sector is profitable (P_d > 0).
         # if not, shut it down.
+
         if P_d < 0 or np.isnan(X_R):
             P_d = 0
             P_c = P
             R = 0
             self.w = self.b_c * C ** self.xi * K_c ** self.kappa_c\
-                    * self.pi * P ** (self.pi - 1.)
+                * self.pi * P ** (self.pi - 1.)
             self.r_c = self.b_c * C ** self.xi * self.kappa_c\
-                    * K_c ** (self.kappa_c - 1.) * P ** self.pi
+                * K_c ** (self.kappa_c - 1.) * P ** self.pi
             self.r_d = 0
 
         self.R = R
@@ -818,7 +846,7 @@ class DivestmentCore:
         G_dot = -R if self.R_depletion else 0.0
         P_dot = 0
         C_dot = self.b_c * C ** self.xi * P_c ** self.pi \
-                * K_c ** self.kappa_c - C * self.d_c if self.learning else 0.
+            * K_c ** self.kappa_c - C * self.d_c if self.learning else 0.
         investment_clean_dot = \
             self.investment_decisions \
             * self.s * self.income - self.investment_clean * self.d_k
@@ -831,6 +859,7 @@ class DivestmentCore:
                                  list(investment_dirty_dot),
                                  [P_dot, G_dot, C_dot]]),
             dtype='float')
+
         return x1
 
     def update_economy(self, update_time):
@@ -859,6 +888,7 @@ class DivestmentCore:
             [self.P, self.G, self.C]]), dtype='float')
 
         # integrate the system unless it crashes.
+
         if not np.isnan(self.R):
             # with stdout_redirected():
             [x0, x1] = odeint(self.economy_dot_leontief, x0, dt, mxhnil=1)
@@ -877,10 +907,12 @@ class DivestmentCore:
         # memorize return rates for trend estimation.
         # this is only necessary for heuristic decision making.
         # for imitation only, this can be switched off.
+
         if self.heuristic_decision_making:
             self.r_cs.append(self.r_c)
             self.r_ds.append(self.r_d)
             self.t_rs.append(self.t)
+
             if len(self.r_cs) > self.N_mem:
                 self.r_cs.pop(0)
                 self.r_ds.pop(0)
@@ -889,8 +921,10 @@ class DivestmentCore:
             # estimate trends in capital returns
             self.r_c_dot = linregress(self.t_rs, self.r_cs)[0]
             self.r_d_dot = linregress(self.t_rs, self.r_ds)[0]
+
             if np.isnan(self.r_c_dot):
                 self.r_c_dot = 0
+
             if np.isnan(self.r_d_dot):
                 self.r_d_dot = 0
 
@@ -903,9 +937,11 @@ class DivestmentCore:
         self.Y_d = self.b_d * self.K_d ** self.kappa_d * self.P_d ** self.pi
 
         # output economic data if t is in time window
+
         if self.trj_output_window[0] - self.tau < self.t < self.trj_output_window[1] + self.tau:
             if self.e_trajectory_output:
                 self.update_economic_trajectory()
+
             if self.m_trajectory_output:
                 self.update_mean_trajectory()
                 self.update_aggregate_trajectory()
@@ -917,6 +953,7 @@ class DivestmentCore:
                          return_counts=True)
         self.opinion_state = [n[list(i).index(j)] if j in i
                               else 0
+
                               for j in range(len(self.possible_cue_orders))]
         i = 0
         i_max = 1000 * self.n
@@ -944,6 +981,7 @@ class DivestmentCore:
             # with prob. eps*(1-phi) it is a noise imitation event:
             # and the household choses its strategy uniformly from
             # the available strategies.
+
             if rdn < self.eps * (1 - self.phi) and self.imitation:
                 # save old opinion
                 old_opinion = self.opinions[candidate]
@@ -955,22 +993,26 @@ class DivestmentCore:
                 #     self.save_switch(candidate, old_opinion)
                 # and count event to determine rates - if it changes macro
                 # properties.
+
                 if old_opinion != new_opinion:
                     if new_opinion == 1:
                         self.noise_imitation_dc_events += 1. / self.n
                     else:
                         self.noise_imitation_cd_events += 1. / self.n
                 candidate = -1
+
                 break
 
             # with prob. p = eps*phi it is a noise adaptation event
             # and the household rewires to a random new neighbor.
             elif rdn > 1. - self.eps * self.phi and len(neighbors) > 0:
                 unconnected = np.zeros(self.n, dtype=int)
+
                 for i in range(self.n):
                     if i not in neighbors:
                         unconnected[i] = 1
                 unconnected = unconnected.nonzero()[0]
+
                 if len(unconnected) > 0:
                     old_neighbor = np.random.choice(neighbors)
                     new_neighbor = np.random.choice(unconnected)
@@ -981,20 +1023,24 @@ class DivestmentCore:
                     # count event, if it changed macro properties
                     old_opinion = self.opinions[old_neighbor]
                     new_opinion = self.opinions[new_neighbor]
+
                     if new_opinion != old_opinion:
                         self.noise_adaptation_events += 1./self.n
                 candidate = -1
+
                 break
 
             # load neighborhood of household i
             neighbors = self.neighbors[:, candidate].nonzero()[0]
 
             # if candidate has neighbors, chose one at random.
+
             if len(neighbors) > 0:
                 neighbor = np.random.choice(neighbors)
 
                 # check if preferences of candidate and random
                 # neighbor differ
+
                 if self.opinions[candidate] == self.opinions[neighbor]:
                     # if candidate and neighbor have same preferences, they
                     # not suitable for update. (RETRY)
@@ -1002,15 +1048,19 @@ class DivestmentCore:
 
             if neighbor < self.n:
                 # update candidate found (GOD)
+
                 break
             else:
                 i += 1
+
                 if i % self.n == 0:
                     if self.detect_consensus_state(self.opinions):
                         # no update candidate found because of
                         # consensus state (GOD)
                         candidate = -1
+
                         break
+
             if i >= i_max:
                 # no update candidate and no consensus found (BAD)
                 candidate = -2
@@ -1024,12 +1074,15 @@ class DivestmentCore:
         opinion = self.opinions
 
         # adapt or rewire?
+
         if (self.phi == 1 or (self.phi != 1
                               and np.random.uniform() < self.phi)):
             # rewire:
+
             for i in range(self.n):
                 # find potential new neighbors:
                 # campaigners rewire to everybody
+
                 if (self.campaign is True and
                             opinion[candidate] == len(self.possible_cue_orders)):
                     same_unconnected[i] = 1
@@ -1039,6 +1092,7 @@ class DivestmentCore:
                     if opinion[i] == opinion[candidate] and i not in neighbors and i != candidate:
                         same_unconnected[i] = 1
             same_unconnected = same_unconnected.nonzero()[0]
+
             if len(same_unconnected) > 0:
                 # if there are potential new neighbors, connect to one of them:
                 # 1) select neighbor
@@ -1055,6 +1109,7 @@ class DivestmentCore:
             # compare fitness
             Wi = self.fitness(candidate)
             Wj = self.fitness(neighbor)
+
             if self.interaction == 0:
                 p_imitate = .5 * (np.tanh(Wj - Wi) + 1)
             elif self.interaction == 1:
@@ -1066,6 +1121,7 @@ class DivestmentCore:
             else:
                 raise ValueError('interaction not defined, must be in [0, 1, 2] but is {}'.format(self.interaction))
             # and determine wheter imitation happens:
+
             if ((self.campaign is False or opinion[candidate] != (len(self.possible_cue_orders) - 1))
                     and (np.random.uniform() < p_imitate)
                     and self.imitation):
@@ -1073,6 +1129,7 @@ class DivestmentCore:
                 # copy opinion
                 self.opinions[candidate] = self.opinions[neighbor]
                 # count event:
+
                 if self.opinions[candidate] == 1:
                     self.imitation_dc_events += 1. / self.n
                 else:
@@ -1081,6 +1138,7 @@ class DivestmentCore:
                 imitation_happened = False
 
             # and if required, save imitation data.
+
             if self.switchlist_output:
 
                 direction = self.opinions[neighbor]
@@ -1091,6 +1149,7 @@ class DivestmentCore:
                                  income_1=Wi,
                                  income_2=Wj,
                                  event=imitation_happened)
+
         return 0
 
     def update_decision_making(self):
@@ -1105,12 +1164,16 @@ class DivestmentCore:
         for i in range(self.n):
             for cue in self.possible_cue_orders[self.opinions[i]]:
                 decision = self.cues[cue](i)
+
                 if decision != -1:
                     self.investment_decisions[i] = decision
+
                     break
+
             if decision == -1:
                 self.investment_decisions[i] = np.random.randint(2)
                 decision = self.investment_decisions[i]
+
             if decision == 0:
                 self.dirty_opinions[self.opinions[i]] += 1. / self.n
             elif decision == 1:
@@ -1130,6 +1193,7 @@ class DivestmentCore:
         self.consensus = all(len(np.unique(opinions[c])) == 1
                              for c in ((cc == i).nonzero()[0]
                                        for i in np.unique(cc)))
+
         if self.eps == 0:
             if self.consensus and self.convergence_state == -1:
                 self.convergence_state = np.mean(opinions)
@@ -1461,6 +1525,7 @@ class DivestmentCore:
         event: bool
             indicates if imitation actually happened
         """
+
         if self.switchlist is None:
             self.init_switchlist()
 
@@ -1481,6 +1546,7 @@ class DivestmentCore:
 
     def update_event_rate_data(self):
         """write rate data to trajectory"""
+
         if self.rate_data is None:
             self.rate_data = [['time', 'E_tot', 'E_i_cd', 'E_i_dc', 'E_in_cd',
                                'E_in_dc', 'E_a', 'E_an']]
@@ -1509,12 +1575,16 @@ class DivestmentCore:
         -------
         Dataframe of unified per capita variables
         """
+
         if self.e_trajectory is False:
             print('calculating the economic trajectory is a prerequisite.'
                   'please rerun the model with e_trajectory set to true.')
+
             return -1
+
         if self.m_trajectory is False:
             print('needs mean trajectory to be enabled.')
+
             return -1
         mdf = self.get_mean_trajectory()
 
@@ -1592,6 +1662,7 @@ if __name__ == '__main__':
     colors = colors + colors
 
     opinions = []
+
     for i, n in enumerate(nopinions):
         opinions.append(np.full((n), i, dtype='I'))
     opinions = [item for sublist in opinions for item in sublist]
@@ -1603,6 +1674,7 @@ if __name__ == '__main__':
 
     while True:
         net = nx.erdos_renyi_graph(N, p)
+
         if len(list(net)) > 1:
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()

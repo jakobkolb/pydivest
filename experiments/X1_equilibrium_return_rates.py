@@ -34,10 +34,11 @@ from pymofa.experiment_handling \
 from pydivest.divestvisuals.data_visualization \
     import plot_amsterdam, plot_trajectories
 from pydivest.micro_model import divestmentcore as model
-
+from pydivest.default_params import ExperimentDefaults
 
 def load(*args, **kwargs):
     return np.load(*args, allow_pickle=True, **kwargs)
+
 
 
 def RUN_FUNC(eps, phi, ffh, test, filename):
@@ -79,24 +80,25 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
         possible_opinions = [[1], [0]]
 
     # Parameters:
+    input_params = ExperimentDefaults.input_params
+    input_params['possible_cue_orders'] = possible_opinions
+    input_params['phi'] = phi
+    input_params['eps'] = eps
 
-    input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
-                    'eps': eps, 'b_d': 1.5, 'e': 100.,
-                    'b_r0': 0.1 ** 2 * 100.,  # alpha^2 * e
-                    'possible_cue_orders': possible_opinions,
-                    'xi': 1. / 8., 'beta': 0.06,
-                    'L': 100., 'C': 100., 'G_0': 1600.,
-                    'campaign': False, 'learning': True,
-                    'test': False, 'R_depletion': False}
+#   input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
+#                   'eps': eps, 'b_d': 1.5, 'e': 100.,
+#                   'b_r0': 0.1 ** 2 * 100.,  # alpha^2 * e
+#                   'possible_cue_orders': possible_opinions,
+#                   'xi': 1. / 8., 'beta': 0.06,
+#                   'L': 100., 'C': 100., 'G_0': 1600.,
+#                   'campaign': False, 'learning': True,
+#                   'test': False, 'R_depletion': False}
 
     # building initial conditions
 
     # network:
     n = 100
     k = 10
-    if test:
-        n = 30
-        k = 3
 
     p = float(k) / n
     while True:
@@ -115,7 +117,7 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     init_conditions = (adjacency_matrix, opinions,
                        clean_investment, dirty_investment)
 
-    t_1 = 400 if not test else 4
+    t_1 = 400 if not test else 40
 
     # initializing the model
     m = model.DivestmentCore(*init_conditions, **input_params)
@@ -133,6 +135,9 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
 
     # store data in case of successful run
     if exit_status in [0, 1] or test:
+        print(exit_status)
+        if test:
+            exit_status = 1
         res["micro_trajectory"] = \
             even_time_series_spacing(m.get_economic_trajectory(),
                                      401, 0., t_max)
@@ -146,7 +151,7 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
         load(filename)
     except IOError:
         print("writing results failed for " + filename)
-    print(exit_status)
+
     return exit_status
 
 
@@ -306,7 +311,7 @@ def run_experiment(argv):
         print('cluster mode')
         sys.stdout.flush()
 
-        sample_size = 100 if not test else 2
+        sample_size = 100 if not test else 5
 
         handle = experiment_handling(sample_size, param_combs, index,
                                      save_path_raw, save_path_res)
