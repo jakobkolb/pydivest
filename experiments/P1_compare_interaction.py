@@ -8,38 +8,37 @@ Compare Trajectory from micro simulation for new and old interaction between hou
 # Contact: kolb@pik-potsdam.de
 # License: GNU AGPL Version 3
 
-
 import getpass
 import itertools as it
 import os
 import sys
+from pathlib import Path
 
 import networkx as nx
 import numpy as np
 import pandas as pd
-from pathlib import Path
-from pymofa.experiment_handling import experiment_handling, \
-even_time_series_spacing
-
-from pydivest.micro_model.divestmentcore import DivestmentCore as micro
-from pydivest.macro_model.integrate_equations_aggregate \
-    import IntegrateEquationsAggregate as aggregate
+from pymofa.experiment_handling import (even_time_series_spacing,
+                                        experiment_handling)
 
 from pydivest.default_params import ExperimentDefaults
+from pydivest.macro_model.integrate_equations_aggregate import \
+    IntegrateEquationsAggregate as aggregate
+from pydivest.micro_model.divestmentcore import DivestmentCore as micro
 
 
 def RUN_FUNC(interaction, phi, b_d, model, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
-    Output is saved in pickled dictionaries including the 
-    initial values, parameters and convergence state and time 
+    Output is saved in pickled dictionaries including the
+    initial values, parameters and convergence state and time
     for each run.
 
     Parameters:
     -----------
     interaction: int
-        determines the functional form of the imitation probability between households.
+        determines the functional form of the imitation probability
+        between households.
 
     b_d : float > 0
         the solow residual in the dirty sector
@@ -74,8 +73,10 @@ def RUN_FUNC(interaction, phi, b_d, model, test):
 
     # building initial conditions
     p = float(k) / N
+
     while True:
         net = nx.erdos_renyi_graph(N, p)
+
         if len(list(net)) > 1:
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
@@ -104,10 +105,13 @@ def RUN_FUNC(interaction, phi, b_d, model, test):
     exit_status = m.run(t_max=t_max)
 
     # store data in case of successful run
+
     if exit_status in [0, 1]:
         # interpolate m_trajectory to get evenly spaced time series.
-        df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0., t_max)
-        df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0., t_max)
+        df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0.,
+                                       t_max)
+        df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0.,
+                                       t_max)
 
         for c in df1.columns:
             if c in df2.columns:
@@ -125,6 +129,7 @@ def RUN_FUNC(interaction, phi, b_d, model, test):
 # get sub experiment and mode from command line
 
 # experiment, mode, test
+
 
 def run_experiment(argv):
     """
@@ -157,21 +162,23 @@ def run_experiment(argv):
     """
 
     # switch testing mode
+
     if len(argv) > 1:
         test = bool(int(argv[1]))
     else:
         test = True
     # switch sub_experiment mode
+
     if len(argv) > 2:
         mode = int(argv[2])
     else:
         mode = 0
-
     """
     set input/output paths
     """
 
     respath = os.path.dirname(os.path.realpath(__file__)) + "/../output_data"
+
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":
@@ -187,11 +194,10 @@ def run_experiment(argv):
 
     save_path_raw = \
         "{}/{}{}/" \
-            .format(tmppath, test_folder, folder)
+        .format(tmppath, test_folder, folder)
     save_path_res = \
         "{}/{}{}/" \
-            .format(respath, test_folder, folder)
-
+        .format(respath, test_folder, folder)
     """
     create parameter combinations and index
     """
@@ -206,7 +212,6 @@ def run_experiment(argv):
         param_combs = list(it.product(interaction, phi, b_d, model, [test]))
     else:
         param_combs = list(it.product(interactions, phis, b_ds, model, [test]))
-
     """
     run computation and/or post processing and/or plotting
     """
@@ -219,7 +224,7 @@ def run_experiment(argv):
         params = list(param_combs[0])
         params[-1] = True
         run_func_output = RUN_FUNC(*params)[1]
-        with open(save_path_raw+'rfof.pkl', 'wb') as dmp:
+        with open(save_path_raw + 'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
     sample_size = 100 if not test else 30
@@ -229,8 +234,7 @@ def run_experiment(argv):
                                          runfunc_output=run_func_output,
                                          sample_size=sample_size,
                                          parameter_combinations=param_combs,
-                                         path_raw=save_path_raw
-                                         )
+                                         path_raw=save_path_raw)
 
     # define eva functions
 
@@ -238,7 +242,8 @@ def run_experiment(argv):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = 'b_d={} & phi={} & interaction={} & model={} & test={}'.format(b_d, phi, interaction, model, test)
+        query = 'b_d={} & phi={} & interaction={} & model={} & test={}'.format(
+            b_d, phi, interaction, model, test)
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
@@ -249,7 +254,8 @@ def run_experiment(argv):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = 'b_d={} & phi={} & interaction={} & model={} & test={}'.format(b_d, phi, interaction, model, test)
+        query = 'b_d={} & phi={} & interaction={} & model={} & test={}'.format(
+            b_d, phi, interaction, model, test)
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             trj = store.select("dat", where=query)
@@ -260,27 +266,28 @@ def run_experiment(argv):
                                        runfunc_output=run_func_output,
                                        sample_size=1,
                                        parameter_combinations=param_combs,
-                                       path_raw=save_path_res + '/mean.h5'
-                                       )
+                                       path_raw=save_path_res + '/mean.h5')
     eva_2_handle = experiment_handling(run_func=std,
                                        runfunc_output=run_func_output,
                                        sample_size=1,
                                        parameter_combinations=param_combs,
-                                       path_raw=save_path_res + '/std.h5'
-                                       )
+                                       path_raw=save_path_res + '/std.h5')
 
     if mode == 0:
         # computation, parameters split between threads
         compute_handle.compute()
+
         return 1
     elif mode == 1:
         # post processing (all parameter combinations on one thread)
         print('post processing')
         eva_1_handle.compute()
         eva_2_handle.compute()
+
         return 1
     else:
         # in case nothing happened:
+
         return 0
 
 
