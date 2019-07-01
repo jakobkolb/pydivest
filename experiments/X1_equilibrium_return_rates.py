@@ -17,31 +17,32 @@ constant.
 # Contact: kolb@pik-potsdam.de
 # License: GNU AGPL Version 3
 
-import pickle as cp
+import copy
 import getpass
 import itertools as it
+import os
+import pickle as cp
 import sys
 import time
-import os
-import copy
+from pathlib import Path
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 
-from pymofa.experiment_handling \
-    import experiment_handling, even_time_series_spacing
-from pydivest.divestvisuals.data_visualization \
-    import plot_amsterdam, plot_trajectories
-from pydivest.micro_model import divestmentcore as model
 from pydivest.default_params import ExperimentDefaults
+from pydivest.divestvisuals.data_visualization import (plot_amsterdam,
+                                                       plot_trajectories)
+from pydivest.micro_model import divestmentcore as model
+from pymofa.experiment_handling import (even_time_series_spacing,
+                                        experiment_handling)
+
 
 def load(*args, **kwargs):
     return np.load(*args, allow_pickle=True, **kwargs)
 
 
-
-def RUN_FUNC(eps, phi, ffh, test, filename):
+def RUN_FUNC(eps, phi, ffh, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -68,14 +69,16 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     # Make different types of decision makers. Cues are
 
     if ffh:
-        possible_opinions = [[2, 3],  # short term investor
-                             [3, 2],  # long term investor
-                             [4, 2],  # short term herder
-                             [4, 3],  # trending herder
-                             [4, 1],  # green conformer
-                             [4, 0],  # dirty conformer
-                             [1],  # gutmensch
-                             [0]]  # redneck
+        possible_opinions = [
+            [2, 3],  # short term investor
+            [3, 2],  # long term investor
+            [4, 2],  # short term herder
+            [4, 3],  # trending herder
+            [4, 1],  # green conformer
+            [4, 0],  # dirty conformer
+            [1],  # gutmensch
+            [0]
+        ]  # redneck
     else:
         possible_opinions = [[1], [0]]
 
@@ -85,15 +88,6 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     input_params['phi'] = phi
     input_params['eps'] = eps
 
-#   input_params = {'b_c': 1., 'phi': phi, 'tau': 1.,
-#                   'eps': eps, 'b_d': 1.5, 'e': 100.,
-#                   'b_r0': 0.1 ** 2 * 100.,  # alpha^2 * e
-#                   'possible_cue_orders': possible_opinions,
-#                   'xi': 1. / 8., 'beta': 0.06,
-#                   'L': 100., 'C': 100., 'G_0': 1600.,
-#                   'campaign': False, 'learning': True,
-#                   'test': False, 'R_depletion': False}
-
     # building initial conditions
 
     # network:
@@ -101,21 +95,22 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     k = 10
 
     p = float(k) / n
+
     while True:
         net = nx.erdos_renyi_graph(n, p)
+
         if len(list(net)) > 1:
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
 
     # opinions and investment
 
-    opinions = [np.random.randint(0, len(possible_opinions))
-                for x in range(n)]
+    opinions = [np.random.randint(0, len(possible_opinions)) for x in range(n)]
     clean_investment = np.ones(n) * 50. / float(n)
     dirty_investment = np.ones(n) * 50. / float(n)
 
-    init_conditions = (adjacency_matrix, opinions,
-                       clean_investment, dirty_investment)
+    init_conditions = (adjacency_matrix, opinions, clean_investment,
+                       dirty_investment)
 
     t_1 = 400 if not test else 40
 
@@ -131,28 +126,34 @@ def RUN_FUNC(eps, phi, ffh, test, filename):
     exit_status = m.run(t_max=t_max)
 
     res = {}
-    res["runtime"] = time.clock() - t_start
+    res["runtime"] = [time.clock() - t_start]
 
     # store data in case of successful run
+
     if exit_status in [0, 1] or test:
-        print(exit_status)
+
         if test:
             exit_status = 1
-        res["micro_trajectory"] = \
-            even_time_series_spacing(m.get_economic_trajectory(),
-                                     401, 0., t_max)
-        res["convergence_state"] = m.convergence_state
-        res["convergence_time"] = m.convergence_time
+        df1 = even_time_series_spacing(m.get_economic_trajectory(), 401, 0.,
+                                       t_max)
+        df1.index.name = 'tstep'
+        res["convergence_state"] = [m.convergence_state]
+        res["convergence_time"] = [m.convergence_time]
+
+        df2 = pd.DataFrame.from_dict(res)
+        df2.index.name = 'i'
 
     # save data
-    with open(filename, 'wb') as dumpfile:
-        cp.dump(res, dumpfile)
-    try:
-        load(filename)
-    except IOError:
-        print("writing results failed for " + filename)
 
-    return exit_status
+
+#   with open(filename, 'wb') as dumpfile:
+#       cp.dump(res, dumpfile)
+#   try:
+#       load(filename)
+#   except IOError:
+#       print("writing results failed for " + filename)
+
+    return exit_status, [df1, df2]
 
 
 def run_experiment(argv):
@@ -180,32 +181,34 @@ def run_experiment(argv):
         some return value to show whether sub_experiment succeeded
         return 1 if sucessfull.
     """
-
     """
     Get switches from input line in order of
     [test, mode, ffh on/of, equi/transition]
     """
 
     # switch testing mode
+
     if len(argv) > 1:
         test = bool(int(argv[1]))
     else:
-        test = False
+        test = True
     # switch sub_experiment mode
+
     if len(argv) > 2:
         mode = int(argv[2])
     else:
         mode = 0
     # switch decision making
+
     if len(argv) > 3:
         ffh = bool(int(argv[3]))
     else:
         ffh = True
-
     """
     set input/output paths
     """
-    respath = os.path.dirname(os.path.realpath(__file__)) + "/divestdata"
+    respath = os.path.dirname(os.path.realpath(__file__)) + "/../output_data"
+
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":
@@ -231,24 +234,25 @@ def run_experiment(argv):
         .format(respath, test_folder, folder, sub_experiment)
 
     print(save_path_raw)
-
     """
     create parameter combinations and index
     """
 
-    epss = [round(x, 5) for x in list(np.linspace(0.0, 0.1, 11))]
+    epss = [round(x, 5) for x in list(np.linspace(0.0, 0.05, 11))]
     phis = [round(x, 5) for x in list(np.linspace(0., 1., 11))]
     eps, phi = [0., 0.5], [.7, .9]
 
     if ffh:
-        possible_opinions = [[2, 3],  # short term investor
-                             [3, 2],  # long term investor
-                             [4, 2],  # short term herder
-                             [4, 3],  # trending herder
-                             [4, 1],  # green conformer
-                             [4, 0],  # dirty conformer
-                             [1],  # gutmensch
-                             [0]]  # redneck
+        possible_opinions = [
+            [2, 3],  # short term investor
+            [3, 2],  # long term investor
+            [4, 2],  # short term herder
+            [4, 3],  # trending herder
+            [4, 1],  # green conformer
+            [4, 0],  # dirty conformer
+            [1],  # gutmensch
+            [0]
+        ]  # redneck
     else:
         possible_opinions = [[1], [0]]
 
@@ -260,7 +264,6 @@ def run_experiment(argv):
         param_combs = list(it.product(epss, phis, [ffh], [test]))
 
     index = {0: "eps", 1: "phi"}
-
     """
     create names and dicts of callables for post processing
     """
@@ -268,60 +271,144 @@ def run_experiment(argv):
     name = 'b_c_scan_' + sub_experiment + '_trajectory'
 
     name1 = name + '_trajectory'
-    eva1 = {"mean_trajectory":
-            lambda fnames: pd.concat([load(f)["micro_trajectory"]
-                                      for f in fnames]).groupby(
-                    level=0).mean(),
-            "sem_trajectory":
-            lambda fnames: pd.concat([load(f)["micro_trajectory"]
-                                      for f in fnames]).groupby(
-                    level=0).std()
-            }
+    eva1 = {
+        "mean_trajectory":
+        lambda fnames: pd.concat([load(f)["micro_trajectory"] for f in fnames]
+                                 ).groupby(level=0).mean(),
+        "sem_trajectory":
+        lambda fnames: pd.concat([load(f)["micro_trajectory"] for f in fnames])
+        .groupby(level=0).std()
+    }
     name2 = name + '_convergence'
-    eva2 = {'times_mean':
-            lambda fnames: np.nanmean([load(f)["convergence_time"]
-                                       for f in fnames]),
-            'states_mean':
-            lambda fnames: np.nanmean([load(f)["convergence_state"]
-                                       for f in fnames]),
-            'times_std':
-            lambda fnames: np.std([load(f)["convergence_time"]
-                                   for f in fnames]),
-            'states_std':
-            lambda fnames: np.std([load(f)["convergence_state"]
-                                   for f in fnames])
-            }
+    eva2 = {
+        'times_mean':
+        lambda fnames: np.nanmean(
+            [load(f)["convergence_time"] for f in fnames]),
+        'states_mean':
+        lambda fnames: np.nanmean(
+            [load(f)["convergence_state"] for f in fnames]),
+        'times_std':
+        lambda fnames: np.std([load(f)["convergence_time"] for f in fnames]),
+        'states_std':
+        lambda fnames: np.std([load(f)["convergence_state"] for f in fnames])
+    }
     name3 = name + '_convergence_times'
-    cf3 = {'times':
-           lambda fnames: pd.DataFrame(data=[load(f)["convergence_time"]
-                                             for f in fnames]).sortlevel(
-                   level=0),
-           'states':
-           lambda fnames: pd.DataFrame(
-                   data=[load(f)["convergence_state"]
-                         for f in fnames]).sortlevel(level=0)
-           }
-
+    cf3 = {
+        'times':
+        lambda fnames: pd.DataFrame(data=[
+            load(f)["convergence_time"] for f in fnames
+        ]).sortlevel(level=0),
+        'states':
+        lambda fnames: pd.DataFrame(data=[
+            load(f)["convergence_state"] for f in fnames
+        ]).sortlevel(level=0)
+    }
     """
     run computation and/or post processing and/or plotting
     """
 
+    # Create dummy runfunc output to pass its shape to experiment handle
+
+    if not Path(save_path_raw).exists():
+        os.makedirs(save_path_raw, exist_ok=True)
+    try:
+        run_func_output = pd.read_pickle(save_path_raw + 'rfof.pkl')
+    except:
+        params = list(param_combs[0])
+        params[-1] = True
+        run_func_output = RUN_FUNC(*params)[1]
+        with open(save_path_raw + 'rfof.pkl', 'wb') as dmp:
+            pd.to_pickle(run_func_output, dmp)
+
+    # define computation handle
+
+    sample_size = 100 if not test else 5
+
+    compute_handle = experiment_handling(run_func=RUN_FUNC,
+                                         runfunc_output=run_func_output,
+                                         sample_size=sample_size,
+                                         parameter_combinations=param_combs,
+                                         path_raw=save_path_raw)
+
+    # define post processing functions
+
+    def mean(eps, phi, ffh, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = 'eps={} & phi={} & ffh={} & test={}'.format(
+            eps, phi, ffh, test)
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat_0", where=query)
+
+        return 1, trj.groupby(level='tstep').mean()
+
+    def std(eps, phi, ffh, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = 'eps={} & phi={} & ffh={} & test={}'.format(
+            eps, phi, ffh, test)
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            trj = store.select("dat_0", where=query)
+
+        return 1, trj.groupby(level='tstep').std()
+
+    def collect(eps, phi, ffh, test):
+
+        from pymofa.safehdfstore import SafeHDFStore
+
+        query = 'eps={} & phi={} & ffh={} & test={}'.format(
+            eps, phi, ffh, test)
+
+        with SafeHDFStore(compute_handle.path_raw) as store:
+            data = store.select("dat_1", where=query)
+        
+        # drop index levels that arent compatible with shape of
+        # saved run func output
+        data.index = data.index.droplevel(['eps', 'phi', 'ffh', 'test',
+                                           'sample'])
+
+        # add dummy run func output, since pymofa is unable to handle it
+        # otherwise
+        return 1, [run_func_output[0], data]
+
+    eva_1_handle = experiment_handling(run_func=mean,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=param_combs,
+                                       path_raw=save_path_res + '/mean_trj.h5')
+    eva_2_handle = experiment_handling(run_func=std,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=param_combs,
+                                       path_raw=save_path_res + '/std_trj.h5')
+    eva_3_handle = experiment_handling(run_func=collect,
+                                       runfunc_output=run_func_output,
+                                       sample_size=1,
+                                       parameter_combinations=param_combs,
+                                       path_raw=save_path_res + '/collected.h5')
+
     # cluster mode: computation and post processing
+
     if mode == 0:
         print('cluster mode')
         sys.stdout.flush()
 
-        sample_size = 100 if not test else 5
+        print('computing')
+        compute_handle.compute()
 
-        handle = experiment_handling(sample_size, param_combs, index,
-                                     save_path_raw, save_path_res)
-        handle.compute(RUN_FUNC)
-        handle.resave(eva1, name1)
-        handle.resave(eva2, name2)
+        print('post processing')
+        eva_1_handle.compute()
+        eva_2_handle.compute()
+        eva_3_handle.compute()
 
         return 1
 
     # local mode: plotting only
+
     if mode == 1:
         print('plot mode')
         sys.stdout.flush()
