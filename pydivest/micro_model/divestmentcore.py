@@ -762,19 +762,20 @@ class DivestmentCore:
             assert G >= 0, 'negative resource'
             assert C >= 0, 'negative knowledge'
         except AssertionError:
-            _, _, tb = sys.exc_info()
-            traceback.print_tb(tb)  # Fixed format
-            tb_info = traceback.extract_tb(tb)
-            filename, line, func, text = tb_info[-1]
-            print(f'An error occurred on line {line} in statement {text} with')
-            print(f'K_c = {K_c}, K_d = {K_d}, G = {G}, C = {C}')
-            print('the trajectory tail:')
-            trj = self.get_economic_trajectory()
-            print(trj.tail(10))
-            print('and last stats from odeint')
-            print(self.db_out)
-            print('model configuration is:')
-            print(dir(self))
+            if self.debug is True:
+                _, _, tb = sys.exc_info()
+                traceback.print_tb(tb)  # Fixed format
+                tb_info = traceback.extract_tb(tb)
+                filename, line, func, text = tb_info[-1]
+                print(f'An error occurred on line {line} in statement {text} with')
+                print(f'K_c = {K_c}, K_d = {K_d}, G = {G}, C = {C}')
+                print('the trajectory tail:')
+                trj = self.get_economic_trajectory()
+                print(trj.tail(10))
+                print('and last stats from odeint')
+                print(self.db_out)
+                print('model configuration is:')
+                print(dir(self))
 
             if G < 0:
                 G = 0
