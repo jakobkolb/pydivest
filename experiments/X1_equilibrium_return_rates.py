@@ -130,18 +130,16 @@ def RUN_FUNC(eps, phi, ffh, test):
 
     # store data in case of successful run
 
-    if exit_status in [0, 1] or test:
+    if test:
+        exit_status = 1
+    df1 = even_time_series_spacing(m.get_economic_trajectory(), 401, 0.,
+                                   t_max)
+    df1.index.name = 'tstep'
+    res["convergence_state"] = [m.convergence_state]
+    res["convergence_time"] = [m.convergence_time]
 
-        if test:
-            exit_status = 1
-        df1 = even_time_series_spacing(m.get_economic_trajectory(), 401, 0.,
-                                       t_max)
-        df1.index.name = 'tstep'
-        res["convergence_state"] = [m.convergence_state]
-        res["convergence_time"] = [m.convergence_time]
-
-        df2 = pd.DataFrame.from_dict(res)
-        df2.index.name = 'i'
+    df2 = pd.DataFrame.from_dict(res)
+    df2.index.name = 'i'
 
     # save data
 
