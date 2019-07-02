@@ -6,7 +6,7 @@
 #SBATCH --output=%A_X1_%a_.out
 #SBATCH --error=%A_X1_%a_.err
 #SBATCH --time=0-24
-#SBATCH --nodes=1
+#SBATCH --nodes=3
 #SBATCH --tasks-per-node=16
 
 module load hpc/2015 anaconda/5.0.0_py3
