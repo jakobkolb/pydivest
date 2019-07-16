@@ -24,7 +24,7 @@ class DivestmentCore:
                  possible_cue_orders=None,
                  investment_decisions=None,
                  tau=0.8, phi=.7, eps=0.05,
-                 L=100., G_0=3000, C=1.,
+                 L=1., G_0=3000, C=1.,
                  b_c=1., b_d=1.5, s=0.23, d_c=0.06, d_k=0.06,
                  b_r0=1., e=10,
                  xi=1./8., pi=1./2., kappa_c=1./2., kappa_d=1./2.,
