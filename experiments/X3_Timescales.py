@@ -1,6 +1,6 @@
 """
 This experiment is designed to test different timescales in the
-model againts each other. Nameley the timescales for
+model against each other. Namely the timescales for
 1) capital accumulation in the dirty sector,
     t_d = 1/(d_c*(1-kappa_c))
 2) depletion of the fossil resource and
@@ -8,7 +8,7 @@ model againts each other. Nameley the timescales for
 3) opinion spreading in the adaptive voter model
    given one opinion dominates the other.
     t_a = tau*(1-phi)
-for this purpose, t_d is fixed by standard values for 
+for this purpose, t_d is fixed by standard values for
 d_c=0.06 and kappa_c=0.5, and the 'consensus time' t_a
 is varied in units of the capital accumulation time t_d.
 This sets tau as phi is independently varied between 0 and 1.
@@ -20,8 +20,8 @@ all other parameters are assumed to be fixed.
 
 A fourth quantity of interest is the ratio alpha = b_R/e<0
 that the share of the initial resource that can be economically
-harvested. This ratio is set to different values in different 
-experiments to examine its qualitative role in the resource 
+harvested. This ratio is set to different values in different
+experiments to examine its qualitative role in the resource
 depletion process.
 
 """
@@ -32,33 +32,37 @@ depletion process.
 # Contact: kolb@pik-potsdam.de
 # License: GNU AGPL Version 3
 
-
-import pickle as cp
 import getpass
 import glob
 import itertools as it
+import os
+import pickle as cp
 import sys
 import time
 import types
+from pathlib import Path
 
 import networkx as nx
 import numpy as np
 import pandas as pd
 import scipy.stats as st
 
-from pymofa.experiment_handling \
-    import experiment_handling, even_time_series_spacing
+from pydivest.default_params import ExperimentDefaults, ExperimentRoutines
+from pydivest.divestvisuals.data_visualization import (plot_obs_grid,
+                                                       plot_tau_phi,
+                                                       tau_phi_final)
 
-from pydivest.divestvisuals.data_visualization \
-    import plot_obs_grid, plot_tau_phi, tau_phi_final
 from pydivest.micro_model import divestmentcore as model
+
+from pymofa.experiment_handling import (even_time_series_spacing,
+                                        experiment_handling)
 
 
 def load(*args, **kwargs):
     return np.load(*args, allow_pickle=True, **kwargs)
 
 
-def RUN_FUNC(t_a, phi, eps, t_G, alpha, test, filename):
+def RUN_FUNC(t_a, phi, eps, t_G, alpha, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -98,44 +102,31 @@ def RUN_FUNC(t_a, phi, eps, t_G, alpha, test, filename):
     filename: string
         filename for the results of the run
     """
-    assert isinstance(test, int), 'test must be int, is {!r}'.format(test)
-    assert alpha<1, 'alpha must be 0<alpha<1. is alpha = {}'.format(alpha)
 
-    tau, N, p, P, b_d, b_R, e, d_c, s = .8, 100, 0.125, 500, 1.2, 1., 100, 0.06, 0.23
+    # setting model parameters
 
-    # capital accumulation of dirty capital (t_d = 1/(d_c*(1-kappa_c)) with kappa_c = 0.5 :
-    t_d = 1/(2.*d_c)
+    defaults = ExperimentDefaults(phi=phi, eps=eps, test=test)
 
-    # Rescale input times to capital accumulation time:
-    t_G = t_G*t_d
-    t_a = t_a*t_d
+    b_r0 = alpha**2 * defaults.input_params['e']
+    defaults.input_params['b_r0'] = b_r0
 
-    # set tau according to consensus time in adaptive voter model if one opinion dominates:
-    # t_a = tau*(1-phi)
-    tau = t_a/(1-phi)
+    defaults.calculate_timing(t_g=t_G, t_a=t_a)
 
-    # set G_0 according to resource depletion time:
-    # t_G = G_0*e*d_c/(L*s*b_d**2)
-    G_0 = t_G*P*s*b_d**2/(e*d_c)
+    input_params = defaults.input_params
 
-    # set b_R0 according to alpha and e:
-    # alpha = (b_R0/e)**(1/2)
-    b_R0 = alpha**2 * e
+    # building initial conditions for social network
 
-    # input parameters
-
-    input_params = {'tau':tau, 'phi':phi, 'eps':eps, \
-            'L':P, 'b_d':b_d, 'b_R0':b_R0, 'G_0':G_0, \
-            'e':e, 'd_c':d_c, 'test':bool(1)}
-
-    # building initial conditions
+    N = 100  # use 100 households
+    p = .125  # link probability for erdos renyi
 
     while True:
         net = nx.erdos_renyi_graph(N, p)
+
         if len(list(net)) > 1:
             break
+
     adjacency_matrix = nx.adj_matrix(net).toarray()
-    investment_decisions = np.random.randint(low=0, high=2, size=N)
+    investment_decisions = np.random.randint(low=0, high=2, size=100)
 
     init_conditions = (adjacency_matrix, investment_decisions)
 
@@ -143,177 +134,131 @@ def RUN_FUNC(t_a, phi, eps, t_G, alpha, test, filename):
 
     m = model.DivestmentCore(*init_conditions, **input_params)
 
-    # storing initial conditions and parameters
-
-    res = dict()
-
     # run the model
     print(test)
+
     if test:
         print(input_params)
 
     t_max = 300 if test == 0 else 5
     start = time.clock()
-    exit_status = m.run(t_max=t_max)
-
-    # store exit status
-    res["convergence"] = exit_status
-    if test:
-        print('test output of variables')
-        print(m.tau, m.phi, exit_status,
-              m.convergence_state, m.convergence_time)
-    # store data in case of successful run
-
-    if exit_status in [0, 1]:
-        res["convergence_data"] = \
-                pd.DataFrame({"Investment decisions": m.investment_decisions,
-                              "Opinions": m.opinions,
-                              "Investment clean": m.investment_clean,
-                              "Investment dirty": m.investment_dirty})
-        res["convergence_state"] = m.convergence_state
-        res["convergence_time"] = m.convergence_time
-
-        # interpolate trajectory to get evenly spaced time series.
-        trajectory = m.get_economic_trajectory()
-        dfo = even_time_series_spacing(trajectory, 101, 0., t_max)
-        res["economic_trajectory"] = dfo
+    exit_status = m.run(t_max)
 
     end = time.clock()
-    res["runtime"] = end-start
 
-    # save data
-    with open(filename, 'wb') as dumpfile:
-        cp.dump(res, dumpfile)
-    try:
-        tmp = load(filename)
-    except IOError:
-        print("writing results failed for " + filename)
+    if test:
+        print('test output of variables')
+        print(m.tau, m.phi, exit_status, m.convergence_state,
+              m.convergence_time)
 
-    return exit_status
+    # store data
 
-# get sub experiment and mode from command line
-if len(sys.argv) > 1:
-    input_int = int(sys.argv[1])  # determines the values of alpha
-else:
-    input_int = None
-if len(sys.argv) > 2:
-    noise = bool(int(sys.argv[2]))  # sets noise
-else:
-    noise = True
-if len(sys.argv) > 3:
-    mode = int(sys.argv[3])  # sets mode (production, test, messy)
-else:
-    mode = None
+    res = {
+        "convergence": [exit_status],
+        "runtime": [end - start],
+        "convergence_state": [m.convergence_state],
+        "convergence_time": [m.convergence_time]
+    }
 
-print(sys.argv)
-test = mode
+    df0 = pd.DataFrame.from_dict(res)
+    df0.index.name = 'run'
 
-folder = 'X3Noise' if noise else 'X3NoNoise'
+    df1 = pd.DataFrame({
+        "Investment decisions": m.investment_decisions,
+        "Opinions": m.opinions,
+        "Investment clean": m.investment_clean,
+        "Investment dirty": m.investment_dirty
+    })
+    df1.index.name = 'agent'
+    # interpolate trajectory to get evenly spaced time series.
+    df2 = even_time_series_spacing(m.get_economic_trajectory(), 301, 0., t_max)
+    df2.index.name = 'tstep'
 
-# check if cluster or local
-if getpass.getuser() == "kolb":
-    SAVE_PATH_RAW = '/p/tmp/kolb/Divest_Experiments/divestdata/{}/raw_data_{}/'.format(folder, input_int)
-    SAVE_PATH_RES = '/home/kolb/Divest_Experiments/divestdata/{}/raw_data_{}/'.format(folder, input_int)
-elif getpass.getuser() == "jakob":
-    SAVE_PATH_RAW = '/home/jakob/Project_Divestment/output_data/test/{}/raw_data_{}/'.format(folder, input_int)
-    SAVE_PATH_RES = 'home/jakob/Project_Divestment/output_data/test/{}/raw_data_{}/'.format(folder, input_int)
-
-if mode == 0:
-    t_as = [round(x, 5) for x in list(10**np.linspace(-2.0, 2.0, 11))]
-    phis = [round(x, 5) for x in list(np.linspace(0.0, 1.0, 11))[1:-1]]
-
-    t_Gs = [round(x, 5) for x in list(10**np.linspace(-1.0, 1.0, 9))]
-    alphas = [round(x, 5) for x in list(10**np.linspace(-4.0, 0, 5))]
-else:
-    t_as = [1.]
-    phis = [.5]
-
-    t_Gs = [1.]
-    alphas = [10**-1]
+    return exit_status, [df0, df1, df2]
 
 
-parameters = {'t_a': 0, 'phi': 1, 'eps': 2, 't_G': 3, 'b_R0': 4, 'test': 5}
-t_a, phi, eps, t_G, alpha, test = [1.], [.8], [0.0], [3.], [10.**(-2.)], [mode]
-if noise:
-    eps = [0.05]
+def run_experiment(argv):
+    # get sub experiment and mode from command line
+
+    # set test
+
+    if len(argv) > 1:
+        test = bool(int(argv[1]))
+    else:
+        test = True
+    # set mode (production, pp only, messy)
+
+    if len(argv) > 3:
+        mode = int(sys.argv[3])  # sets mode (production, test, messy)
+    else:
+        mode = 0
+
+    # setup parameter values
+
+    t_Gs = [100.]
+    if test:
+        t_as, phis, alphas, eps = [1.], [.8], [10.**(-2.)], [0.03]
+    else:
+        t_as = [round(x, 5) for x in list(10**np.linspace(-2.0, 2.0, 11))]
+        phis = [round(x, 5) for x in list(np.linspace(0.0, 1.0, 11))]
+        alphas = [0.01, 0.1, 0.5, 0.9]
+        eps = [0.0, 0.01, 0.02, 0.03]
+
+    param_combs = list(it.product(t_as, phis, eps, t_Gs, alphas, [test]))
+
+    """
+    set input/output paths
+    """
+    helper = ExperimentRoutines(run_func=RUN_FUNC,
+                                param_combs=param_combs,
+                                test=test,
+                                subfolder='X3')
+    save_path_raw, save_path_res = helper.get_paths()
+
+    print(save_path_raw)
+
+    # Create dummy runfunc output to pass its shape to experiment handle
+
+    run_func_output = helper.run_func_output
+
+    # set up computation handles
+
+    sample_size = 100 if not test else 5
+
+    compute_handle = experiment_handling(run_func=RUN_FUNC,
+                                         runfunc_output=run_func_output,
+                                         sample_size=sample_size,
+                                         parameter_combinations=param_combs,
+                                         path_raw=save_path_raw)
+
+    pp_handles = []
+
+    for operator in ['mean', 'std', 'collect']:
+        rf = helper.get_pp_function(table_id=[0, 1, 2], operator=operator)
+        handle = experiment_handling(run_func=rf,
+                                     runfunc_output=run_func_output,
+                                     sample_size=1,
+                                     parameter_combinations=param_combs,
+                                     path_raw=(save_path_res +
+                                               f'/{operator}_trj.h5'),
+                                     index=compute_handle.index)
+        pp_handles.append(handle)
+
+    # full run
+
+    if mode == 0:
+        compute_handle.compute()
+
+        for handle in pp_handles:
+            handle.compute()
+
+    # post production only
+
+    if mode == 1:
+        for handle in pp_handles:
+            handle.compute()
 
 
-NAME = 't_a_vs_phi_r_R0={}_timescales'.format(input_int)
-INDEX = {0: 't_a', 1: 'phi', 2: 'eps', 3: 't_G', 4: 'b_R0', 5: 'test'}
-
-if input_int < len(alphas) and input_int is not None:
-    PARAM_COMBS = list(it.product(t_as, phis, eps, t_Gs,
-                                  [alphas[input_int]], test))
-
-elif input_int is None:
-    PARAM_COMBS = list(it.product(t_as, phis, eps, t_Gs,
-                                  alpha, test))
-
-else:
-    print(input_int, ' is not in the list of possible experiments')
-    sys.exit()
-
-# names and function dictionaries for post processing:
-
-NAME1 = NAME+'_trajectory'
-EVA1 = {"<mean_trajectory>":
-        lambda fnames: pd.concat([load(f)["economic_trajectory"]
-                                  for f in fnames]).groupby(level=0).mean(),
-        "<sem_trajectory>":
-        lambda fnames: pd.concat([load(f)["economic_trajectory"]
-                                  for f in fnames]).groupby(level=0).sem()}
-
-NAME2 = NAME+'_convergence'
-EVA2 = {"<mean_convergence_state>":
-        lambda fnames: np.nanmean([load(f)["convergence_state"]
-                                   for f in fnames]),
-        "<mean_convergence_time>":
-        lambda fnames: np.nanmean([load(f)["convergence_time"]
-                                   for f in fnames]),
-        "<min_convergence_time>":
-        lambda fnames: np.nanmin([load(f)["convergence_time"]
-                                  for f in fnames]),
-        "<max_convergence_time>":
-        lambda fnames: np.max([load(f)["convergence_time"]
-                               for f in fnames]),
-        "<nanmax_convergence_time>":
-        lambda fnames: np.nanmax([load(f)["convergence_time"]
-                                  for f in fnames]),
-        "<sem_convergence_time>":
-        lambda fnames: st.sem([load(f)["convergence_time"]
-                               for f in fnames]),
-        "<runtime>":
-        lambda fnames: st.sem([load(f)["runtime"]
-                              for f in fnames])}
-
-# full run
-if mode == 0:
-    SAMPLE_SIZE = 100
-    handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS,
-                                 INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
-    handle.compute(RUN_FUNC)
-    handle.resave(EVA1, NAME1)
-    handle.resave(EVA2, NAME2)
-    plot_tau_phi(SAVE_PATH_RES, NAME2)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2)
-
-# test run
-if mode == 1:
-    SAMPLE_SIZE = 2
-    handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS, INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
-    handle.compute(RUN_FUNC)
-    handle.resave(EVA1, NAME1)
-    handle.resave(EVA2, NAME2)
-    plot_tau_phi(SAVE_PATH_RES, NAME2)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2)
-
-# debug and mess around mode:
-if mode is None:
-    SAMPLE_SIZE = 2
-    handle = experiment_handling(SAMPLE_SIZE, PARAM_COMBS,
-                                 INDEX, SAVE_PATH_RAW, SAVE_PATH_RES)
-    handle.compute(RUN_FUNC)
-    handle.resave(EVA1, NAME1)
-    handle.resave(EVA2, NAME2)
-    plot_tau_phi(SAVE_PATH_RES, NAME2)
-    plot_obs_grid(SAVE_PATH_RES, NAME1, NAME2)
+if __name__ == "__main__":
+    cmdline_arguments = sys.argv
+    run_experiment(cmdline_arguments)
