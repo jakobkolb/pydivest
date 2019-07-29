@@ -16,10 +16,10 @@ class ExperimentDefaults:
     to keep them consistent
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, params='default', **kwargs):
         """setting input parameter values"""
 
-        self.input_params = {
+        input_params = {
             'b_c': 1.,
             'b_d': 4.,
             'e': 1.,
@@ -44,14 +44,47 @@ class ExperimentDefaults:
             'R_depletion': True
         }
 
+        input_params_fitted = {
+            'b_c':  22.94219556006435,
+            'b_d':  1844.7328627029444,
+            'e':    45048994159.98814,
+            'b_r0': 1041159355.7928585,
+            'kappa_c': 1./3.,
+            'kappa_d': 1./3.,
+            'pi': 2./3,
+            'xi': 1/8,
+            'd_k': 0.056818181818181816,
+            'd_c': 0.02,
+            'phi': .5,
+            'tau': 1.,
+            'eps': 0.03,
+            's': 0.25,
+            'possible_cue_orders': [[0], [1]],
+            'campaign': False,
+            'learning': True,
+            'interaction': 1,
+            'test': False,
+            'R_depletion': True,
+            'G_0': 1584455.821037092,
+            'G': 1155584.3903578299,
+            'C': 779787753829056.2,
+            'K_c0': 311922705312234.7,
+            'K_d0': 2041863385150630.2,
+            'L': 3288420945.5,
+        }
+
+        if params == 'default':
+            self.input_params = input_params
+        elif params == 'fitted':
+            self.input_params = input_params_fitted
+
         for key, val in kwargs.items():
             if key not in self.input_params.keys():
                 raise KeyError(f'{key} is not a valid input parameter')
             else:
                 self.input_params[key] = val
-
-        self.calculate_timing(t_g=100, t_a=None)
-
+        if params == 'default':
+            self.calculate_timing(t_g=100, t_a=None)
 
 
     def calculate_timing(self, t_g, t_a=None):
@@ -72,23 +105,26 @@ class ExperimentDefaults:
         if t_a is not None:
             self.input_params['tau'] = t_a / (1 - self.input_params['phi'])
 
-    def get_social_dynamics_timescale():
+    def get_social_dynamics_timescale(self):
         """return timescale for social dynamics given that one opinion
         dominates all others
         """
         t_sd = self.input_params['tau'] * (1 - self.input_params['phi'])
         return t_sd
 
-    def get_dirty_capital_timescale():
+    def get_dirty_capital_timescale(self):
         """return timescale for dirty capital accumulation
         """
+        # ToDo: Doublecheck this!!
         t_dc = 1 / (self.input_params['d_k']*self.input_params['pi'])
         return t_dc
 
-    def get_clean_capital_timescale():
+    def get_clean_capital_timescale(self):
         """return timescale for clean capital accumulation
         """
-        t_cc = 1/(self.input_params['d_k']*
+        # ToDo: Doublecheck this!!
+        t_cc = 1/(self.input_params['d_k']*self.input_params['pi']*(1-self.input_params['xi']))
+
         return t_cc
 
 
