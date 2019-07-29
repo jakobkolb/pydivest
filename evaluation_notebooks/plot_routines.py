@@ -55,7 +55,11 @@ class plot_routines(object):
                              ['$\mu^{(c)}_c$', '$\mu^{(d)}_d$'],
                              ['$\mu^{(c)}_d$', '$\mu^{(d)}_c$']]
 
-        self.colors = ['#E37222', '#8E908F', '#009FDA', '#69923A']
+        green  = '#69923A'
+        blue = '#009FDA'
+        grey = '#8E908F'
+        orange = '#E37222'
+        self.colors = [blue, orange, grey, green]
 
     def mk_plots(self, bd):
 
