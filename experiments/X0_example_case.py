@@ -76,7 +76,7 @@ def RUN_FUNC(eps, phi, ffh, test):
             [0]
         ]  # redneck
     else:
-        possible_cue_orders = [[1], [0]]
+        possible_cue_orders = [[0], [1]]
 
     # Parameters:
     defaults = ExperimentDefaults(params='fitted',
@@ -111,6 +111,8 @@ def RUN_FUNC(eps, phi, ffh, test):
     clean_investment = []
     dirty_investment = []
 
+    print(n_dirty, n_clean)
+
     for i in range(n):
         if i < n_clean:
             opinions += [1]
@@ -121,15 +123,17 @@ def RUN_FUNC(eps, phi, ffh, test):
             clean_investment += [0]
             dirty_investment += [input_params['K_d0'] * 1. / float(n_dirty)]
 
+    print(float(sum(opinions))/n)
+
     if ffh:
         opinions = [
             np.random.randint(0, len(possible_cue_orders)) for x in range(n)
         ]
-    clean_investment = np.ones(n) * input_params['K_c0'] / float(n)
-    dirty_investment = np.ones(n) * input_params['K_d0'] / float(n)
 
-    init_conditions = (adjacency_matrix, opinions, clean_investment,
-                       dirty_investment)
+    init_conditions = (adjacency_matrix,
+                       np.array(opinions),
+                       np.array(clean_investment),
+                       np.array(dirty_investment))
 
     t_1 = 400 if not test else 200
 
@@ -146,21 +150,14 @@ def RUN_FUNC(eps, phi, ffh, test):
     m.tau = 0.001 * (1 - phi)
     t_e = 1
 
-    print('equilibrate')
-
-    for t in tqdm(np.arange(0, t_e, m.tau)):
-        exit_status_1 = m.run(t_max=t)
+    exit_status_1 = m.run(t_e)
 
     df0 = even_time_series_spacing(m.get_economic_trajectory(), 100, 0., 5.)
-    print('done')
 
-    print('run')
     m.tau = input_params['tau']
-    # run model with abundant resource
 
-    for t in tqdm(np.arange(m.t, t_1, 1)):
-        exit_status = m.run(t_max=t)
-    print('done')
+    # run model with abundant resource
+    exit_status = m.run(t_max=t_1)
 
     res = {}
     res["runtime"] = [time.clock() - t_start]
@@ -230,9 +227,9 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    epss = [round(x, 5) for x in list(np.linspace(0.0, 0.05, 11))]
+    epss = [round(x, 5) for x in list(np.linspace(0.0, 0.05, 6))]
     phis = [round(x, 5) for x in list(np.linspace(0., 1., 11))]
-    eps, phi = [0., 0.02], [.5, .7, .9]
+    eps, phi = [0., 0.02], [.5, .9]
 
     if test:
         param_combs = list(it.product(eps, phi, [ffh], [test]))
@@ -259,7 +256,7 @@ def run_experiment(argv):
 
     # define computation handle
 
-    sample_size = 100 if not test else 20
+    sample_size = 100 if not test else 10
 
     compute_handle = experiment_handling(run_func=RUN_FUNC,
                                          runfunc_output=run_func_output,
