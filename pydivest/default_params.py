@@ -199,8 +199,6 @@ class ExperimentRoutines:
                 for i in range(function.__code__.co_argcount)
             }
 
-        print(index)
-
         return index
 
     def get_paths(self):
