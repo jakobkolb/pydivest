@@ -103,32 +103,39 @@ def RUN_FUNC(eps, phi, ffh, test):
 
     # opinions and investment
 
+    x = n * np.random.dirichlet(np.ones(len(possible_cue_orders)))
+
+    opinions = []
+    for i, xi in enumerate(x):
+        opinions += int(np.round(xi)) * [i]
+    np.random.shuffle(opinions)
+    if len(opinions) > n:
+        opinions = opinions[:n]
+    elif len(opinions) < n:
+        for i in range(n - len(opinions)):
+            opinions += [opinions[np.random.randint(0,len(opinions))]]
+
+
     n_clean = int(n * input_params['K_c0'] /
                   (input_params['K_c0'] + input_params['K_d0']))
     n_dirty = n - n_clean
 
-    opinions = []
     clean_investment = []
     dirty_investment = []
 
-    print(n_dirty, n_clean)
 
     for i in range(n):
         if i < n_clean:
-            opinions += [1]
             clean_investment += [input_params['K_c0'] * 1. / float(n_clean)]
             dirty_investment += [0]
         else:
-            opinions += [0]
             clean_investment += [0]
             dirty_investment += [input_params['K_d0'] * 1. / float(n_dirty)]
 
-    print(float(sum(opinions))/n)
-
-    if ffh:
-        opinions = [
-            np.random.randint(0, len(possible_cue_orders)) for x in range(n)
-        ]
+    dfi = pd.DataFrame(data = np.array([opinions, clean_investment,
+                                        dirty_investment]),
+                       columns = [str(i) for i in range(n)],
+                       index = ['opinions', 'kc', 'kd'])
 
     init_conditions = (adjacency_matrix,
                        np.array(opinions),
@@ -143,19 +150,6 @@ def RUN_FUNC(eps, phi, ffh, test):
     # start timer
     t_start = time.clock()
 
-    # testing this: equilibrate model via setting tau very small. So a lot of
-    # social dynamics happens without a lot of economic dynamics. Optionally, I
-    # can then use the social state of the model and reset the economic state..
-
-    m.tau = 0.001 * (1 - phi)
-    t_e = 1
-
-    exit_status_1 = m.run(t_e)
-
-    df0 = even_time_series_spacing(m.get_economic_trajectory(), 100, 0., 5.)
-
-    m.tau = input_params['tau']
-
     # run model with abundant resource
     exit_status = m.run(t_max=t_1)
 
@@ -168,7 +162,6 @@ def RUN_FUNC(eps, phi, ffh, test):
         exit_status = 1
     df1 = even_time_series_spacing(m.get_economic_trajectory(), 401, 5., t_1)
     df1.index.name = 'tstep'
-    res['equilibration state'] = [exit_status_1]
     res["convergence_state"] = [m.convergence_state]
     res["convergence_time"] = [m.convergence_time]
 
@@ -177,7 +170,7 @@ def RUN_FUNC(eps, phi, ffh, test):
 
     # save data
 
-    return exit_status, [df0, df1, df2]
+    return exit_status, [dfi, df1, df2]
 
 
 def run_experiment(argv):
@@ -227,9 +220,12 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    epss = [round(x, 5) for x in list(np.linspace(0.0, 0.05, 6))]
-    phis = [round(x, 5) for x in list(np.linspace(0., 1., 11))]
-    eps, phi = [0., 0.02], [.5, .9]
+    # mute these until further notice
+    #epss = [round(x, 5) for x in list(np.linspace(0.0, 0.05, 6))]
+    #phis = [round(x, 5) for x in list(np.linspace(0., 1., 11))]
+
+    epss, phis = [0., 0.02], [.5, .9]
+    eps, phi = [0.02], [.5]
 
     if test:
         param_combs = list(it.product(eps, phi, [ffh], [test]))
@@ -256,7 +252,7 @@ def run_experiment(argv):
 
     # define computation handle
 
-    sample_size = 100 if not test else 10
+    sample_size = 1000 if not test else 10
 
     compute_handle = experiment_handling(run_func=RUN_FUNC,
                                          runfunc_output=run_func_output,
@@ -281,13 +277,9 @@ def run_experiment(argv):
 
     # cluster mode: computation and post processing
 
-    print('cluster mode')
     sys.stdout.flush()
 
-    print('computing')
     compute_handle.compute()
-
-    print('post processing')
 
     for handle in pp_handles:
         handle.compute()
