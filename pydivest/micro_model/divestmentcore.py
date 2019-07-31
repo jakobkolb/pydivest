@@ -81,6 +81,8 @@ class DivestmentCore:
                  pi=1. / 2.,
                  kappa_c=1. / 2.,
                  kappa_d=1. / 2.,
+                 mu=-2,
+                 G=None,
                  R_depletion=True,
                  test=False,
                  learning=False,
@@ -381,6 +383,8 @@ class DivestmentCore:
         self.d_c = d_c
         # Resource harvest cost per unit (at full resource stock)
         self.b_r0 = b_r0
+        # exponent of fossil resource in resource cost
+        self.mu = mu
 
         # for Cobb Douglas economy
         # elasticities of labor and resource use are fixed
@@ -438,8 +442,10 @@ class DivestmentCore:
         self.G_0 = G_0
 
         # Ecosystem variables
-
-        self.G = G_0
+        if G is None:
+            self.G = G_0
+        else:
+            self.G = G
 
         # calculate initial variables:
 
@@ -762,7 +768,7 @@ class DivestmentCore:
         """
 
         if resource > 0:
-            b_r = self.b_r0 * (self.G_0 / resource)**2
+            b_r = self.b_r0 * (resource/self.G_0)**self.mu
         else:
             b_r = float('inf')
 

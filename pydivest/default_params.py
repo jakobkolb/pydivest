@@ -7,6 +7,7 @@
 import getpass
 import os
 from pathlib import Path
+from pydivestparameters.rs_models.parameter_fit import ParameterFit
 
 import pandas as pd
 
@@ -16,8 +17,29 @@ class ExperimentDefaults:
     to keep them consistent
     """
 
-    def __init__(self, params='default', **kwargs):
-        """setting input parameter values"""
+    def __init__(self,
+                 params='default',
+                 alpha=2./3.,
+                 gamma=1./8.,
+                 chi=0.02,
+                 **kwargs):
+        """setting input parameter values
+
+        Parameters
+        ----------
+        params: string
+            one of [default, fitted] switch to change between default
+            parameters or fitted parameters.
+        alpha: float
+            for fitting parameters, this can be a custom factor elasticity for
+            labor
+        gamma: float
+            for fitting parameters, this can be a custom factor elasticity for
+            knowledge in the clean sector
+        chi: float
+            for fitting parameters, this can be a custom depreciation rate for
+            knowledge
+            """
 
         input_params = {
             'b_c': 1.,
@@ -73,10 +95,21 @@ class ExperimentDefaults:
             'L': 3288420945.5,
         }
 
+        # check which set of parameters to use
         if params == 'default':
             self.input_params = input_params
         elif params == 'fitted':
-            self.input_params = input_params_fitted
+            if alpha != 2./3. or gamma != 1./8. or chi != 0.02:
+                param_model = ParameterFit(alpha=alpha,
+                                           gamma=gamma,
+                                           chi=chi)
+                param_model.fit_params()
+                self.input_params = param_model.get_params()
+                for key, value in input_params_fitted.items():
+                    if key not in self.input_params.keys():
+                        self.input_params[key] = value
+            else:
+                self.input_params = input_params_fitted
 
         for key, val in kwargs.items():
             if key not in self.input_params.keys():
