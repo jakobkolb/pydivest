@@ -205,8 +205,8 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    Ns = list(np.arange(0, 1000, 50))
-    N = [10, 20, 30, 40, 50]
+    Ns = list(np.arange(50, 1000, 50))
+    N = np.arange(10, 200, 10)
 
     if test:
         param_combs = list(it.product(N, [ffh], [test]))

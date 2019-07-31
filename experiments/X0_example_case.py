@@ -142,7 +142,7 @@ def RUN_FUNC(eps, phi, ffh, test):
                        np.array(clean_investment),
                        np.array(dirty_investment))
 
-    t_1 = 400 if not test else 200
+    t_1 = 400 if not test else 20
 
     # initializing the model
     m = model.DivestmentCore(*init_conditions, **input_params)
@@ -169,6 +169,9 @@ def RUN_FUNC(eps, phi, ffh, test):
     df2.index.name = 'i'
 
     # save data
+
+    for df in [dfi, df1, df2]:
+        df['sample_id'] = None
 
     return exit_status, [dfi, df1, df2]
 
@@ -252,7 +255,7 @@ def run_experiment(argv):
 
     # define computation handle
 
-    sample_size = 1000 if not test else 10
+    sample_size = 1000 if not test else 100
 
     compute_handle = experiment_handling(run_func=RUN_FUNC,
                                          runfunc_output=run_func_output,

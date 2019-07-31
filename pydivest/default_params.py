@@ -315,8 +315,18 @@ class ExperimentRoutines:
             elif operator == 'std':
                 df_out = trj.groupby(level=-1).std()
             elif operator == 'collect':
-                trj.index = trj.index.droplevel(
-                    list(self.run_func_keywords.values()) + ['sample'])
+                # if the dataframe has acolumn called sample_id, use it to
+                # store the sample id data that would otherwise go lost.
+                if 'sample_id' in trj.columns:
+                    trj.index = trj.index.droplevel(
+                        list(self.run_func_keywords.values()))
+                    trj.drop('sample_id', axis=1, inplace=True)
+                    trj = trj.reset_index(level=['sample'])
+                    trj.rename(columns={'sample': 'sample_id'},
+                               inplace=True)
+                else:
+                    trj.index = trj.index.droplevel(
+                        list(self.run_func_keywords.values()) + ['sample'])
                 df_out = trj
             else:
                 raise ValueError(f'operator {operator} not implemented')
