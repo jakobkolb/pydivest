@@ -57,7 +57,7 @@ def RUN_FUNC(N, ffh, test):
         whether this is a test run, e.g.
         can be executed with lower runtime
     """
-
+    print(f'starting run with N={N}')
     # Make different types of decision makers. Cues are
 
     if ffh:
@@ -88,11 +88,8 @@ def RUN_FUNC(N, ffh, test):
 
     p = float(k) / n
 
-    while True:
-        net = nx.erdos_renyi_graph(n, p)
+    net = nx.erdos_renyi_graph(n, p)
 
-        if len(list(net)) > 1:
-            break
     adjacency_matrix = nx.adj_matrix(net).toarray()
 
     # opinions and investment
@@ -126,11 +123,6 @@ def RUN_FUNC(N, ffh, test):
             clean_investment += [0]
             dirty_investment += [input_params['K_d0'] * 1. / float(n_dirty)]
 
-    dfi = pd.DataFrame(data=np.array(
-        [opinions, clean_investment, dirty_investment]),
-                       columns=[str(i) for i in range(n)],
-                       index=['opinions', 'kc', 'kd'])
-
     init_conditions = (adjacency_matrix, np.array(opinions),
                        np.array(clean_investment), np.array(dirty_investment))
 
@@ -147,6 +139,7 @@ def RUN_FUNC(N, ffh, test):
 
     res = {}
     res["runtime"] = [time.clock() - t_start]
+    print(res['runtime'], N)
 
     # store data in case of successful run
 
@@ -162,7 +155,7 @@ def RUN_FUNC(N, ffh, test):
 
     # save data
 
-    return exit_status, [dfi, df1, df2]
+    return exit_status, [df1, df2]
 
 
 def run_experiment(argv):
@@ -212,8 +205,8 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    Ns = [100, 200, 400]
-    N = [100]
+    Ns = list(np.arange(0, 1000, 50))
+    N = [10, 20, 30, 40, 50]
 
     if test:
         param_combs = list(it.product(N, [ffh], [test]))
@@ -240,7 +233,7 @@ def run_experiment(argv):
 
     # define computation handle
 
-    sample_size = 100 if not test else 10
+    sample_size = 10 if not test else 3
 
     compute_handle = experiment_handling(run_func=RUN_FUNC,
                                          runfunc_output=run_func_output,
