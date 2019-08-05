@@ -459,8 +459,8 @@ class DivestmentCore:
             list(self.investment_dirty), [self.P, self.G, self.C]
         ]),
                          dtype='float')
-        # with stdout_redirected():
-        [x0, x1], self.db_out = odeint(self.economy_dot_leontief,
+        with open('odeint_out.txt', 'w') as f,  stdout_redirected(f):
+            [x0, x1], self.db_out = odeint(self.economy_dot_leontief,
                                        x0,
                                        dt,
                                        full_output=True)
@@ -977,8 +977,8 @@ class DivestmentCore:
         # integrate the system unless it crashes.
 
         if not np.isnan(self.R):
-            # with stdout_redirected():
-            [x0, x1] = odeint(self.economy_dot_leontief, x0, dt, mxhnil=1)
+            with open('odeint_out.txt', 'w') as f,  stdout_redirected(f):
+                [x0, x1] = odeint(self.economy_dot_leontief, x0, dt, mxhnil=1)
         else:
             x1 = x0
 
@@ -1349,8 +1349,8 @@ class DivestmentCore:
             list(self.investment_dirty), [self.P, self.G, self.C]
         ]),
                          dtype='float')
-        # with stdout_redirected():
-        [x0, x1] = odeint(self.economy_dot_leontief, x0, dt)
+        with open('odeint_out.txt', 'w') as f,  stdout_redirected(f):
+            [x0, x1] = odeint(self.economy_dot_leontief, x0, dt)
 
         self.investment_clean = x1[0:self.n]
         self.investment_dirty = x1[self.n:2 * self.n]
