@@ -114,9 +114,6 @@ def RUN_FUNC(eps, phi, test):
     for i, xi in enumerate(x):
         opinions += int(np.round(xi)) * [i]
     np.random.shuffle(opinions)
-    # as the fitted distribution has one count to many, I have to leave two out
-    # here.
-    opinions = opinions[:-2]
 
     # initial investment.
     # give equally sized amounts of capital to households.
