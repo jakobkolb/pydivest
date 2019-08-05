@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
+#Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
 # Impact Research
 #
 # Contact: kolb@pik-potsdam.de
@@ -19,9 +19,11 @@ from scipy.integrate import odeint
 from scipy.sparse.csgraph import connected_components
 from scipy.stats import linregress
 
+
 """
 From https://stackoverflow.com/questions/4675728/redirect-stdout-to-a-file-in-python/22434262#22434262
 """
+
 
 def fileno(file_or_fd):
     fd = getattr(file_or_fd, 'fileno', lambda: file_or_fd)()
@@ -30,6 +32,7 @@ def fileno(file_or_fd):
         raise ValueError("Expected a file (`.fileno()`) or a file descriptor")
 
     return fd
+
 
 @contextmanager
 def stdout_redirected(to=os.devnull, stdout=None):
@@ -54,7 +57,9 @@ def stdout_redirected(to=os.devnull, stdout=None):
             stdout.flush()
             os.dup2(copied.fileno(), stdout_fd)  # $ exec >&copied
 
+
 "#################################################################"
+
 
 class DivestmentCore:
     def __init__(self,
@@ -442,6 +447,7 @@ class DivestmentCore:
         self.G_0 = G_0
 
         # Ecosystem variables
+
         if G is None:
             self.G = G_0
         else:
@@ -457,9 +463,9 @@ class DivestmentCore:
                          dtype='float')
         with stdout_redirected():
             [x0, x1], self.db_out = odeint(self.economy_dot_leontief,
-                                       x0,
-                                       dt,
-                                       full_output=True)
+                                           x0,
+                                           dt,
+                                           full_output=True)
 
         self.investment_clean = x1[0:self.n]
         self.investment_dirty = x1[self.n:2 * self.n]
@@ -768,7 +774,7 @@ class DivestmentCore:
         """
 
         if resource > 0:
-            b_r = self.b_r0 * (resource/self.G_0)**self.mu
+            b_r = self.b_r0 * (resource / self.G_0)**self.mu
         else:
             b_r = float('inf')
 
@@ -1329,15 +1335,19 @@ class DivestmentCore:
 
     def init_economic_trajectory(self):
         element = list(
-            chain.from_iterable([[
-                'time', 'wage', 'r_c', 'r_d', 'r_c_dot', 'r_d_dot', 'K_c',
-                'K_d', 'P_c', 'P_d', 'L', 'G', 'R', 'C', 'Y_c', 'Y_d',
-                'P_c_cost', 'P_d_cost', 'K_c_cost', 'K_d_cost', 'c_R',
-                'consensus', 'decision state', 'G_alpha', 'i_c'
-            ], [str(x) for x in self.possible_cue_orders
-                ], ['c' + str(x) for x in self.possible_cue_orders
-                    ], ['d' + str(x) for x in self.possible_cue_orders]]))
+            chain.from_iterable(
+                [[
+                    'time', 'wage', 'r_c', 'r_d', 'r_c_dot', 'r_d_dot', 'K_c',
+                    'K_d', 'P_c', 'P_d', 'L', 'G', 'R', 'C', 'Y_c', 'Y_d',
+                    'P_c_cost', 'P_d_cost', 'K_c_cost', 'K_d_cost', 'c_R',
+                    'consensus', 'decision state', 'G_alpha', 'i_c'
+                ],
+                 [f'O{i+1}' for i in range(len(self.possible_cue_orders))],
+                 [f'c{i+1}' for i in range(len(self.possible_cue_orders))],
+                 [f'd{i+1}' for i in range(len(self.possible_cue_orders))]
+                ]))
         self.e_trajectory.append(element)
+        self.verboseprint(element)
 
         dt = [self.t, self.t]
         x0 = np.fromiter(chain.from_iterable([
@@ -1664,7 +1674,7 @@ class DivestmentCore:
         df['g'] = edf['G'] / self.P
         df['c'] = edf['C'] / self.P
         df['r'] = edf['R'] / self.P
-        df['n_c'] = edf['[1]'] / self.n
+        df['n_c'] = edf['O2'] / self.n
         df['i_c'] = edf['i_c']
         df['r_c'] = edf['r_c']
         df['r_d'] = edf['r_d']
@@ -1832,7 +1842,7 @@ if __name__ == '__main__':
     df[['c']].plot(ax=ax5, style=colors[0])
 
     fig.tight_layout()
-    fig.savefig('example_trajectory.png')
+    mp.show()
 
     rates = model.get_event_rate_data()
 
@@ -1840,4 +1850,4 @@ if __name__ == '__main__':
 
     figs, axes = mp.subplots(1)
     rates.plot(ax=axes)
-    figs.savefig('rate_data.png')
+    mp.show()

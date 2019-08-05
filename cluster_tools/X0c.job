@@ -1,10 +1,9 @@
 #!/bin/bash
 #SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
 #SBATCH --qos=short
-#SBATCH --array=0-1
-#SBATCH --job-name=X0
-#SBATCH --output=%A_X0_%a_.out
-#SBATCH --error=%A_X0_%a_.err
+#SBATCH --job-name=X0c
+#SBATCH --output=%A_X0c.out
+#SBATCH --error=%A_X0c.err
 #SBATCH --time=0-24
 #SBATCH --nodes=16
 #SBATCH --tasks-per-node=16
@@ -20,4 +19,4 @@ echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
 cd ../experiments
-srun -n $SLURM_NTASKS python -W ignore X0_example_case.py 0 $SLURM_ARRAY_TASK_ID
+srun -n $SLURM_NTASKS python X0c_default_setup.py 0

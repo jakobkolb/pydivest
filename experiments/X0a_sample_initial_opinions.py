@@ -19,6 +19,7 @@ import os
 import pickle as cp
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 
 import networkx as nx
@@ -73,8 +74,8 @@ def RUN_FUNC(eps, phi, ffh, test):
             [4, 1],  # green conformer
             [4, 0],  # dirty conformer
             [1],  # gutmensch
-            [0]
-        ]  # redneck
+            [0]  # redneck
+        ]
     else:
         possible_cue_orders = [[0], [1]]
 
@@ -106,15 +107,16 @@ def RUN_FUNC(eps, phi, ffh, test):
     x = n * np.random.dirichlet(np.ones(len(possible_cue_orders)))
 
     opinions = []
+
     for i, xi in enumerate(x):
         opinions += int(np.round(xi)) * [i]
     np.random.shuffle(opinions)
+
     if len(opinions) > n:
         opinions = opinions[:n]
     elif len(opinions) < n:
         for i in range(n - len(opinions)):
-            opinions += [opinions[np.random.randint(0,len(opinions))]]
-
+            opinions += [opinions[np.random.randint(0, len(opinions))]]
 
     n_clean = int(n * input_params['K_c0'] /
                   (input_params['K_c0'] + input_params['K_d0']))
@@ -122,7 +124,6 @@ def RUN_FUNC(eps, phi, ffh, test):
 
     clean_investment = []
     dirty_investment = []
-
 
     for i in range(n):
         if i < n_clean:
@@ -132,17 +133,17 @@ def RUN_FUNC(eps, phi, ffh, test):
             clean_investment += [0]
             dirty_investment += [input_params['K_d0'] * 1. / float(n_dirty)]
 
-    dfi = pd.DataFrame(data = np.array([opinions, clean_investment,
-                                        dirty_investment]),
-                       columns = [str(i) for i in range(n)],
-                       index = ['opinions', 'kc', 'kd'])
+    cnt = Counter(opinions)
+    dfi = pd.DataFrame(
+        data=np.array([[cnt[i] for i in range(len(possible_cue_orders))]]),
+        columns=[f'O{i+1}' for i in range(len(possible_cue_orders))],
+        index=['opinions'])
+    print(dfi)
 
-    init_conditions = (adjacency_matrix,
-                       np.array(opinions),
-                       np.array(clean_investment),
-                       np.array(dirty_investment))
+    init_conditions = (adjacency_matrix, np.array(opinions),
+                       np.array(clean_investment), np.array(dirty_investment))
 
-    t_1 = 400 if not test else 20
+    t_1 = 20
 
     # initializing the model
     m = model.DivestmentCore(*init_conditions, **input_params)
@@ -160,7 +161,7 @@ def RUN_FUNC(eps, phi, ffh, test):
 
     if test:
         exit_status = 1
-    df1 = even_time_series_spacing(m.get_economic_trajectory(), 401, 5., t_1)
+    df1 = even_time_series_spacing(m.get_economic_trajectory(), 401, 0, t_1)
     df1.index.name = 'tstep'
     res["convergence_state"] = [m.convergence_state]
     res["convergence_time"] = [m.convergence_time]
@@ -223,10 +224,6 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    # mute these until further notice
-    #epss = [round(x, 5) for x in list(np.linspace(0.0, 0.05, 6))]
-    #phis = [round(x, 5) for x in list(np.linspace(0., 1., 11))]
-
     epss, phis = [0., 0.02], [.5, .9]
     eps, phi = [0.02], [.5]
 
@@ -243,7 +240,7 @@ def run_experiment(argv):
     helper = ExperimentRoutines(run_func=RUN_FUNC,
                                 param_combs=param_combs,
                                 test=test,
-                                subfolder=f'X0_{sd}')
+                                subfolder=f'X0a_{sd}')
 
     save_path_raw, save_path_res = helper.get_paths()
     """
@@ -255,7 +252,7 @@ def run_experiment(argv):
 
     # define computation handle
 
-    sample_size = 1000 if not test else 100
+    sample_size = 1000 if not test else 200
 
     compute_handle = experiment_handling(run_func=RUN_FUNC,
                                          runfunc_output=run_func_output,
