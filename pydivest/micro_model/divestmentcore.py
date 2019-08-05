@@ -23,6 +23,7 @@ from scipy.stats import linregress
 From https://stackoverflow.com/questions/4675728/redirect-stdout-to-a-file-in-python/22434262#22434262
 """
 
+
 def fileno(file_or_fd):
     fd = getattr(file_or_fd, 'fileno', lambda: file_or_fd)()
 
@@ -31,6 +32,7 @@ def fileno(file_or_fd):
 
     return fd
 
+
 @contextmanager
 def stdout_redirected(to=os.devnull, stdout=None):
     if stdout is None:
@@ -38,7 +40,8 @@ def stdout_redirected(to=os.devnull, stdout=None):
 
     stdout_fd = fileno(stdout)
     # copy stdout_fd before it is overwritten
-    # NOTE: `copied` is inheritable on Windows when duplicating a standard stream
+    # NOTE: `copied` is inheritable on Windows when duplicating a
+    # standard stream
     with os.fdopen(os.dup(stdout_fd), 'wb') as copied:
         stdout.flush()  # flush library buffers that dup2 knows nothing about
         try:
@@ -53,6 +56,7 @@ def stdout_redirected(to=os.devnull, stdout=None):
             # NOTE: dup2 makes stdout_fd inheritable unconditionally
             stdout.flush()
             os.dup2(copied.fileno(), stdout_fd)  # $ exec >&copied
+
 
 "#################################################################"
 
@@ -259,12 +263,12 @@ class DivestmentCore:
 
         # dictionary of decision cues
         self.cues = {
-            0: self.cue_0,
-            1: self.cue_1,
-            2: self.cue_2,
-            3: self.cue_3,
-            4: self.cue_4,
-            5: self.cue_1
+            0: self._cue_0,
+            1: self._cue_1,
+            2: self._cue_2,
+            3: self._cue_3,
+            4: self._cue_4,
+            5: self._cue_1
         }
 
         # list to save e_trajectory of output variables
@@ -455,8 +459,8 @@ class DivestmentCore:
             list(self.investment_dirty), [self.P, self.G, self.C]
         ]),
                          dtype='float')
-        with stdout_redirected():
-            [x0, x1], self.db_out = odeint(self.economy_dot_leontief,
+        # with stdout_redirected():
+        [x0, x1], self.db_out = odeint(self.economy_dot_leontief,
                                        x0,
                                        dt,
                                        full_output=True)
@@ -489,7 +493,7 @@ class DivestmentCore:
         self.rate_data = None
 
     @staticmethod
-    def cue_0(i):
+    def _cue_0(i):
         """
         evaluation of cue 0 for household i:
         Always decide for the dirty investment
@@ -513,7 +517,7 @@ class DivestmentCore:
         return dec
 
     @staticmethod
-    def cue_1(i):
+    def _cue_1(i):
         """
         evaluation of cue 1 for household i:
         Always decide for the green investment
@@ -536,7 +540,7 @@ class DivestmentCore:
 
         return dec
 
-    def cue_2(self, i):
+    def _cue_2(self, i):
         """
         evaluation of cue 2 for household i:
         Which rate of return is significantly higher?
@@ -565,7 +569,7 @@ class DivestmentCore:
 
         return dec
 
-    def cue_3(self, i):
+    def _cue_3(self, i):
         """
         evaluation of cue 3 for household i:
         do the trends of the rats differ?
@@ -593,7 +597,7 @@ class DivestmentCore:
 
         return dec
 
-    def cue_4(self, i):
+    def _cue_4(self, i):
         """
         evaluation of cue 4 for household i:
         What does the majority of the neighbors do?
@@ -632,7 +636,7 @@ class DivestmentCore:
         pass
 
     @staticmethod
-    def progress(count, total, status=''):
+    def _progress(count, total, status=''):
         bar_len = 60
         filled_len = int(round(bar_len * count / float(total)))
 
@@ -667,25 +671,25 @@ class DivestmentCore:
         while self.t < t_max:
 
             if self.verbosity > 0:
-                self.progress(self.t, t_max, 'abm running')
+                self._progress(self.t, t_max, 'abm running')
 
             self.verboseprint(self.t, t_max)
 
             # 1 find update candidate and respective update time
             (candidate, neighbor, neighbors,
-             update_time) = self.find_update_candidates()
+             update_time) = self._find_update_candidates()
 
             # 2 integrate economic model until t=update_time:
             # don't make steps too large. The integrator handles that badly..
 
             if update_time - self.t < 1.:
-                self.update_economy(update_time)
+                self._update_economy(update_time)
             else:
                 while True:
                     inter_update_time = (self.t +
                                          1. if not self.t + 1. > update_time
                                          else update_time)
-                    self.update_economy(inter_update_time)
+                    self._update_economy(inter_update_time)
 
                     if inter_update_time >= update_time:
                         break
@@ -694,10 +698,10 @@ class DivestmentCore:
             # update candidate was found:
 
             if candidate >= 0:
-                self.update_opinion_formation(candidate, neighbor, neighbors)
+                self._updated_opinion_formation(candidate, neighbor, neighbors)
 
             # 4 update investment decision making:
-            self.update_decision_making()
+            self._update_decision_making()
 
             # 5 check for 2/3 majority for clean investment
             self.detect_convergence(self.investment_decisions)
@@ -748,7 +752,7 @@ class DivestmentCore:
         else:
             return -3  # very bad run. Investigations needed
 
-    def b_rf(self, resource):
+    def _b_rf(self, resource):
         """
         Calculates the dependence of resource harvest cost on
         remaining resource stock starts at b_r0 and
@@ -865,7 +869,7 @@ class DivestmentCore:
             if C < 0:
                 C = 0
 
-        b_R = self.b_rf(G)
+        b_R = self._b_rf(G)
 
         X_c = (self.b_c * C**self.xi * K_c**self.kappa_c)**(1. /
                                                             (1. - self.pi))
@@ -944,7 +948,7 @@ class DivestmentCore:
 
         return x1
 
-    def update_economy(self, update_time):
+    def _update_economy(self, update_time):
         """
         Integrates the economic equations of the
         model until the system time equals the update time.
@@ -973,8 +977,8 @@ class DivestmentCore:
         # integrate the system unless it crashes.
 
         if not np.isnan(self.R):
-            with stdout_redirected():
-                [x0, x1] = odeint(self.economy_dot_leontief, x0, dt, mxhnil=1)
+            # with stdout_redirected():
+            [x0, x1] = odeint(self.economy_dot_leontief, x0, dt, mxhnil=1)
         else:
             x1 = x0
 
@@ -1032,7 +1036,7 @@ class DivestmentCore:
                 self.update_aggregate_trajectory()
             self.update_event_rate_data()
 
-    def find_update_candidates(self):
+    def _find_update_candidates(self):
 
         i, n = np.unique(self.opinions, return_counts=True)
         self.opinion_state = [
@@ -1152,7 +1156,7 @@ class DivestmentCore:
 
         return candidate, neighbor, neighbors, update_time
 
-    def update_opinion_formation(self, candidate, neighbor, neighbors):
+    def _updated_opinion_formation(self, candidate, neighbor, neighbors):
 
         same_unconnected = np.zeros(self.n, dtype=int)
         opinion = self.opinions
@@ -1239,7 +1243,7 @@ class DivestmentCore:
 
         return 0
 
-    def update_decision_making(self):
+    def _update_decision_making(self):
         """
         Updates the investment decision for all households depending on their
         cue orders (opinion) and the state of the economy
@@ -1345,8 +1349,8 @@ class DivestmentCore:
             list(self.investment_dirty), [self.P, self.G, self.C]
         ]),
                          dtype='float')
-        with stdout_redirected():
-            [x0, x1] = odeint(self.economy_dot_leontief, x0, dt)
+        # with stdout_redirected():
+        [x0, x1] = odeint(self.economy_dot_leontief, x0, dt)
 
         self.investment_clean = x1[0:self.n]
         self.investment_dirty = x1[self.n:2 * self.n]
