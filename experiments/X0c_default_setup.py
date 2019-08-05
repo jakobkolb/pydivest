@@ -107,7 +107,7 @@ def RUN_FUNC(eps, phi, test):
     adjacency_matrix = nx.adj_matrix(net).toarray()
 
     # initial opinions:
-    fitted_opinions_distribution = [15, 8, 12, 12, 14, 17, 7, 16]
+    fitted_opinions_distribution = [14, 7, 15, 13, 12, 16, 7, 16]
     x = [2 * x for x in fitted_opinions_distribution]
     opinions = []
 
