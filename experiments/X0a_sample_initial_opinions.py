@@ -156,6 +156,8 @@ def RUN_FUNC(eps, phi, ffh, test):
         m.run(t_max=t_1)
     except:
         traceback.print_exc(limit=3)
+        sys.stdout.flush()
+        sys.stderr.flush()
         return -1, [None, None, None]
 
     res = {}
@@ -163,8 +165,6 @@ def RUN_FUNC(eps, phi, ffh, test):
 
     # store data in case of successful run
 
-    if test:
-        exit_status = 1
     df1 = even_time_series_spacing(m.get_economic_trajectory(), 101, 0, t_1)
     df1.index.name = 'tstep'
     res["convergence_state"] = [m.convergence_state]
@@ -297,3 +297,4 @@ if __name__ == "__main__":
         run_experiment(cmdline_arguments)
     except:
         print('outer exception triggered', flush=True)
+        traceback.print_exc()

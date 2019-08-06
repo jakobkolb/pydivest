@@ -153,15 +153,13 @@ def RUN_FUNC(eps, phi, test):
     t_start = time.clock()
 
     # run model with abundant resource
-    exit_status = m.run(t_max=t_1)
+    m.run(t_max=t_1)
 
     res = {}
     res["runtime"] = [time.clock() - t_start]
 
     # store data in case of successful run
 
-    if test:
-        exit_status = 1
     df1 = even_time_series_spacing(m.get_economic_trajectory(), 101, 0, t_1)
     df1.index.name = 'tstep'
     res["convergence_state"] = [m.convergence_state]
