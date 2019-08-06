@@ -271,7 +271,7 @@ def run_experiment(argv):
 
     # define computation handle
 
-    sample_size = 500 if not test else 10
+    sample_size = 3 if not test else 5
 
     compute_handle = experiment_handling(run_func=RUN_FUNC,
                                          runfunc_output=run_func_output,

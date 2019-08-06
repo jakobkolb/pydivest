@@ -19,6 +19,7 @@ import os
 import pickle as cp
 import sys
 import time
+import traceback
 from collections import Counter
 from pathlib import Path
 
@@ -152,7 +153,11 @@ def RUN_FUNC(eps, phi, ffh, test):
     t_start = time.clock()
 
     # run model with abundant resource
-    exit_status = m.run(t_max=t_1)
+    try:
+        m.run(t_max=t_1)
+    except:
+        traceback.print_exc(limit=3)
+        return -1, [None, None, None]
 
     res = {}
     res["runtime"] = [time.clock() - t_start]
