@@ -20,4 +20,4 @@ echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
 cd ../experiments
-srun -n $SLURM_NTASKS python X0c_default_setup.py 0
+srun -n $SLURM_NTASKS python -W ignore X0c_default_setup.py 0

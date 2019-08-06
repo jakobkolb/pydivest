@@ -20,4 +20,4 @@ echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
 cd ../experiments
-srun -n $SLURM_NTASKS python X1a_zealots_vs_rednecks.py 0
+srun -n $SLURM_NTASKS python -W ignore X1a_zealots_vs_rednecks.py 0

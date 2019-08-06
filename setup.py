@@ -30,8 +30,7 @@ setup(name="pydivest",
             'Assimulo',
             'sympy',
             "pymofa @ git+https://github.com/jakobkolb/pymofa@dev",
-          "pydivestparameters @" +\
-          "git+https://github.com/jakobkolb/pydivest_parameters",
+            "pydivestparameters @ git+https://github.com/jakobkolb/pydivest_parameters",
             'pydstool @ git+https://github.com/robclewley/pydstool'
       ],
       # see http://stackoverflow.com/questions/15869473/what-is-the-advantage-
