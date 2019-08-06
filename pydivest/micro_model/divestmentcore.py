@@ -927,7 +927,6 @@ class DivestmentCore:
                       self.w, self.R, self.investment_decisions, self.income,
                       self.investment_clean, self.investment_dirty))
 
-            exit(-1)
 
         G_dot = -R if self.R_depletion else 0.0
         P_dot = 0
