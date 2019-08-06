@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
+#ss Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
 # Impact Research
 #
 # Contact: kolb@pik-potsdam.de
@@ -926,8 +926,10 @@ class DivestmentCore:
                       X_R, X_d, X_c, K_d, K_c, G, C, self.r_c, self.r_d,
                       self.w, self.R, self.investment_decisions, self.income,
                       self.investment_clean, self.investment_dirty))
+            for i, x in enumerate(self.income):
+                if x < 0:
+                    self.income[i] = 0.
 
-            exit(-1)
 
         G_dot = -R if self.R_depletion else 0.0
         P_dot = 0
