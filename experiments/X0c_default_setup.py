@@ -162,7 +162,7 @@ def RUN_FUNC(eps, phi, test):
 
     if test:
         exit_status = 1
-    df1 = even_time_series_spacing(m.get_economic_trajectory(), 401, 0, t_1)
+    df1 = even_time_series_spacing(m.get_economic_trajectory(), 101, 0, t_1)
     df1.index.name = 'tstep'
     res["convergence_state"] = [m.convergence_state]
     res["convergence_time"] = [m.convergence_time]
