@@ -270,7 +270,11 @@ class ExperimentRoutines:
         except:
             params = list(param_combs[0])
             params[-1] = True
-            run_func_output = run_func(*params)[1]
+            try:
+                run_func_output = run_func(*params)[1]
+            except:
+                print('well, that one died')
+                break
             with open(self.save_path_raw + 'rfof.pkl', 'wb') as dmp:
                 pd.to_pickle(run_func_output, dmp)
 

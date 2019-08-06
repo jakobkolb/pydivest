@@ -297,5 +297,4 @@ if __name__ == "__main__":
     try:
         run_experiment(cmdline_arguments)
     except:
-        print('outer exception triggered')
-        sys.exit()
+        print('outer exception triggered', flush=True)
