@@ -144,7 +144,7 @@ def RUN_FUNC(eps, phi, test):
     init_conditions = (adjacency_matrix, np.array(opinions),
                        np.array(clean_investment), np.array(dirty_investment))
 
-    t_1 = 400 if not test else 20
+    t_1 = 100 if not test else 20
 
     # initializing the model
     m = model.DivestmentCore(*init_conditions, **input_params)
@@ -175,7 +175,7 @@ def RUN_FUNC(eps, phi, test):
     for df in [dfi, df1, df2]:
         df['sample_id'] = None
 
-    return exit_status, [dfi, df1, df2]
+    return 1, [dfi, df1, df2]
 
 
 def run_experiment(argv):
@@ -222,7 +222,7 @@ def run_experiment(argv):
     #epss = [round(x, 5) for x in list(np.linspace(0.0, 0.05, 6))]
     #phis = [round(x, 5) for x in list(np.linspace(0., 1., 11))]
 
-    epss, phis = [0., 0.02], [.5, .9]
+    epss, phis = [0.02], [.5, .7, .8, .9]
     eps, phi = [0.02], [.5]
 
     if test:
@@ -248,7 +248,7 @@ def run_experiment(argv):
 
     # define computation handle
 
-    sample_size = 1000 if not test else 200
+    sample_size = 500 if not test else 200
 
     compute_handle = experiment_handling(run_func=RUN_FUNC,
                                          runfunc_output=run_func_output,
