@@ -136,6 +136,14 @@ def RUN_FUNC(n_rn, n_cp, phi, test):
     np.random.shuffle(opinions)
     opinions = opinions[:n]
 
+    # in case, opinions are too short due to rounding errors, add values
+    if len(opinions) < n:
+        for i in range(n - len(opinions)):
+            opinions.append(opinions[i])
+    # in case, opinions are too long, remove some.
+    elif len(opinions) > n:
+        opinions = opinions[:n]
+
     # initial investment.
     # give equally sized amounts of capital to households.
     # asign only clean or dirty capital to a household.
