@@ -294,4 +294,8 @@ def run_experiment(argv):
 
 if __name__ == "__main__":
     cmdline_arguments = sys.argv
-    run_experiment(cmdline_arguments)
+    try:
+        run_experiment(cmdline_arguments)
+    except:
+        print('outer exception triggered')
+        sys.exit()
