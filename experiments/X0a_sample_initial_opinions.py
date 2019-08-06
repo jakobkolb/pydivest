@@ -139,7 +139,6 @@ def RUN_FUNC(eps, phi, ffh, test):
         data=np.array([[cnt[i] for i in range(len(possible_cue_orders))]]),
         columns=[f'O{i+1}' for i in range(len(possible_cue_orders))],
         index=['opinions'])
-    print(dfi)
 
     init_conditions = (adjacency_matrix, np.array(opinions),
                        np.array(clean_investment), np.array(dirty_investment))
@@ -178,7 +177,7 @@ def RUN_FUNC(eps, phi, ffh, test):
 
     for df in [dfi, df1, df2]:
         df['sample_id'] = None
-
+    print('finished', flush=True)
     return 1, [dfi, df1, df2]
 
 
