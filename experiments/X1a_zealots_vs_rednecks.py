@@ -173,7 +173,7 @@ def RUN_FUNC(n_rn, n_cp, phi, test):
     init_conditions = (adjacency_matrix, np.array(opinions),
                        np.array(clean_investment), np.array(dirty_investment))
 
-    t_1 = 100 if not test else 20
+    t_1 = 100 if not test else 5
 
     # initializing the model
     m = model.DivestmentCore(*init_conditions, **input_params)
