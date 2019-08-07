@@ -160,7 +160,8 @@ def RUN_FUNC(eps, phi, test):
 
     # store data in case of successful run
 
-    df1 = even_time_series_spacing(m.get_economic_trajectory(), 101, 0, t_1)
+    df1 = even_time_series_spacing(m.get_economic_trajectory(), 401, 0, 20)
+    df3 = even_time_series_spacing(m.get_economic_trajectory(), 101, 0, t_1)
     df1.index.name = 'tstep'
     res["convergence_state"] = [m.convergence_state]
     res["convergence_time"] = [m.convergence_time]
@@ -170,7 +171,7 @@ def RUN_FUNC(eps, phi, test):
 
     # save data
 
-    for df in [dfi, df1, df2]:
+    for df in [dfi, df1, df2, df3]:
         df['sample_id'] = None
 
     return 1, [dfi, df1, df2]
