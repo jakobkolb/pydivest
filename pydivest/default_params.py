@@ -197,7 +197,7 @@ class ExperimentRoutines:
         if getpass.getuser() == local_user:
             tmppath = respath
         elif getpass.getuser() == cluster_user:
-            tmppath = f"/p/tmp/{cluster_user}/Divest_Experiments"
+            tmppath = f"/p/tmp/{cluster_user}/Divest_Experiments/{data_folder}"
         else:
             tmppath = "./"
 
