@@ -257,6 +257,9 @@ def run_experiment(argv):
     set input/output paths
     """
 
+    if test:
+        print('initializing helper', flush=True)
+
     helper = ExperimentRoutines(run_func=RUN_FUNC,
                                 param_combs=param_combs,
                                 test=test,
@@ -274,6 +277,8 @@ def run_experiment(argv):
 
     sample_size = 30 if not test else 5
 
+    if test:
+        print('initializing compute handles', flush=True)
     compute_handle = experiment_handling(run_func=RUN_FUNC,
                                          runfunc_output=run_func_output,
                                          sample_size=sample_size,
@@ -299,6 +304,8 @@ def run_experiment(argv):
 
     sys.stdout.flush()
 
+    if test:
+        print('starting computation', flush=True)
     compute_handle.compute()
 
     for handle in pp_handles:
