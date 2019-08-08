@@ -217,7 +217,9 @@ def run_experiment(argv):
     """
 
     # switch testing mode
-
+    wt = np.random.randint(1, 10)
+    print(f'starting after {wt}')
+    time.sleep(wt)
     if len(argv) > 1:
         if int(argv[1]) < 2:
             test = bool(int(argv[1]))
