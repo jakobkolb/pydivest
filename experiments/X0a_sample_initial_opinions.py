@@ -225,7 +225,7 @@ def run_experiment(argv):
     # switch testing mode
 
     if len(argv) > 1:
-        if argv[1] < 2:
+        if int(argv[1]) < 2:
             test = bool(int(argv[1]))
             ic = False
         else:
