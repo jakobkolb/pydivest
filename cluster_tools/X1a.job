@@ -5,7 +5,7 @@
 #SBATCH --output=%A_X1a.out
 #SBATCH --error=%A_X1a.err
 #SBATCH --time=0-24
-#SBATCH --ntasks=256
+#SBATCH --ntasks=128
 #SBATCH --exclusive
 
 module load hpc/2015 anaconda/5.0.0_py3
@@ -22,7 +22,7 @@ echo "_______________________________________________"
 cd ../experiments
 date
 
-srun -n 1 python -W ignore X1a_zealots_vs_rednecks.py 2
+srun -n 8 python -W ignore X1a_zealots_vs_rednecks.py 2
 
 date
 

@@ -261,7 +261,7 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    phis, n_rds, n_cps = [.5, .7, .8, .9], range(0, 30, 3), range(0, 25, 3)
+    phis, n_rds, n_cps = [.5, .7, .8, .9], range(16, 50, 3), range(0, 25, 3)
     phi, n_rd, n_cp = [.5], [0, 15, 25], [0, 15, 25]
 
     if test:
