@@ -670,8 +670,7 @@ class DivestmentCore:
 
         while self.t < t_max:
 
-            if self.verbosity > 0:
-                self._progress(self.t, t_max, 'abm running')
+            self._progress(self.t, t_max, 'abm running')
 
             self.verboseprint(self.t, t_max)
 
