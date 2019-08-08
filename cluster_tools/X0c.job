@@ -19,11 +19,11 @@ echo "SLURM JOB ID: $SLURM_JOBID"
 echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
+cd ../experiments
 date
 
 srun -n 1 python -W ignore X0c_default_setup.py 2
 
 date
 
-cd ../experiments
 srun -n $SLURM_NTASKS python -W ignore X0c_default_setup.py 0
