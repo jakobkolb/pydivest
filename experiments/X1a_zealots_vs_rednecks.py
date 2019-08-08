@@ -186,7 +186,7 @@ def RUN_FUNC(n_rn, n_cp, phi, test):
 
     res = {}
     res["runtime"] = [time.clock() - t_start]
-
+    print(f'run took {res["runtime"]}', flush=True)
     # store data in case of successful run
 
     df1 = even_time_series_spacing(m.get_economic_trajectory(), 101, 0, t_1)
@@ -212,7 +212,6 @@ def RUN_FUNC(n_rn, n_cp, phi, test):
 
     for df in [dfi, df1, df2, df3]:
         df['sample_id'] = None
-
     return 1, [dfi, df1, df2]
 
 
