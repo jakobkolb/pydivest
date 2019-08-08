@@ -670,7 +670,8 @@ class DivestmentCore:
 
         while self.t < t_max:
 
-            self._progress(self.t, t_max, 'abm running')
+            if self.verbosity > 0:
+                self._progress(self.t, t_max, 'abm running')
 
             self.verboseprint(self.t, t_max)
 
@@ -927,7 +928,7 @@ class DivestmentCore:
                       self.investment_clean, self.investment_dirty))
             for i, x in enumerate(self.income):
                 if x < 0:
-                    self.income[i] = 0.
+                    self.income[i] = 0
 
 
         G_dot = -R if self.R_depletion else 0.0
