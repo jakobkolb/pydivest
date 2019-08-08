@@ -21,4 +21,5 @@ echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
 cd ../experiments
+srun -n 1 python -W ignore X0a_sample_initial_opinions.py 2 $SLURM_ARRAY_TASK_ID
 srun -n $SLURM_NTASKS python -W ignore X0a_sample_initial_opinions.py 0 $SLURM_ARRAY_TASK_ID
