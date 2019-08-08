@@ -284,7 +284,8 @@ def run_experiment(argv):
     """
     run computation and/or post processing and/or plotting
     """
-
+    print(save_path_raw, flush=True)
+    print(save_path_res, flush=True)
     # Create dummy runfunc output to pass its shape to experiment handle
     run_func_output = helper.run_func_output
 
