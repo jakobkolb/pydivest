@@ -21,7 +21,7 @@ echo "_______________________________________________"
 
 date
 
-srun -n 0 python -W ignore X0c_default_setup.py 2
+srun -n 1 python -W ignore X0c_default_setup.py 2
 
 date
 
