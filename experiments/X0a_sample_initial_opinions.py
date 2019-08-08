@@ -152,13 +152,7 @@ def RUN_FUNC(eps, phi, ffh, test):
     t_start = time.clock()
 
     # run model with abundant resource
-    try:
-        m.run(t_max=t_1)
-    except:
-        traceback.print_exc(limit=3)
-        sys.stdout.flush()
-        sys.stderr.flush()
-        return -1, [None, None, None]
+    m.run(t_max=t_1)
 
     res = {}
     res["runtime"] = [time.clock() - t_start]
