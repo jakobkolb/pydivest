@@ -100,6 +100,7 @@ class ExperimentDefaults:
             self.input_params = input_params
         elif params == 'fitted':
             if alpha != 2./3. or gamma != 1./8. or chi != 0.02:
+                print('fitting parameters', flush=True)
                 param_model = ParameterFit(alpha=alpha,
                                            gamma=gamma,
                                            chi=chi)
