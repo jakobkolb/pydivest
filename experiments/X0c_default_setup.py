@@ -220,7 +220,12 @@ def run_experiment(argv):
     # switch testing mode
 
     if len(argv) > 1:
-        test = bool(int(argv[1]))
+        if int(argv[1]) < 2:
+            test = bool(int(argv[1]))
+            ic = False
+        else:
+            test=False
+            ic = True
     else:
         test = True
     """
@@ -255,6 +260,9 @@ def run_experiment(argv):
     # Create dummy runfunc output to pass its shape to experiment handle
     run_func_output = helper.run_func_output
 
+    if ic is True:
+        print('set up initial conditions', flush=True)
+        return 1
     # define computation handle
 
     sample_size = 500 if not test else 110
