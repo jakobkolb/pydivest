@@ -190,7 +190,17 @@ def RUN_FUNC(n_rn, n_cp, phi, test):
     # store data in case of successful run
 
     df1 = even_time_series_spacing(m.get_economic_trajectory(), 101, 0, t_1)
-    df3 = even_time_series_spacing(m.get_economic_trajectory(), 101, 0, 20)
+    df3 = even_time_series_spacing(m.get_economic_trajectory(), 401, 0, 20)
+
+    df1 = df1[['time', 'wage', 'r_c', 'r_d', 'r_c_dot', 'r_d_dot', 'K_c',
+                'K_d', 'P_c', 'P_d', 'G', 'R', 'C', 'Y_c', 'Y_d',
+                'c_R',
+                'consensus', 'decision state', 'G_alpha', 'i_c']]
+    df3 = df3[['time', 'wage', 'r_c', 'r_d', 'r_c_dot', 'r_d_dot', 'K_c',
+                'K_d', 'P_c', 'P_d', 'G', 'R', 'C', 'Y_c', 'Y_d',
+                'c_R',
+                'consensus', 'decision state', 'G_alpha', 'i_c']]
+
     df1.index.name = 'tstep'
     res["convergence_state"] = [m.convergence_state]
     res["convergence_time"] = [m.convergence_time]
