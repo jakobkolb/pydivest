@@ -228,6 +228,7 @@ def run_experiment(argv):
             ic = True
     else:
         test = True
+        ic = None
     """
     create parameter combinations and index
     """

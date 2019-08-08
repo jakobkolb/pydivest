@@ -195,10 +195,11 @@ def run_experiment(argv):
             test = bool(int(argv[1]))
             ic = False
         else:
-            test=False
+            test = False
             ic = True
     else:
         test = True
+        ic = None
 
     # switch decision making
 
