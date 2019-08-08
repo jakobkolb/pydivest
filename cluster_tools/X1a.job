@@ -5,8 +5,8 @@
 #SBATCH --output=%A_X1a.out
 #SBATCH --error=%A_X1a.err
 #SBATCH --time=0-24
-#SBATCH --nodes=16
-#SBATCH --tasks-per-node=16
+#SBATCH --ntasks=256
+#SBATCH --exclusive
 
 module load hpc/2015 anaconda/5.0.0_py3
 export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
