@@ -19,10 +19,10 @@ echo "SLURM JOB ID: $SLURM_JOBID"
 echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
-cd ../experiments
+cd ~/Divest_Experiments/experiments
 date
 
-srun -n 8 python -W ignore X1a_zealots_vs_rednecks.py 2
+srun -n 16 python -W ignore X1a_zealots_vs_rednecks.py 2
 
 date
 
