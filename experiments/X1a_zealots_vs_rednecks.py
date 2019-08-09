@@ -292,7 +292,7 @@ def run_experiment(argv):
         return 1
     # define computation handle
 
-    sample_size = 50 if not test else 5
+    sample_size = 100 if not test else 5
 
     if test:
         print('initializing compute handles', flush=True)
