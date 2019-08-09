@@ -5,8 +5,8 @@
 #SBATCH --output=%A_X0c.out
 #SBATCH --error=%A_X0c.err
 #SBATCH --time=0-24
-#SBATCH --nodes=16
-#SBATCH --tasks-per-node=16
+#SBATCH --ntasks=256
+#SBATCH --exclusive
 
 module load hpc/2015 anaconda/5.0.0_py3
 export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
@@ -19,7 +19,7 @@ echo "SLURM JOB ID: $SLURM_JOBID"
 echo "$SLURM_NTASKS tasks"
 echo "_______________________________________________"
 
-cd ../experiments
+cd ~/Divest_Experiments/experiments
 date
 
 srun -n 1 python -W ignore X0c_default_setup.py 2
