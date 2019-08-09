@@ -15,25 +15,24 @@ client = paramiko.SSHClient()
 client.load_system_host_keys()
 client.connect(hostname, username='kolb', look_for_keys=False)
 
+jobname = sys.argv[1]
+
 path = '/home/kolb/Divest_Experiments/cluster_tools/'
 cmd2 = 'squeue -u kolb'
-cmd3 = f'sbatch {path}X1a.job'
+cmd3 = f'sbatch {path}{jobname}.job'
 
 # check, if we got there
+print('starting...')
 stdin, stdout, stderr = client.exec_command('ls '+path)
-time.sleep(2)
+time.sleep(.5)
 print(stdout.read().decode('ascii'))
 
-print('starting...')
-time.sleep(2)
-stdin, stdout, stderr = client.exec_command(cmd3)
-print(stdout.read().decode('ascii'))
 while True:
     try:
         stdin, stdout, stderr = client.exec_command(cmd2)
         time.sleep(2)
         rtn = stdout.read().decode('ascii')
-        if 'X1a' in rtn:
+        if jobname in rtn:
             print(f'running... {time.clock()}')
         else:
             print('died... trying to restart')

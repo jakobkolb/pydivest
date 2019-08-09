@@ -237,7 +237,7 @@ def run_experiment(argv):
     #epss = [round(x, 5) for x in list(np.linspace(0.0, 0.05, 6))]
     #phis = [round(x, 5) for x in list(np.linspace(0., 1., 11))]
 
-    epss, phis = [0.02], [.5, .7, .8, .9]
+    epss, phis = [0.02], [.5]
     eps, phi = [0.02], [.5]
 
     if test:
