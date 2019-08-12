@@ -31,17 +31,17 @@ def plot_cond(df, c, ax, t_max, thresh=0.5, c_df=None):
 def plot_hist(ax, trj, cond, t_max, thresh, indicator, cond_indicator):
     tmp = trj.xs(level='tstep', key=t_max)[[indicator]]
     tmp_cond = cond.xs(level='tstep', key=t_max)
-    tmp['close'] = float('nan')
-    tmp['far'] = float('nan')
+    tmp['$t_t => 2019$'] = float('nan')
+    tmp['$t_t < 2019$'] = float('nan')
     tmp.loc[tmp_cond[cond_indicator] > thresh,
-            'far'] = tmp.loc[tmp_cond[cond_indicator] > thresh, indicator]
+            '$t_t => 2019$'] = tmp.loc[tmp_cond[cond_indicator] > thresh, indicator]
     tmp.loc[tmp_cond[cond_indicator] < thresh,
-            'close'] = tmp.loc[tmp_cond[cond_indicator] < thresh, indicator]
+            '$t_t < 2019$'] = tmp.loc[tmp_cond[cond_indicator] < thresh, indicator]
 
     y_max = trj[indicator].max()
     y_min = trj[indicator].xs(level='tstep', key=t_max).min()
 
-    tmp[['close', 'far']].plot(kind='hist',
+    tmp[['$t_t < 2019$', '$t_t => 2019$']].plot(kind='hist',
                                ax=ax,
                                stacked=True,
                                colors=['orange', '#878685'],
@@ -100,7 +100,9 @@ def plot(fig, trj, trj2,
          thresh_time=10.,
          thresh_value=.5,
          t_max_1=20.,
-         t_max_2=40.):
+         t_max_2=40.,
+         plot_no='',
+         hlines=[]):
 
     # setting up axes
     axes = []
@@ -174,6 +176,14 @@ def plot(fig, trj, trj2,
                  indicators,
                  cond_indicator=thresh_indicator)
 
+    l_items = []
+    for l in hlines:
+        l_items.append(axes[3].axhline(l['value'], ls=':', label=l['label'],
+                                       color=l['color']))
+    if plot_no == str(1):
+        labels = [l.get_label() for l in l_items]
+        axes[3].legend(l_items, labels, frameon=False)
+
     # fixing stuff with axes labels and ticks
 
     axes[2].set_ylim([y_min, y_max])
@@ -187,11 +197,15 @@ def plot(fig, trj, trj2,
     axes[0].axvline(thresh_time, color='k', alpha=.7)
     x_labels = axes[0].get_xticks().tolist()
     axes[0].set_xticklabels([int(x+2010) for x in x_labels])
+    axes[0].text(0.9, 0.9, f'{plot_no}a', ha='center', va='center',
+                 transform=axes[0].transAxes)
 
     axes[1].set_xticks([])
     axes[1].set_yticks([])
-    axes[1].set_xlabel(f'fossil resource remaining in {int(2010+t_max)}')
-    axes[1].set_ylabel(f'fraction of clean investment in {int(2010+t_scatt[0])}')
+    axes[1].set_xlabel(f'  fossil resource remaining in {int(2010+t_max)}')
+    axes[1].set_ylabel(f'  fraction of clean investment in {int(2010+t_scatt[0])}')
+    axes[1].text(0.9, 0.9, f'{plot_no}b', ha='center', va='center',
+                 transform=axes[1].transAxes)
 
     axes[2].set_ylabel('remaining fossil resource [Mtoe]')
     axes[2].set_xlabel('')
@@ -199,6 +213,8 @@ def plot(fig, trj, trj2,
     x_labels = axes[2].get_xticks().tolist()
     axes[2].set_xticklabels([int(x+2010) for x in x_labels])
     axes[2].ticklabel_format(style='sci', axis='y', scilimits=(0, 0))
+    axes[2].locator_params(axis='y', nbins=6)
+    axes[2].text(0.9, 0.9, f'{plot_no}c', ha='center', va='center',
+                 transform=axes[2].transAxes)
 
     fig.tight_layout()
-    fig.savefig('fitted_initials_evaluation.pdf')
