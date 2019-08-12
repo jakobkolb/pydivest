@@ -161,7 +161,7 @@ def RUN_FUNC(eps, phi, test):
     # store data in case of successful run
 
     df1 = even_time_series_spacing(m.get_economic_trajectory(), 401, 0, 20)
-    df3 = even_time_series_spacing(m.get_economic_trajectory(), 101, 0, t_1)
+    df3 = even_time_series_spacing(m.get_economic_trajectory(), 401, 0, t_1)
 
     df1 = df1[['time', 'wage', 'r_c', 'r_d', 'r_c_dot', 'r_d_dot', 'K_c',
                 'K_d', 'P_c', 'P_d', 'G', 'R', 'C', 'Y_c', 'Y_d',
@@ -173,6 +173,7 @@ def RUN_FUNC(eps, phi, test):
                 'consensus', 'decision state', 'G_alpha', 'i_c']]
 
     df1.index.name = 'tstep'
+    df3.index.name = 'tstep'
     res["convergence_state"] = [m.convergence_state]
     res["convergence_time"] = [m.convergence_time]
 
@@ -237,7 +238,7 @@ def run_experiment(argv):
     #epss = [round(x, 5) for x in list(np.linspace(0.0, 0.05, 6))]
     #phis = [round(x, 5) for x in list(np.linspace(0., 1., 11))]
 
-    epss, phis = [0.02], [.5]
+    epss, phis = [0.02], [.1, .3, .5, .6, .7, .8, .9]
     eps, phi = [0.02], [.5]
 
     if test:
@@ -266,7 +267,7 @@ def run_experiment(argv):
         return 1
     # define computation handle
 
-    sample_size = 500 if not test else 110
+    sample_size = 1000 if not test else 110
 
     compute_handle = experiment_handling(run_func=RUN_FUNC,
                                          runfunc_output=run_func_output,
