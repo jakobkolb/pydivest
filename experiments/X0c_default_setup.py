@@ -184,7 +184,7 @@ def RUN_FUNC(eps, phi, test):
     for df in [dfi, df1, df2, df3]:
         df['sample_id'] = None
 
-    return 1, [df1, df2]
+    return 1, [df1, df2, df3]
 
 
 def run_experiment(argv):
