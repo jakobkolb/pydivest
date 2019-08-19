@@ -1,0 +1,29 @@
+#!/bin/bash
+#SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
+#SBATCH --qos=short
+#SBATCH --job-name=X1a4
+#SBATCH --output=%A_X1a4.out
+#SBATCH --error=%A_X1a4.err
+#SBATCH --time=0-24
+#SBATCH --ntasks=256
+#SBATCH --exclusive
+
+module load hpc/2015 anaconda/5.0.0_py3
+export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
+export OMP_NUM_THREADS=1
+
+source activate py36
+
+echo "_______________________________________________"
+echo "SLURM JOB ID: $SLURM_JOBID"
+echo "$SLURM_NTASKS tasks"
+echo "_______________________________________________"
+
+cd ~/Divest_Experiments/experiments
+date
+
+srun -n 16 python -W ignore X1a_zealots_vs_rednecks.py 2 4
+
+date
+
+srun -n $SLURM_NTASKS python -W ignore X1a_zealots_vs_rednecks.py 0 4

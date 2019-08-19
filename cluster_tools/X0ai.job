@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
+#SBATCH --qos=short
+#SBATCH --job-name=X0ai
+#SBATCH --output=%A_X0ai.out
+#SBATCH --error=%A_X0ai.err
+#SBATCH --time=0-24
+#SBATCH --nodes=16
+#SBATCH --tasks-per-node=16
+#SBATCH --no-kill
+#SBATCH --requeue
+
+module load hpc/2015 anaconda/5.0.0_py3
+export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
+export OMP_NUM_THREADS=1
+
+source activate py36
+
+echo "_______________________________________________"
+echo "SLURM JOB ID: $SLURM_JOBID"
+echo "$SLURM_NTASKS tasks"
+echo "_______________________________________________"
+
+cd ../experiments
+srun -n $SLURM_NTASKS python -W ignore X0a_sample_initial_opinions.py 0 0

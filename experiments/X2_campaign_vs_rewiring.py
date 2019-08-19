@@ -1,16 +1,12 @@
 """
-This ist the default setup of the model with economic parameters estimated from
-historical data and initial distribution of opinions fitted to keep the ratio
-of clean to dirty capital constant at the start of the simulation (results from
-experiment X0a)
+test the sensitivity of the simulation on deviations in the initial conditions
+in terms of cue order distributions.
 
-As experiment X0b suggested, above N=200 households, additional households
-don't give a big reduction in the variance of results, I use N=200 households
-for this simulation.
+Additionally, add campaigners as household types. Campaigners always invest in
+the clean sector and can not imitate any other behavior.
 
-The results can be used to verify, that the estimaten of the initial
-distribution of opinions actually helped to get the desired model behavior e.g.
-constant capital shares in the beginning of the simulation.
+Vary the initial fraction of rednecks and campaigners between 0% and 25% and
+renormalize the rest of the initial distribution accordingly.
 """
 
 # Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
@@ -46,7 +42,7 @@ def load(*args, **kwargs):
     return np.load(*args, allow_pickle=True, **kwargs)
 
 
-def RUN_FUNC(eps, phi, test):
+def RUN_FUNC(n_cp, phi, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -56,18 +52,13 @@ def RUN_FUNC(eps, phi, test):
 
     Parameters:
     -----------
-    b_d : float > 0
-        the solow residual in the dirty sector
-    xi : float in [0,0.5]
-        exponent for knowledge stock in the clean production function
-    ffh: bool
-        if True: run with fast and frugal heuristics
-        if False: run with imitation only
-    test: int in [0,1]
+    n_cp: float in [0, 25]
+        frequency of campaigners in percent
+    phi: float in [0, 1]
+        rewiring probability in adaptive voter update
+    test: int in [0, 1]
         whether this is a test run, e.g.
         can be executed with lower runtime
-    filename: string
-        filename for the results of the run
     """
 
     # Make different types of decision makers. Cues are
@@ -80,13 +71,13 @@ def RUN_FUNC(eps, phi, test):
         [4, 1],  # green conformer
         [4, 0],  # dirty conformer
         [1],  # gutmensch
-        [0]  # redneck
+        [0],  # redneck
+        [5]   # campaigner
     ]
 
     # Parameters:
     defaults = ExperimentDefaults(params='fitted',
                                   phi=phi,
-                                  eps=eps,
                                   possible_cue_orders=possible_cue_orders)
 
     input_params = defaults.input_params
@@ -107,13 +98,46 @@ def RUN_FUNC(eps, phi, test):
     adjacency_matrix = nx.adj_matrix(net).toarray()
 
     # initial opinions:
+    # fitted distribution has length of N=100.
     fitted_opinions_distribution = [14, 7, 15, 13, 12, 16, 7, 16]
-    x = [2 * x for x in fitted_opinions_distribution]
+
+    # combined fraction of rednecks and campaigners
+    n_add = n_cp
+
+    # combined fraction of the rest of the population
+    n_rest = 100 - n_add
+
+    # current fraction of the rest of the population
+    n_rest_curr = sum(fitted_opinions_distribution[:7])
+
+    # rescale rest distribution
+
+    for i in range(7):
+        fitted_opinions_distribution[i] *= n_rest/n_rest_curr
+
+    # append number of campaigners according to input variable
+    fitted_opinions_distribution.append(n_cp)
+    # and set campaign option to True
+    input_params['campaign'] = True
+
+    # for N=200 households, I just use double the frequencies of the initial
+    # fitted distribution.
+    x = [n/sum(fitted_opinions_distribution) * x
+         for x in fitted_opinions_distribution]
     opinions = []
 
     for i, xi in enumerate(x):
         opinions += int(np.round(xi)) * [i]
     np.random.shuffle(opinions)
+    opinions = opinions[:n]
+
+    # in case, opinions are too short due to rounding errors, add values
+    if len(opinions) < n:
+        for i in range(n - len(opinions)):
+            opinions.append(opinions[i])
+    # in case, opinions are too long, remove some.
+    elif len(opinions) > n:
+        opinions = opinions[:n]
 
     # initial investment.
     # give equally sized amounts of capital to households.
@@ -157,11 +181,11 @@ def RUN_FUNC(eps, phi, test):
 
     res = {}
     res["runtime"] = [time.clock() - t_start]
-
+    print(f'run took {res["runtime"]}', flush=True)
     # store data in case of successful run
 
-    df1 = even_time_series_spacing(m.get_economic_trajectory(), 401, 0, 20)
-    df3 = even_time_series_spacing(m.get_economic_trajectory(), 401, 0, t_1)
+    df1 = even_time_series_spacing(m.get_economic_trajectory(), 101, 0, t_1)
+    df3 = even_time_series_spacing(m.get_economic_trajectory(), 401, 0, 20)
 
     df1 = df1[['time', 'wage', 'r_c', 'r_d', 'r_c_dot', 'r_d_dot', 'K_c',
                 'K_d', 'P_c', 'P_d', 'G', 'R', 'C', 'Y_c', 'Y_d',
@@ -173,7 +197,6 @@ def RUN_FUNC(eps, phi, test):
                 'consensus', 'decision state', 'G_alpha', 'i_c']]
 
     df1.index.name = 'tstep'
-    df3.index.name = 'tstep'
     res["convergence_state"] = [m.convergence_state]
     res["convergence_time"] = [m.convergence_time]
 
@@ -184,8 +207,7 @@ def RUN_FUNC(eps, phi, test):
 
     for df in [dfi, df1, df2, df3]:
         df['sample_id'] = None
-
-    return 1, [df1, df2, df3]
+    return 1, [dfi, df1, df2]
 
 
 def run_experiment(argv):
@@ -234,31 +256,29 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    # mute these until further notice
-    #epss = [round(x, 5) for x in list(np.linspace(0.0, 0.05, 6))]
-    #phis = [round(x, 5) for x in list(np.linspace(0., 1., 11))]
-
-    epss, phis = [0.02], [.1, .3, .5, .6, .7, .8, .9]
-    eps, phi = [0.02], [.5]
+    phis, n_cps = np.linspace(0, 1, 21), range(0, 20, 1)
+    phi, n_cp = [.5], [0, 15, 25]
 
     if test:
-        param_combs = list(it.product(eps, phi, [test]))
+        param_combs = list(it.product(n_cp, phi, [test]))
     else:
-        param_combs = list(it.product(epss, phis, [test]))
+        param_combs = list(it.product(n_cps, phis, [test]))
     """
     set input/output paths
     """
 
+    if test:
+        print('initializing helper', flush=True)
+
     helper = ExperimentRoutines(run_func=RUN_FUNC,
                                 param_combs=param_combs,
                                 test=test,
-                                subfolder=f'X0c')
+                                subfolder=f'X2')
 
     save_path_raw, save_path_res = helper.get_paths()
     """
     run computation and/or post processing and/or plotting
     """
-
     # Create dummy runfunc output to pass its shape to experiment handle
     run_func_output = helper.run_func_output
 
@@ -267,8 +287,10 @@ def run_experiment(argv):
         return 1
     # define computation handle
 
-    sample_size = 1000 if not test else 110
+    sample_size = 100 if not test else 5
 
+    if test:
+        print('initializing compute handles', flush=True)
     compute_handle = experiment_handling(run_func=RUN_FUNC,
                                          runfunc_output=run_func_output,
                                          sample_size=sample_size,
@@ -294,10 +316,12 @@ def run_experiment(argv):
 
     sys.stdout.flush()
 
+    if test:
+        print('starting computation', flush=True)
     compute_handle.compute()
 
-    for handle in pp_handles:
-        handle.compute()
+    # for handle in pp_handles:
+    #     handle.compute()
 
     return 1
 
