@@ -67,7 +67,8 @@ def run_func(b_d, kappa_c, d_c, e, b_R, eps, phi, test):
         can be executed with lower runtime
     """
 
-    input_params = ExperimentDefaults.input_params
+    ed = ExperimentDefaults()
+    input_params = ed.input_params
 
     input_params['b_d'] = b_d
     input_params['kappa_c'] = kappa_c

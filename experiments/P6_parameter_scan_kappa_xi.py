@@ -56,7 +56,8 @@ def run_func(kappa_c, xi, approximate, test):
 
     # Parameters:
 
-    input_params = ExperimentDefaults.input_params
+    ed = ExperimentDefaults()
+    input_params = ed.input_params
 
     input_params['kappa_c'] = kappa_c
     input_params['xi'] = xi

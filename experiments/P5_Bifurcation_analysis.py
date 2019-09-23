@@ -12,38 +12,37 @@ to see, which of the two sectors dominates.
 # Contact: kolb@pik-potsdam.de
 # License: GNU AGPL Version 3
 
-
 import matplotlib
 matplotlib.use('Agg')
-
+import datetime
 import getpass
 import itertools as it
 import os
 import sys
 import time
 from pathlib import Path
-import PyDSTool as pdt
-import sympy as sp
-import matplotlib.pyplot as plt
-import datetime
-
 
 import networkx as nx
 import numpy as np
 import pandas as pd
-from pymofa.experiment_handling import experiment_handling, even_time_series_spacing
-
-from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate
+import PyDSTool as pdt
+import sympy as sp
 
 from pydivest.default_params import ExperimentDefaults
+from pydivest.macro_model.integrate_equations_aggregate import \
+    IntegrateEquationsAggregate
+from pymofa.experiment_handling import (even_time_series_spacing,
+                                        experiment_handling)
+
+import matplotlib.pyplot as plt
 
 
 def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
-    Output is saved in pickled dictionaries including the 
-    initial values, parameters and convergence state and time 
+    Output is saved in pickled dictionaries including the
+    initial values, parameters and convergence state and time
     for each run.
 
     Parameters:
@@ -67,7 +66,8 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
 
     # Parameters:
 
-    input_params = ExperimentDefaults.input_params
+    ed = ExperimentDefaults()
+    input_params = ed.input_params
 
     input_params['b_d'] = b_d
     input_params['kappa_c'] = kappa_c
@@ -87,8 +87,10 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
 
     # building initial conditions
     p = float(k) / N
+
     while True:
         net = nx.erdos_renyi_graph(N, p)
+
         if len(list(net)) > 1:
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
@@ -99,6 +101,7 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
 
     init_conditions = (adjacency_matrix, investment_decisions,
                        clean_investment, dirty_investment)
+
     if test:
         print('initializing model')
 
@@ -107,13 +110,24 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
     DSargs = pdt.args(name='aggregated_approximation')
     v_e, v_pi, v_tau = sp.symbols('v_e v_pi v_tau')
     v_K_cc, v_K_cd, v_K_dc, v_K_dd = sp.symbols('K_cc K_cd K_dc K_dd')
-    v_subs = {m.e: v_e, m.pi: v_pi, m.tau: v_tau,
-              m.Kcc: v_K_cc, m.Kcd: v_K_cd,
-              m.Kdc: v_K_dc, m.Kdd: v_K_dd}
+    v_subs = {
+        m.e: v_e,
+        m.pi: v_pi,
+        m.tau: v_tau,
+        m.Kcc: v_K_cc,
+        m.Kcd: v_K_cd,
+        m.Kdc: v_K_dc,
+        m.Kdd: v_K_dd
+    }
 
-    equations = {m.var_symbols[i]: str(m.rhs_raw[i].subs(v_subs)) for i in range(len(m.var_names))}
+    equations = {
+        m.var_symbols[i]: str(m.rhs_raw[i].subs(v_subs))
+
+        for i in range(len(m.var_names))
+    }
 
     equations_updated = {}
+
     for (symbol, value) in equations.items():
         if symbol in v_subs.keys():
             equations_updated[str(v_subs[symbol])] = value
@@ -121,6 +135,7 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
             equations_updated[str(symbol)] = value
 
     params_updated = {}
+
     for (symbol, value) in m.list_parameters().items():
         if symbol in v_subs.keys():
             params_updated[str(v_subs[symbol])] = value
@@ -128,6 +143,7 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
             params_updated[str(symbol)] = value
 
     initial_conditions = {}
+
     for (symbol, value) in m.list_initial_conditions().items():
         if symbol in v_subs.keys():
             initial_conditions[str(v_subs[symbol])] = value
@@ -167,11 +183,21 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
     PCargs.LocBifPoints = 'LP'
     PC.newCurve(PCargs)
 
-    print(f'starting continuation, {b_d}, {kappa_c}, {d_c}, {e}, {b_R}, {eps}', flush=True)
+    print(f'starting continuation, {b_d}, {kappa_c}, {d_c}, {e}, {b_R}, {eps}',
+          flush=True)
     start = time.clock()
     PC['EQ1'].forward()
     stop = time.clock()
-    print(datetime.datetime.now(), f'continuation took {stop - start} seconds for {tsteps} steps', b_d, kappa_c, d_c, e, b_R, eps, test, flush=True)
+    print(datetime.datetime.now(),
+          f'continuation took {stop - start} seconds for {tsteps} steps',
+          b_d,
+          kappa_c,
+          d_c,
+          e,
+          b_R,
+          eps,
+          test,
+          flush=True)
 
     if test:
         print('plotting')
@@ -179,8 +205,9 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
     res = PC['EQ1'].display(stability=True, figure='fig1', axes='somename')
     fig = plt.gcf()
     ax = plt.gca()
-    ax.set_title(f'Limit Point Manyfold for kappac={kappa_c:.2f}, d_c={d_c:.2f}, '
-                 f'e={e:.1f}, b_R={b_R}, eps={eps:.2f}, b_d={b_d:.1f}')
+    ax.set_title(
+        f'Limit Point Manyfold for kappac={kappa_c:.2f}, d_c={d_c:.2f}, '
+        f'e={e:.1f}, b_R={b_R}, eps={eps:.2f}, b_d={b_d:.1f}')
     fig.savefig(f'lp_manifold_xi_vs_C_with_kappac={kappa_c:.2f}_d_c={d_c:.2f}'
                 f'_e={e:.1f}_b_R={b_R}_eps={eps:.2f}_bd={b_d:.1f}.png')
 
@@ -198,13 +225,14 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
 
         columns = ncolumns + scolumns
 
-        df = pd.DataFrame(columns=columns,
-                          index=index)
+        df = pd.DataFrame(columns=columns, index=index)
 
         def strcomp(ls):
             x = ''
+
             for l in ls:
                 x += l + ', '
+
             return x[:-2]
 
         for i, point in enumerate(PC['EQ1'].sol):
@@ -216,11 +244,13 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
 
         for col in columns:
             df[col] = df[col].astype(str)
+
         return df
 
     df_out = to_df(PC)
 
     # print(f'saving, {b_d}, {kappa_c}, {d_c}, {e}, {b_R}, {eps}', flush=True)
+
     return exit_status, df_out
 
 
@@ -260,16 +290,17 @@ def run_experiment(argv):
     """
 
     # switch testing mode
+
     if len(argv) > 1:
         test = bool(int(argv[1]))
     else:
         test = False
-
     """
     set input/output paths
     """
 
     respath = os.path.dirname(os.path.realpath(__file__)) + "/output_data"
+
     if getpass.getuser() == "jakob":
         tmppath = respath
     elif getpass.getuser() == "kolb":
@@ -285,7 +316,6 @@ def run_experiment(argv):
 
     SAVE_PATH_RAW = f'{tmppath}/{test_folder}{folder}/'
     SAVE_PATH_RES = f'{respath}/{test_folder}{folder}/'
-
     """
     create parameter combinations and index
     """
@@ -300,12 +330,11 @@ def run_experiment(argv):
     b_Rs = [round(x, 5) for x in list(np.linspace(.1, .5, 3))]
     epss = [round(x, 5) for x in list(np.linspace(.01, .05, 3))]
 
-
     if test:
         PARAM_COMBS = list(it.product(b_d, kappa_c, d_c, e, b_R, eps, [test]))
     else:
-        PARAM_COMBS = list(it.product(b_ds, kappa_c, d_cs, e, b_R, epss, [test]))
-
+        PARAM_COMBS = list(
+            it.product(b_ds, kappa_c, d_cs, e, b_R, epss, [test]))
     """
     run computation and/or post processing and/or plotting
     """
@@ -320,7 +349,7 @@ def run_experiment(argv):
         params = list(PARAM_COMBS[0])
         params[-1] = True
         run_func_output = RUN_FUNC(*params)[1]
-        with open(SAVE_PATH_RAW+'rfof.pkl', 'wb') as dmp:
+        with open(SAVE_PATH_RAW + 'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
     SAMPLE_SIZE = 1
@@ -331,10 +360,10 @@ def run_experiment(argv):
                                          sample_size=SAMPLE_SIZE,
                                          parameter_combinations=PARAM_COMBS,
                                          path_raw=SAVE_PATH_RAW,
-                                         min_itemsize=30
-                                         )
+                                         min_itemsize=30)
 
     compute_handle.compute()
+
     return 1
 
 

@@ -60,7 +60,8 @@ def RUN_FUNC(b_d, b_R, xi, approximate, test):
 
     # Parameters:
 
-    input_params = ExperimentDefaults.input_params
+    ed = ExperimentDefaults()
+    input_params = ed.input_params
 
     input_params['b_d'] = b_d
     input_params['b_r0'] = b_R

@@ -55,7 +55,8 @@ def run_func(approximate, test):
 
     # Parameters:
 
-    input_params = ExperimentDefaults.input_params
+    ed = ExperimentDefaults()
+    input_params = ed.input_params
 
     input_params['phi'] = .5
     input_params['test'] = test
