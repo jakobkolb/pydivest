@@ -241,7 +241,9 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
             try:
                 stability = point.labels['EP']['stab']
             except KeyError:
+                print("points don't have stability attribute")
                 print(point.labels)
+                print(point.values())
             row = values + [stability] + [labels]
             df.iloc[i] = row
 
