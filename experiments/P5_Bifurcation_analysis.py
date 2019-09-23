@@ -238,7 +238,10 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
         for i, point in enumerate(PC['EQ1'].sol):
             values = point.values()
             labels = strcomp(list(point.labels.keys()))
-            stability = point.labels['EP']['stab']
+            try:
+                stability = point.labels['EP']['stab']
+            except KeyError:
+                print(point.labels)
             row = values + [stability] + [labels]
             df.iloc[i] = row
 
@@ -248,7 +251,6 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
         return df
 
     df_out = to_df(PC)
-
     # print(f'saving, {b_d}, {kappa_c}, {d_c}, {e}, {b_R}, {eps}', flush=True)
 
     return exit_status, df_out
