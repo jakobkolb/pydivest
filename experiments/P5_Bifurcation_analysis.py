@@ -202,14 +202,14 @@ def RUN_FUNC(b_d, kappa_c, d_c, e, b_R, eps, test):
     if test:
         print('plotting')
 
-    res = PC['EQ1'].display(stability=True, figure='fig1', axes='somename')
-    fig = plt.gcf()
-    ax = plt.gca()
-    ax.set_title(
-        f'Limit Point Manyfold for kappac={kappa_c:.2f}, d_c={d_c:.2f}, '
-        f'e={e:.1f}, b_R={b_R}, eps={eps:.2f}, b_d={b_d:.1f}')
-    fig.savefig(f'lp_manifold_xi_vs_C_with_kappac={kappa_c:.2f}_d_c={d_c:.2f}'
-                f'_e={e:.1f}_b_R={b_R}_eps={eps:.2f}_bd={b_d:.1f}.png')
+    #res = PC['EQ1'].display(stability=True, figure='fig1', axes='somename')
+    #fig = plt.gcf()
+    #ax = plt.gca()
+    #ax.set_title(
+    #    f'Limit Point Manyfold for kappac={kappa_c:.2f}, d_c={d_c:.2f}, '
+    #    f'e={e:.1f}, b_R={b_R}, eps={eps:.2f}, b_d={b_d:.1f}')
+    #fig.savefig(f'lp_manifold_xi_vs_C_with_kappac={kappa_c:.2f}_d_c={d_c:.2f}'
+    #            f'_e={e:.1f}_b_R={b_R}_eps={eps:.2f}_bd={b_d:.1f}.png')
 
     exit_status = 1
 
