@@ -12,6 +12,11 @@ class plot_routines(object):
     def __init__(self, micro_path='', macro_path='', rep_path=None,
                  micro_selector='', macro_selector='', rep_selector='',
                  table='dat', toffset=0):
+
+        params = {'legend.fontsize': 20,
+                  'legend.handlelength': 1}
+        plt.rcParams.update(params)
+
         with pd.HDFStore(micro_path + 'mean.h5') as store:
             self.micro_mean = store.select(table, micro_selector)
         with pd.HDFStore(micro_path + 'std.h5') as store:
@@ -282,6 +287,144 @@ class plot_routines(object):
 
         return fig, axes
 
+    def mk_4plots_wide(self, selector: dict,
+                  upper_limits: list = [1., 80, 11, 10],
+                  lower_limits: list = [-.8, 0., 0., 0.],
+                  legend_locations: list = [4, 7, 1, 7],
+                  tmax: int = 1000, tmin: int = 0,
+                  plot_rep=False,
+                  figsize=(8, 6),
+                  setup=[0, 1, 2, 3]):
+
+        self.variable_combos = [['N_c over N', '[cc] over M', '[cd] over M'],
+                                ['C', 'G'], 
+                                ['K_c^c', 'K_d^d'],
+                                ['K_c^d', 'K_d^c']]
+        self.variable_combos_backup = [['N_c over N', '[cc] over M', '[cd] over M'],
+                                ['c', 'g'], 
+                                ['K_c^c', 'K_d^d'],
+                                ['K_c^d', 'K_d^c']
+                                ]
+        self.latex_labels = [['$N_c / N$', '$[cc] / M$', '$[cd] / M$'],
+                             ['$C$', '$G$'],
+                             ['$K^{(c)}_c$', '$K^{(d)}_d$'],
+                             ['$K^{(d)}_c$', '$K^{(c)}_d$']
+                             ]
+
+        # set opacity for plots of micro data:
+        micro_alpha = 0.8
+        macro_alpha = 1.
+        if plot_rep:
+            micro_alpha = 0.5
+            macro_alpha = .6
+        # select data for given value of bd and phi
+        local_datasets = []
+        for d in self.data_sets:
+            local_datasets.append(d.xs(list(selector.values()), level=list(selector.keys())))
+
+        l_vars = len(self.variable_combos)
+        fig, axes = plt.subplots(nrows=1, ncols=l_vars, figsize=figsize)
+        axes = list(axes)
+
+        for i in range(4):
+            # rearrange plots. Run axis id from 
+            # 0 to 4 but run j according to order in setup.
+            j = setup[i]
+            variables = self.variable_combos[j]
+            ax_id = i
+
+            axes[ax_id].set_xlim([tmin, tmax])
+            # local data set for specify value of phi
+            ldp = local_datasets
+            print(j, variables)
+            if j == 1:
+                # clone axis for plot of knowledge stock
+                c_ax = axes[ax_id].twinx()
+                axes.append(c_ax)
+                c_ax.set_xlim([tmin, tmax])
+                ldp[0][variables[0]] \
+                    .plot(
+                    ax=axes[ax_id],
+                    color=self.colors[0],
+                    alpha=micro_alpha)
+                ldp[0][variables[1]] \
+                    .plot(
+                    ax=c_ax,
+                    color=self.colors[1],
+                    alpha=micro_alpha)
+            else:
+                ldp[0][variables] \
+                    .plot(
+                    ax=axes[ax_id],
+                    color=self.colors,
+                    alpha=micro_alpha)
+            for k, variable in enumerate(variables):
+                ax = axes[ax_id]
+                if variable == 'g' or variable == 'G':
+                    ax = c_ax
+                    c_ax.set_ylim([lower_limits[-1], upper_limits[-1]])
+
+                upper_limit = np.transpose(ldp[0][[variable]].values \
+                                           + ldp[1][[variable]].values)[0]
+                lower_limit = np.transpose(ldp[0][[variable]].values \
+                                           - ldp[1][[variable]].values)[0]
+                ax.fill_between(ldp[0].index.values,
+                                upper_limit, lower_limit,
+                                color='k',
+                                alpha=0.05)
+                ax.plot(ldp[0].index.values,
+                        upper_limit,
+                        color=self.colors[k],
+                        alpha=0.2)
+                ax.plot(ldp[0].index.values,
+                        lower_limit,
+                        color=self.colors[k],
+                        alpha=0.2)
+
+                # Plot macro data.
+                try:
+                    ldp[2][[variable]] \
+                        .plot(ax=ax,
+                              color=self.colors[k],
+                              legend=False,
+                              style='--',
+                              linewidth=2,
+                              alpha=macro_alpha)
+                except KeyError:
+                    print(f'Key Error for {self.variable_combos[j]} in dataset {k}')
+                    (100 * ldp[2][self.variable_combos_backup[j][k]]) \
+                        .plot(ax=ax,
+                              color=self.colors[k],
+                              legend=False,
+                              style='--',
+                              linewidth=2,
+                              alpha=macro_alpha)
+
+            ax = axes[ax_id]
+            ax.set_ylim([lower_limits[j], upper_limits[j]])
+            k = len(variables)
+            patches, labels = ax.get_legend_handles_labels()
+            labels = self.latex_labels[j]
+            if j == 1:
+                gArtist = plt.Line2D((0, 1), (0, 0), color=self.colors[1])
+                cArtist = plt.Line2D((0, 1), (0, 0), color=self.colors[0])
+                patches = [cArtist, gArtist]
+            if j is 0:
+                ax.set_xticklabels([])
+                ax.set_xlabel('')
+            else:
+                ax.set_xlabel('t')
+            lg = ax.legend(patches[:k], labels[:k],
+                           loc=legend_locations[ax_id],
+                           title='',
+                           fontsize=12)
+            lg.get_frame().set_alpha(0.8)
+
+            # ax.set_title('')
+            # ax.set_loc
+
+        return fig, axes
+
     def mk_4plots_v2(self, selector: dict,
                   upper_limits: list = [1., 80, 11, 10],
                   lower_limits: list = [-.8, 0., 0., 0.],
@@ -303,7 +446,7 @@ class plot_routines(object):
         self.latex_labels = [['$N_c / N$', '$[cc] / M$', '$[cd] / M$'],
                              ['$C$', '$G$'],
                              ['$K^{(c)}_c$', '$K^{(d)}_d$'],
-                             ['$K^{(c)}_d$', '$K^{(d)}_c$']
+                             ['$K^{(d)}_c$', '$K^{(c)}_d$']
                              ]
 
         # set opacity for plots of micro data:
