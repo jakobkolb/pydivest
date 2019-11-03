@@ -1,9 +1,9 @@
 #!/bin/bash
 #SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
-#SBATCH --qos=short
+#SBATCH --qos=priority
 #SBATCH --job-name=X7
-#SBATCH --output=%X7.out
-#SBATCH --error=%X7.err
+#SBATCH --output=%A_X7.out
+#SBATCH --error=%A_X7.err
 #SBATCH --nodes=4
 #SBATCH --tasks-per-node=16
 

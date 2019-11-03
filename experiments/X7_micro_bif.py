@@ -62,7 +62,7 @@ def RUN_FUNC(b_d, phi, test):
     defaults = ExperimentDefaults(params='default',
                                   phi=phi,
                                   b_d=b_d,
-                                  test=True,
+                                  test=False,
                                   R_depletion=False)
 
     input_params = defaults.input_params
