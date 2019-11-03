@@ -6,6 +6,7 @@
 
 import datetime
 import os
+import io
 import sys
 import traceback
 from contextlib import contextmanager
@@ -38,7 +39,11 @@ def stdout_redirected(to=os.devnull, stdout=None):
     if stdout is None:
         stdout = sys.stdout
 
-    stdout_fd = fileno(stdout)
+    try:
+        stdout_fd = fileno(stdout)
+    except io.UnsupportedOperation:
+        yield 0
+        return
     # copy stdout_fd before it is overwritten
     # NOTE: `copied` is inheritable on Windows when duplicating a
     # standard stream
@@ -968,7 +973,6 @@ class DivestmentCore:
         update_time : float
             time until which system is integrated
         """
-
         dt = [self.t, update_time]
         x0 = np.fromiter(chain.from_iterable([
             list(self.investment_clean),
