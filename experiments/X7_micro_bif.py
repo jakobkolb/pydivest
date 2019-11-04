@@ -124,9 +124,10 @@ def RUN_FUNC(b_d, phi, approx, test):
     df1 = even_time_series_spacing(m.get_aggregate_trajectory(), len(xis), t_0,
                                   t_max)
     df1['xi'] = xis
+    #m.agg_trajectory = []
     m.init_aggregate_trajectory()
 
-    t_0 = t_max
+    t_0 = t_max+1
     for xi in np.linspace(xi_max, xi_min, data_points):
         if approx == 1:
             m.p_xi = xi
