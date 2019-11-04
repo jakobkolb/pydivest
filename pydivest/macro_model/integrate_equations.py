@@ -429,7 +429,7 @@ class IntegrateEquations:
         # simplify:
         tmp = sp.powsimp(sp.expand(self.F0[Fc0], power_base=True, deep=True, force=True), force=True)
         self.F0[Fc0] = sp.exp(sp.simplify(sp.ratsimp(sp.log(tmp))))
-        
+
         # Note: It turns out that different reference incomes lead to an inherent bias in imitation 
         # probabilities towards the sector with higher reference income. This can NOT happen.
         # Therefore, I use the mean of the two reference incomes for both Fc0 and Fd0.
@@ -560,7 +560,7 @@ class IntegrateEquations:
             self.dependent_vars[key] = self.dependent_vars_raw[key].subs(self.subs_params)
         if self.p_test:
             print('sucessfull')
-        
+
         if dict_in is not None:
             return {key: item.subs(self.subs_params) for key, item in dict_in.items()}
 

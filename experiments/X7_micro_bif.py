@@ -29,7 +29,8 @@ from tqdm import tqdm
 from pydivest.default_params import ExperimentDefaults, ExperimentRoutines
 from pydivest.divestvisuals.data_visualization import (plot_amsterdam,
                                                        plot_trajectories)
-from pydivest.micro_model import divestmentcore as model
+from pydivest.micro_model.divestmentcore import DivestmentCore as MicroModel
+from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate as MacroModel
 from pymofa.experiment_handling import (even_time_series_spacing,
                                         experiment_handling)
 
@@ -38,7 +39,7 @@ def load(*args, **kwargs):
     return np.load(*args, allow_pickle=True, **kwargs)
 
 
-def RUN_FUNC(b_d, phi, test):
+def RUN_FUNC(b_d, phi, approx, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -57,11 +58,11 @@ def RUN_FUNC(b_d, phi, test):
         can be executed with lower runtime
     """
 
-
     # Parameters:
     defaults = ExperimentDefaults(params='default',
                                   phi=phi,
                                   b_d=b_d,
+                                  L=100.,
                                   test=False,
                                   R_depletion=False)
 
@@ -94,37 +95,59 @@ def RUN_FUNC(b_d, phi, test):
                        np.array(clean_investment), np.array(dirty_investment))
 
     # initializing the model
-    m = model.DivestmentCore(*init_conditions, **input_params)
+    if approx == 0:
+        m = MicroModel(*init_conditions, **input_params)
+    elif approx == 1:
+        m = MacroModel(*init_conditions, **input_params)
 
     # run model with abundant resource
 
-    t_n = 100 if not test else 3
     t_max = 0
+    t_n = 100 if not test else 3
     xis = []
-    data_points = 21
-    xi_min = .12
-    xi_max = .5
+    data_points = 7
+    xi_min = .1
+    xi_max = .2
+    t_0 = t_max
     for xi in np.linspace(xi_min, xi_max, data_points):
-        m.xi = xi
+        if approx == 1:
+            m.p_xi = xi
+        else:
+            m.xi = xi
+        m.set_parameters()
         t_max += t_n
         xis += [xi]*t_max
         if test:
-            print(m.b_d, t_max)
+            print(t_max)
         m.run(t_max=t_max)
-
     # store data in case of successful run
-    df1 = even_time_series_spacing(m.get_aggregate_trajectory(), len(xis), 
-                                   0, t_max)
+    df1 = even_time_series_spacing(m.get_aggregate_trajectory(), len(xis), t_0,
+                                  t_max)
     df1['xi'] = xis
+    m.ag_trajectory = []
+    m.init_aggregate_trajectory()
 
-    df1 = df1[['time', 'G', 'C', 'xi', 'x', 'z', 'K_c^c', 'K_c^d']]
-    df2 = df1.groupby('xi').mean()
-
-    df1.index.name = 'tstep'
+    t_0 = t_max+1
+    for xi in np.linspace(xi_max, xi_min, data_points):
+        if approx == 1:
+            m.p_xi = xi
+        else:
+            m.xi = xi
+        m.set_parameters()
+        t_max += t_n
+        xis += [xi]*t_max
+        if test:
+            print(t_max)
+        m.run(t_max=t_max)
+    # store data in case of successful
+    df2 = even_time_series_spacing(m.get_aggregate_trajectory(), len(xis), t_0,
+                                  t_max)
+    df2['xi'] = xis
 
     # save data
 
     for df in [df1, df2]:
+        df.index.name='tstep'
         df['sample_id'] = None
     return 1, [df1, df2]
 
@@ -171,17 +194,21 @@ def run_experiment(argv):
     else:
         test = True
         ic = None
+    if len(argv) > 2:
+        approx = int(argv[2])
+    else:
+        approx = 0
     """
     create parameter combinations and index
     """
 
     phis, b_ds = np.linspace(0, 1, 21), np.linspace(3, 4, 3)
-    phi, b_d = [.5], [4]
+    phi, b_d, approx = [.5], [4], [0, 1]
 
     if test:
-        param_combs = list(it.product(b_d, phi, [test]))
+        param_combs = list(it.product(b_d, phi, approx, [test]))
     else:
-        param_combs = list(it.product(b_d, phi, [test]))
+        param_combs = list(it.product(b_d, phi, approx, [test]))
     """
     set input/output paths
     """
@@ -206,7 +233,7 @@ def run_experiment(argv):
         return 1
     # define computation handle
 
-    sample_size = 3 if not test else 3
+    sample_size = 63 if not test else 3
 
     if test:
         print('initializing compute handles', flush=True)
