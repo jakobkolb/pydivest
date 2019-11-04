@@ -105,7 +105,7 @@ def RUN_FUNC(b_d, phi, approx, test):
     t_max = 0
     t_n = 100 if not test else 3
     xis = []
-    data_points = 51
+    data_points = 7
     xi_min = .1
     xi_max = .2
     t_0 = t_max
