@@ -232,7 +232,7 @@ def run_experiment(argv):
         return 1
     # define computation handle
 
-    sample_size = 3 if not test else 3
+    sample_size = 63 if not test else 3
 
     if test:
         print('initializing compute handles', flush=True)
