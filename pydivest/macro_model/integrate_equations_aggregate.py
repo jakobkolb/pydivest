@@ -203,6 +203,10 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         # dictionary for final state
         self.final_state = {}
 
+    def init_aggregate_trajectory(self):
+        """(re) initialize trajectory"""
+        self.m_trajectory = pd.DataFrame(columns=self.var_names)
+
     def list_initial_conditions(self):
         values = [self.v_x, self.v_y, self.v_z,
                   self.v_Kcc, self.v_Kcd,
