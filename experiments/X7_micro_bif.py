@@ -70,7 +70,7 @@ def RUN_FUNC(b_d, phi, test):
     # building initial conditions
 
     # network:
-    n = 200
+    n = 100
     k = 10
 
     p = float(k) / n
@@ -84,10 +84,10 @@ def RUN_FUNC(b_d, phi, test):
 
     # initial opinions:
     # fitted distribution has length of N=100.
-    x = 40
+    x = int(n/2)
     opinions = [0]*(n-x) + [1]*x
 
-    clean_investment = [0]*n
+    clean_investment = [1]*n
     dirty_investment = [1]*n
 
     init_conditions = (adjacency_matrix, np.array(opinions),
@@ -98,18 +98,18 @@ def RUN_FUNC(b_d, phi, test):
 
     # run model with abundant resource
 
-    t_n = 200 if not test else 5
+    t_n = 100 if not test else 3
     t_max = 0
     xis = []
-    data_points = 7
+    data_points = 21
     xi_min = .12
-    xi_max = .14
+    xi_max = .5
     for xi in np.linspace(xi_min, xi_max, data_points):
-        if test:
-            print(xi, t_max)
         m.xi = xi
         t_max += t_n
         xis += [xi]*t_max
+        if test:
+            print(m.b_d, t_max)
         m.run(t_max=t_max)
 
     # store data in case of successful run
@@ -117,7 +117,7 @@ def RUN_FUNC(b_d, phi, test):
                                    0, t_max)
     df1['xi'] = xis
 
-    df1 = df1[['time', 'G', 'C', 'xi', 'x', 'z']]
+    df1 = df1[['time', 'G', 'C', 'xi', 'x', 'z', 'K_c^c', 'K_c^d']]
     df2 = df1.groupby('xi').mean()
 
     df1.index.name = 'tstep'
@@ -181,7 +181,7 @@ def run_experiment(argv):
     if test:
         param_combs = list(it.product(b_d, phi, [test]))
     else:
-        param_combs = list(it.product(b_ds, phi, [test]))
+        param_combs = list(it.product(b_d, phi, [test]))
     """
     set input/output paths
     """
@@ -206,7 +206,7 @@ def run_experiment(argv):
         return 1
     # define computation handle
 
-    sample_size = 100 if not test else 5
+    sample_size = 3 if not test else 3
 
     if test:
         print('initializing compute handles', flush=True)
