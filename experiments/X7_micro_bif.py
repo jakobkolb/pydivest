@@ -30,7 +30,7 @@ from pydivest.default_params import ExperimentDefaults, ExperimentRoutines
 from pydivest.divestvisuals.data_visualization import (plot_amsterdam,
                                                        plot_trajectories)
 from pydivest.micro_model.divestmentcore import DivestmentCore as MicroModel
-from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquations as MacroModel
+from pydivest.macro_model.integrate_equations_aggregate import IntegrateEquationsAggregate as MacroModel
 from pymofa.experiment_handling import (even_time_series_spacing,
                                         experiment_handling)
 
@@ -103,9 +103,9 @@ def RUN_FUNC(b_d, phi, approx, test):
     # run model with abundant resource
 
     t_max = 0
-    t_n = 100 if not test else 30
+    t_n = 100 if not test else 3
     xis = []
-    data_points = 51
+    data_points = 7
     xi_min = .1
     xi_max = .2
     t_0 = t_max
@@ -118,13 +118,13 @@ def RUN_FUNC(b_d, phi, approx, test):
         t_max += t_n
         xis += [xi]*t_max
         if test:
-            print(m.b_d, m.xi, t_max)
+            print(t_max)
         m.run(t_max=t_max)
     # store data in case of successful run
     df1 = even_time_series_spacing(m.get_aggregate_trajectory(), len(xis), t_0,
                                   t_max)
     df1['xi'] = xis
-    #m.agg_trajectory = []
+    m.agg_trajectory = []
     m.init_aggregate_trajectory()
 
     t_0 = t_max+1
@@ -137,7 +137,7 @@ def RUN_FUNC(b_d, phi, approx, test):
         t_max += t_n
         xis += [xi]*t_max
         if test:
-            print(m.b_d, m.xi, t_max)
+            print(t_max)
         m.run(t_max=t_max)
     # store data in case of successful run
     df2 = even_time_series_spacing(m.get_aggregate_trajectory(), len(xis), t_0,
@@ -203,12 +203,12 @@ def run_experiment(argv):
     """
 
     phis, b_ds = np.linspace(0, 1, 21), np.linspace(3, 4, 3)
-    phi, b_d = [.5], [4]
+    phi, b_d, approx = [.5], [4], [0, 1]
 
     if test:
-        param_combs = list(it.product(b_d, phi, [approx], [test]))
+        param_combs = list(it.product(b_d, phi, approx, [test]))
     else:
-        param_combs = list(it.product(b_d, phi, [approx], [test]))
+        param_combs = list(it.product(b_d, phi, approx, [test]))
     """
     set input/output paths
     """
