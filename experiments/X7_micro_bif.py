@@ -203,7 +203,7 @@ def run_experiment(argv):
     """
 
     phis, b_ds = np.linspace(0, 1, 21), np.linspace(3, 4, 3)
-    phi, b_d, approx = [.5], [4], [0, 1]
+    phi, b_d, approx = [.5], [4], [1, 0]
 
     if test:
         param_combs = list(it.product(b_d, phi, approx, [test]))
