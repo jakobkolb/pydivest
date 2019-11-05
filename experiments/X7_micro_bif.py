@@ -103,9 +103,9 @@ def RUN_FUNC(b_d, phi, approx, test):
     # run model with abundant resource
 
     t_max = 0
-    t_n = 100 if not test else 3
+    t_n = 3 if test else 100
     xis = []
-    data_points = 7
+    data_points = 3 if test else 51
     xi_min = .1
     xi_max = .2
     t_0 = t_max
@@ -143,12 +143,16 @@ def RUN_FUNC(b_d, phi, approx, test):
     df2 = even_time_series_spacing(m.get_aggregate_trajectory(), len(xis), t_0,
                                   t_max)
     df2['xi'] = xis
+    df1 = df1[['xi', 'x', 'z', 'C']]
+    df2 = df2[['xi', 'x', 'z', 'C']]
 
     # save data
 
     for df in [df1, df2]:
         df.index.name='tstep'
         df['sample_id'] = None
+    print(df1.head())
+    print(df2.head())
     return 1, [df1, df2]
 
 
@@ -203,7 +207,7 @@ def run_experiment(argv):
     """
 
     phis, b_ds = np.linspace(0, 1, 21), np.linspace(3, 4, 3)
-    phi, b_d, approx = [.5], [4], [1, 0]
+    phi, b_d, approx = [.5], [4], [0, 1]
 
     if test:
         param_combs = list(it.product(b_d, phi, approx, [test]))
@@ -233,7 +237,7 @@ def run_experiment(argv):
         return 1
     # define computation handle
 
-    sample_size = 63 if not test else 3
+    sample_size = 63 if not test else 1
 
     if test:
         print('initializing compute handles', flush=True)
