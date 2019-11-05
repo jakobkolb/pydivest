@@ -116,7 +116,7 @@ def RUN_FUNC(b_d, phi, approx, test):
             m.xi = xi
         m.set_parameters()
         t_max += t_n
-        xis += [xi]*t_max
+        xis += [xi]*t_n
         if test:
             print(t_max)
         m.run(t_max=t_max)
@@ -135,7 +135,7 @@ def RUN_FUNC(b_d, phi, approx, test):
             m.xi = xi
         m.set_parameters()
         t_max += t_n
-        xis += [xi]*t_max
+        xis += [xi]*t_n
         if test:
             print(t_max)
         m.run(t_max=t_max)
