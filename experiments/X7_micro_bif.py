@@ -106,8 +106,8 @@ def RUN_FUNC(b_d, phi, approx, test):
     t_n = 3 if test else 100
     xis = []
     data_points = 3 if test else 51
-    xi_min = .1
-    xi_max = .2
+    xi_min = .11
+    xi_max = .15
     t_0 = t_max
     for xi in np.linspace(xi_min, xi_max, data_points):
         if approx == 1:
@@ -124,6 +124,8 @@ def RUN_FUNC(b_d, phi, approx, test):
     df1 = even_time_series_spacing(m.get_aggregate_trajectory(), len(xis), t_0,
                                   t_max)
     df1['xi'] = xis
+
+    xis = []
     m.ag_trajectory = []
     m.init_aggregate_trajectory()
 
