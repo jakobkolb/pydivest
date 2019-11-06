@@ -71,7 +71,7 @@ def RUN_FUNC(b_d, phi, approx, test):
     # building initial conditions
 
     # network:
-    n = 100
+    n = 300
     k = 10
 
     p = float(k) / n
@@ -103,11 +103,11 @@ def RUN_FUNC(b_d, phi, approx, test):
     # run model with abundant resource
 
     t_max = 0
-    t_n = 3 if test else 100
+    t_n = 3 if test else 300
     xis = []
-    data_points = 3 if test else 51
-    xi_min = .11
-    xi_max = .15
+    data_points = 3 if test else 41
+    xi_min = .12
+    xi_max = .14
     t_0 = t_max
     for xi in np.linspace(xi_min, xi_max, data_points):
         if approx == 1:
