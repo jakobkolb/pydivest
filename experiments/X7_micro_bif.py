@@ -103,7 +103,7 @@ def RUN_FUNC(b_d, phi, approx, test):
     # run model with abundant resource
 
     t_max = 0
-    t_n = 3 if test else 300
+    t_n = 10 if test else 100
     xis = []
     data_points = 3 if test else 41
     xi_min = .12
