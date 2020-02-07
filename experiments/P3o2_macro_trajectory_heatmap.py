@@ -316,6 +316,8 @@ def run_experiment(argv):
         return 1
     elif mode == 1:
 
+        compute_handle.compute()
+
         eva_1_handle.compute()
         eva_2_handle.compute()
         return 1
