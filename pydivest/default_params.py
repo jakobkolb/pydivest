@@ -4,12 +4,14 @@
 # Contact: kolb@pik-potsdam.de
 # License: GNU AGPL Version 3
 
+import argparse
 import getpass
 import os
 from pathlib import Path
-from pydivestparameters.rs_models.parameter_fit import ParameterFit
 
 import pandas as pd
+
+from pydivestparameters.rs_models.parameter_fit import ParameterFit
 
 
 class ExperimentDefaults:
@@ -19,8 +21,8 @@ class ExperimentDefaults:
 
     def __init__(self,
                  params='default',
-                 alpha=2./3.,
-                 gamma=1./8.,
+                 alpha=2. / 3.,
+                 gamma=1. / 8.,
                  chi=0.02,
                  **kwargs):
         """setting input parameter values
@@ -57,8 +59,9 @@ class ExperimentDefaults:
             'eps': 0.03,
             's': 0.23,
             'possible_cue_orders': [[0], [1]],
-            'L': 1.,
+            'L': 100.,
             'C': 1.,
+            'G_0': 1000000,
             'campaign': False,
             'learning': True,
             'interaction': 1,
@@ -67,14 +70,14 @@ class ExperimentDefaults:
         }
 
         input_params_fitted = {
-            'b_c':  22.94219556006435,
-            'b_d':  1844.7328627029444,
-            'e':    45048994159.98814,
+            'b_c': 22.94219556006435,
+            'b_d': 1844.7328627029444,
+            'e': 45048994159.98814,
             'b_r0': 1041159355.7928585,
-            'kappa_c': 1./3.,
-            'kappa_d': 1./3.,
-            'pi': 2./3,
-            'xi': 1/8,
+            'kappa_c': 1. / 3.,
+            'kappa_d': 1. / 3.,
+            'pi': 2. / 3,
+            'xi': 1 / 8,
             'd_k': 0.056818181818181816,
             'd_c': 0.02,
             'phi': .5,
@@ -96,16 +99,16 @@ class ExperimentDefaults:
         }
 
         # check which set of parameters to use
+
         if params == 'default':
             self.input_params = input_params
         elif params == 'fitted':
-            if alpha != 2./3. or gamma != 1./8. or chi != 0.02:
+            if alpha != 2. / 3. or gamma != 1. / 8. or chi != 0.02:
                 print('fitting parameters', flush=True)
-                param_model = ParameterFit(alpha=alpha,
-                                           gamma=gamma,
-                                           chi=chi)
+                param_model = ParameterFit(alpha=alpha, gamma=gamma, chi=chi)
                 param_model.fit_params()
                 self.input_params = param_model.get_params()
+
                 for key, value in input_params_fitted.items():
                     if key not in self.input_params.keys():
                         self.input_params[key] = value
@@ -117,9 +120,9 @@ class ExperimentDefaults:
                 raise KeyError(f'{key} is not a valid input parameter')
             else:
                 self.input_params[key] = val
+
         if params == 'default':
             self.calculate_timing(t_g=100, t_a=None)
-
 
     def calculate_timing(self, t_g, t_a=None):
         """calculate parameters of the economy to reproduce given timing
@@ -144,20 +147,24 @@ class ExperimentDefaults:
         dominates all others
         """
         t_sd = self.input_params['tau'] * (1 - self.input_params['phi'])
+
         return t_sd
 
     def get_dirty_capital_timescale(self):
         """return timescale for dirty capital accumulation
         """
         # ToDo: Doublecheck this!!
-        t_dc = 1 / (self.input_params['d_k']*self.input_params['pi'])
+        t_dc = 1 / (self.input_params['d_k'] * self.input_params['pi'])
+
         return t_dc
 
     def get_clean_capital_timescale(self):
         """return timescale for clean capital accumulation
         """
         # ToDo: Doublecheck this!!
-        t_cc = 1/(self.input_params['d_k']*self.input_params['pi']*(1-self.input_params['xi']))
+        t_cc = 1 / \
+            (self.input_params['d_k'] * self.input_params['pi']
+             * (1 - self.input_params['xi']))
 
         return t_cc
 
@@ -211,8 +218,8 @@ class ExperimentRoutines:
         self.save_path_res = f"{respath}/{test_folder}{subfolder}/"
 
         self.run_func_keywords = self._get_function_keywords()
-        self.run_func_output = self._runfunc_dummy_output(run_func,
-                                                             param_combs)
+        self.run_func_output = self._runfunc_dummy_output(
+            run_func, param_combs)
 
     def _get_function_keywords(self, function=None):
         """create dict of keywords for function keyword parameters
@@ -222,6 +229,7 @@ class ExperimentRoutines:
         function: callable
             function from which to extract keywords
         """
+
         if function is None:
             function = self.run_func
 
@@ -230,6 +238,7 @@ class ExperimentRoutines:
         else:
             index = {
                 i: function.__code__.co_varnames[i]
+
                 for i in range(function.__code__.co_argcount)
             }
 
@@ -275,6 +284,7 @@ class ExperimentRoutines:
                 run_func_output = run_func(*params)[1]
             except:
                 print('well, that one died')
+
                 return -1
             with open(self.save_path_raw + 'rfof.pkl', 'wb') as dmp:
                 pd.to_pickle(run_func_output, dmp)
@@ -283,14 +293,12 @@ class ExperimentRoutines:
 
     # define pp function for trajectories
 
-    def _pp_data(self,
-                 *args,
-                 table_id=None,
-                 operator='mean'):
+    def _pp_data(self, *args, table_id=None, operator='mean'):
 
         from pymofa.safehdfstore import SafeHDFStore
 
         query = ''
+
         for keyword, value in zip(self.run_func_keywords.values(), args):
             query += f'{keyword}={value}&'
         query = query[:-1]
@@ -322,13 +330,13 @@ class ExperimentRoutines:
             elif operator == 'collect':
                 # if the dataframe has acolumn called sample_id, use it to
                 # store the sample id data that would otherwise go lost.
+
                 if 'sample_id' in trj.columns:
                     trj.index = trj.index.droplevel(
                         list(self.run_func_keywords.values()))
                     trj.drop('sample_id', axis=1, inplace=True)
                     trj = trj.reset_index(level=['sample'])
-                    trj.rename(columns={'sample': 'sample_id'},
-                               inplace=True)
+                    trj.rename(columns={'sample': 'sample_id'}, inplace=True)
                 else:
                     trj.index = trj.index.droplevel(
                         list(self.run_func_keywords.values()) + ['sample'])
@@ -354,3 +362,32 @@ class ExperimentRoutines:
             return res
 
         return wrapper
+
+    def get_argparser():
+        """return an argparse.ArgumentParser with the most common arguments"""
+
+        parser = argparse.ArgumentParser()
+        parser.add_argument(
+            '-t',
+            '--test',
+            dest='test',
+            default=False,
+            action='store_true',
+            help='switch for testing (1) or production (0) mode of experiment')
+        parser.add_argument(
+            '-m',
+            '--mode',
+            type=int,
+            default=0,
+            help=
+            'mode of experiment: 0: generate data, 1:post process data, 2: misc'
+        )
+        parser.add_argument(
+            '-a',
+            '--approximate',
+            type=int,
+            default=0,
+            help='approximation level. 1: micro, 2: aggregate,3:representative'
+        )
+
+        return parser
