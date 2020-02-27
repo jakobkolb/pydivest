@@ -6,7 +6,9 @@
 # License: GNU AGPL Version 3
 
 class ExperimentDefaults:
-    """contains default values for experiment default parameters to keep them consistent"""
+    """contains default values for experiment default parameters
+    to keep them consistent
+    """
 
     input_params = {'b_c': 1., 'b_d': 4., 'e': 1., 'b_r0': 0.1,
                     'kappa_c': .5, 'kappa_d': .5, 'pi': .5,

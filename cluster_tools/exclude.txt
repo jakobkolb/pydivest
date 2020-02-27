@@ -1,7 +1,12 @@
+Model_Description/
 output_data/
 divestdata/
+evaluation_notebooks/
 tests/__pycache__/
 *.pyc
 *.pkl
 .*.swp
 *.dump
+*.png
+*.pdf
+*.ipynb
