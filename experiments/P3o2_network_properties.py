@@ -105,7 +105,7 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
         m = IntegrateEquationsRep(*init_conditions, **input_params)
     else:
         raise ValueError(
-            'approximate must be in [1, 2, 3, 4] but is {}'.format(
+            'approximate must be in [1, 2, 3] but is {}'.format(
                 approximate))
 
     t_max = 300 if not test else 10
@@ -139,19 +139,18 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
             if c in df2.columns:
                 df2.drop(c, axis=1, inplace=True)
 
-        if not test:
-            df_out = pd.concat([df1, df2], axis=1)
-        else:
-            df_tmp = pd.concat([df1, df2], axis=1)
+        df_tmp = pd.concat([df1, df2], axis=1)
 
-            for c in df_tmp.columns:
-                if c in df3.columns:
-                    df3.drop(c, axis=1, inplace=True)
-            df_out = pd.concat([df_tmp, df3], axis=1)
+        for c in df_tmp.columns:
+            if c in df3.columns:
+                df3.drop(c, axis=1, inplace=True)
+        df_out = pd.concat([df_tmp, df3], axis=1)
 
         df_out.index.name = 'tstep'
     else:
         df_out = None
+
+    print(df_out.columns)
 
     return exit_status, df_out
 
