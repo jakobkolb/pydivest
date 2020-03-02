@@ -238,7 +238,7 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    tau, phi, xi = [1.], [0., .5], [0.1]
+    tau, phi, xi = [1.], [0., .5, .85, .9, ,.95], [0.1]
 
     param_combs = list(
             it.product(tau, phi, xi, [0.5], [approximate], [test]))
@@ -258,7 +258,7 @@ def run_experiment(argv):
         with open(SAVE_PATH_RAW + 'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    sample_size = 50 if not (test or approximate in [2, 3]) else 10
+    sample_size = 100 if not (test or approximate in [2, 3]) else 10
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,
