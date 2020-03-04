@@ -1351,7 +1351,7 @@ class DivestmentCore:
         clustering_coeff = nx.average_clustering(graph)
         try:
             mean_shortest_path_length = nx.average_shortest_path_length(graph)
-        except networkx.exception.NetworkXError:
+        except nx.exception.NetworkXError:
             mean_shortest_path_length = float('nan')
 
         element = [self.t, clustering_coeff, mean_shortest_path_length]
