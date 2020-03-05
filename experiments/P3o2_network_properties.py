@@ -87,7 +87,9 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
         if len(list(net)) > 1:
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
-    investment_decisions = np.random.randint(low=0, high=2, size=N)
+
+    investment_decisions = np.zeros(sum(nopinions))
+    investment_decisions[:nopinions[0]] = 1
 
     clean_investment = np.ones(N) * 50. / float(N)
     dirty_investment = np.ones(N) * 50. / float(N)
