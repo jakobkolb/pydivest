@@ -1340,7 +1340,7 @@ class DivestmentCore:
         """initialize trajectory of network properties"""
         self.n_trajectory = []
         element = [
-            'time', 'local clustering coefficient', 'mean shortest path'
+            'time', 'local clustering coefficient'
         ]
         self.n_trajectory.append(element)
 
@@ -1349,12 +1349,8 @@ class DivestmentCore:
 
         graph = nx.Graph(self.neighbors)
         clustering_coeff = nx.average_clustering(graph)
-        try:
-            mean_shortest_path_length = nx.average_shortest_path_length(graph)
-        except nx.exception.NetworkXError:
-            mean_shortest_path_length = float('nan')
 
-        element = [self.t, clustering_coeff, mean_shortest_path_length]
+        element = [self.t, clustering_coeff]
         self.n_trajectory.append(element)
 
     def get_network_trajectory(self):

@@ -87,9 +87,7 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
         if len(list(net)) > 1:
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
-
-    investment_decisions = np.zeros(sum(nopinions))
-    investment_decisions[:nopinions[0]] = 1
+    investment_decisions = np.random.randint(low=0, high=2, size=N)
 
     clean_investment = np.ones(N) * 50. / float(N)
     dirty_investment = np.ones(N) * 50. / float(N)
@@ -107,11 +105,10 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
         m = IntegrateEquationsRep(*init_conditions, **input_params)
     else:
         raise ValueError(
-            'approximate must be in [1, 2, 3] but is {}'.format(
-                approximate))
+            'approximate must be in [1, 2, 3] but is {}'.format(approximate))
 
     t_max = 300 if not test else 10
-    t_eq = 100
+    t_eq = 300
     m.R_depletion = False
     m.run(t_max=t_eq)
 
@@ -119,31 +116,31 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
     m.n_trajectory_output = True
     m.init_network_trajectory()
     m.set_parameters()
-    exit_status = m.run(t_max=t_max+t_eq)
+    exit_status = m.run(t_max=t_max + t_eq)
 
     # store data in case of successful run
 
     if exit_status in [0, 1]:
         if approximate in [0, 1, 4]:
-            df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201,
-                                           t_eq, t_max+t_eq)
-            df2 = even_time_series_spacing(m.get_unified_trajectory(), 201,
-                                           t_eq,
-                                           t_max+t_eq)
+            df1 = even_time_series_spacing(m.get_aggregate_trajectory(),
+                                           t_max + t_eq + 1, 0, t_max + t_eq)
+            df2 = even_time_series_spacing(m.get_unified_trajectory(),
+                                           t_max + t_eq + 1, 0, t_max + t_eq)
 
             df3 = even_time_series_spacing(m.get_network_trajectory(),
-                                           201, t_eq, t_max+t_eq)
+                                           t_max + t_eq + 1, 0, t_max + t_eq)
         else:
-            df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201,
-                                           t_eq, t_max+t_eq)
-            df1 = even_time_series_spacing(m.get_unified_trajectory(), 201,
-                                           t_eq,
-                                           t_max+t_eq)
+            df2 = even_time_series_spacing(m.get_aggregate_trajectory(),
+                                           t_max + t_eq + 1, 0, t_max + t_eq)
+            df1 = even_time_series_spacing(m.get_unified_trajectory(),
+                                           t_max + t_eq + 1, 0, t_max + t_eq)
 
-            df3 = even_time_series_spacing(pd.DataFrame(data=[[0,0]],
-                               columns=['local clustering coefficient',
-                                        'mean shortest path']
-                              ), 201, t_eq, t_max+t_eq)
+            df3 = even_time_series_spacing(
+                pd.DataFrame(data=[[0, 0]],
+                             columns=[
+                                 'local clustering coefficient',
+                                 'mean shortest path'
+                             ]), 201, t_eq, t_max + t_eq)
 
         for c in df1.columns:
             if c in df2.columns:
@@ -248,10 +245,9 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    tau, phi, xi = [1.], [0., .5, .85, .9, .95], [0.1]
+    tau, phi, xi = [1.], [0., .25, .5, .75, .85, .9, .95], [0.1]
 
-    param_combs = list(
-            it.product(tau, phi, xi, [0.5], [approximate], [test]))
+    param_combs = list(it.product(tau, phi, xi, [0.5], [approximate], [test]))
     """
     run computation and/or post processing and/or plotting
     """
@@ -283,10 +279,8 @@ def run_experiment(argv):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = (
-            f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappa_c}'
-            f'& approximate={approximate} & test={test}'
-        )
+        query = (f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappa_c}'
+                 f'& approximate={approximate} & test={test}')
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             try:
@@ -300,10 +294,8 @@ def run_experiment(argv):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = (
-            f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappa_c}'
-            f'& approximate={approximate} & test={test}'
-        )
+        query = (f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappa_c}'
+                 f'& approximate={approximate} & test={test}')
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             try:

@@ -2,8 +2,7 @@
 This experiment is meant to create trajectories of macroscopic variables from
 1) the numeric micro model and
 2) the analytic macro model
-From these trajectories, I will calculate the distance
-The variable Parameters are tau and phi.
+This data is the basis for the actual plots in the approximation paper.
 """
 
 # Copyright (C) 2016-2018 by Jakob J. Kolb at Potsdam Institute for Climate
@@ -210,18 +209,7 @@ def run_experiment(argv):
         test = bool(int(argv[1]))
     else:
         test = False
-    # switch sub_experiment mode
 
-    if len(argv) > 2:
-        mode = int(argv[2])
-    else:
-        mode = 0
-    # switch micro macro model
-
-    if len(argv) > 3:
-        approximate = int(argv[3])
-    else:
-        approximate = 1
     """
     set input/output paths
     """
@@ -236,7 +224,7 @@ def run_experiment(argv):
         tmppath = "./"
 
     sub_experiment = ['micro', 'aggregate', 'representative'][approximate - 1]
-    folder = 'P3o2'
+    folder = 'P3o2_paper'
 
     # make sure, testing output goes to its own folder:
 
@@ -252,17 +240,9 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    phis = [round(x, 5) for x in list(np.linspace(0.0, 1., 21))]
-    taus = [round(x, 5) for x in list(np.linspace(.5, 10., 20))]
-    xis = [round(x, 5) for x in list(np.linspace(.1, .15, 2))]
     tau, phi, xi = [1.], [0., .5], [0.1]
 
-    if test:
-        param_combs = list(
-            it.product(tau, phi, xi, [0.5], [approximate], [test]))
-    else:
-        param_combs = list(
-            it.product(taus, phis, xis, [0.5], [approximate], [test]))
+    param_combs = list(it.product(tau, phi, xi, [0.5], [1, 2], [test]))
     """
     run computation and/or post processing and/or plotting
     """
@@ -279,7 +259,7 @@ def run_experiment(argv):
         with open(SAVE_PATH_RAW + 'rfof.pkl', 'wb') as dmp:
             pd.to_pickle(run_func_output, dmp)
 
-    sample_size = 50 if not (test or approximate in [2, 3]) else 10
+    sample_size = 50 if not test else 10
 
     # initialize computation handle
     compute_handle = experiment_handling(run_func=RUN_FUNC,
@@ -337,21 +317,11 @@ def run_experiment(argv):
                                        parameter_combinations=param_combs,
                                        path_raw=SAVE_PATH_RES + '/std.h5')
 
-    if mode == 0:
-        compute_handle.compute()
+    compute_handle.compute()
 
-        return 1
-    elif mode == 1:
-
-        compute_handle.compute()
-
-        eva_1_handle.compute()
-        eva_2_handle.compute()
-
-        return 1
-
-    return 0
-
+    eva_1_handle.compute()
+    eva_2_handle.compute()
+    return 1
 
 if __name__ == "__main__":
     run_experiment(sys.argv)
