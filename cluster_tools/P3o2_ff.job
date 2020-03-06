@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
+#SBATCH --qos=priority
+#SBATCH --job-name=P3o2_ff
+#SBATCH --output=%A_P3o2_ff.out
+#SBATCH --error=%A_P3o2_ff.err
+#SBATCH --nodes=4
+#SBATCH --tasks-per-node=16
+
+
+module load hpc/2015 anaconda/5.0.0_py3
+export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
+export OMP_NUM_THREADS=1
+
+source activate py36
+
+echo "_______________________________________________"
+echo "SLURM JOB ID: $SLURM_JOBID"
+echo "$SLURM_NTASKS tasks"
+echo "_______________________________________________"
+
+cd ../experiments
+
+srun -n $SLURM_NTASKS python P3o2_fully_connected
+
