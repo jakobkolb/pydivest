@@ -223,19 +223,14 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    sub_experiment = ['micro', 'aggregate', 'representative'][approximate - 1]
     folder = 'P3o2_paper'
 
     # make sure, testing output goes to its own folder:
 
     test_folder = ['', 'test_output/'][int(test)]
 
-    SAVE_PATH_RAW = \
-        "{}/{}{}/{}/" \
-        .format(tmppath, test_folder, folder, sub_experiment)
-    SAVE_PATH_RES = \
-        "{}/{}{}/{}/" \
-        .format(respath, test_folder, folder, sub_experiment)
+    SAVE_PATH_RAW = f"{tmppath}/{test_folder}{folder}/"
+    SAVE_PATH_RES = f"{respath}/{test_folder}{folder}/"
     """
     create parameter combinations and index
     """
