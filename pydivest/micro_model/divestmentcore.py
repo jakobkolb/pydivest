@@ -1454,7 +1454,7 @@ class DivestmentCore:
         self.ag_trajectory = []
         element = [
             'time', 'x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d', 'C',
-            'G', 'w', 'r_c', 'r_d', 'W_c', 'W_d', 'N_c over N', '[cc] over M',
+            'G', 'N_c over N', '[cc] over M',
             '[cd] over M'
         ]
         self.ag_trajectory.append(element)
@@ -1520,8 +1520,8 @@ class DivestmentCore:
             Wd = 0.
 
         entry = [
-            self.t, x, y, z, Kcc, Kdc, Kcd, Kdd, self.C, self.G, self.w,
-            self.r_c, self.r_d, Wc, Wd, nc / n, cc / k, cd / k
+            self.t, x, y, z, Kcc, Kdc, Kcd, Kdd, self.C, self.G,
+            nc / n, cc / k, cd / k
         ]
         self.ag_trajectory.append(entry)
 
@@ -1634,7 +1634,7 @@ class DivestmentCore:
 
         columns = [
             'k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r', 'n_c', 'i_c', 'r_c',
-            'r_d', 'w', 'W_c', 'W_d'
+            'r_d', 'w', 'W_c', 'W_d', 'Y_c', 'Y_d'
         ]
         edf = self.get_economic_trajectory()
         df = pd.DataFrame(index=edf.index, columns=columns)
@@ -1652,6 +1652,8 @@ class DivestmentCore:
         df['w'] = edf['wage']
         df['W_c'] = mdf['mu_c^c'] * edf['r_c'] + mdf['mu_d^c'] * edf['r_d']
         df['W_d'] = mdf['mu_c^d'] * edf['r_c'] + mdf['mu_d^d'] * edf['r_d']
+        df['Y_c'] = edf['Y_c']
+        df['Y_d'] = edf['Y_d']
 
         return df
 

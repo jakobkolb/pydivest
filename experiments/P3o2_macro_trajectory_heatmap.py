@@ -107,7 +107,7 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
             'approximate must be in [1, 2, 3, 4] but is {}'.format(
                 approximate))
 
-    t_max = 300
+    t_max = 300 if not test else 5
     m.set_parameters()
     exit_status = m.run(t_max=t_max)
 
@@ -121,6 +121,12 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
         df3 = even_time_series_spacing(m.get_economic_trajectory(), 201, 0,
                                        t_max)
 
+        if test:
+            print(f'approximate is {approximate}')
+            print(df1.columns)
+            print(df2.columns)
+            print(df3.columns)
+
         for c in df1.columns:
             if c in df2.columns:
                 df2.drop(c, axis=1, inplace=True)
@@ -132,6 +138,9 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
         df_out = pd.concat([df_tmp, df3], axis=1)
 
         df_out.index.name = 'tstep'
+
+        if test:
+            print(df_out.columns)
     else:
         df_out = None
 

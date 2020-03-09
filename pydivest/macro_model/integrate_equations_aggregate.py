@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import sympy as sp
 from scipy.integrate import odeint
+from itertools import chain
 
 try:
     from .integrate_equations import IntegrateEquations
@@ -26,6 +27,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
                  L=100., G_0=3000, C=1,
                  R_depletion=True,
                  interaction=1, crs=True, test=False,
+                 possible_cue_orders=None,
                  **kwargs):
         """
         integrate the approximate macro equations for the pydivest module in the aggregate
@@ -110,6 +112,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
 
         self.verboseprint('got superfluous keyword arguments')
         self.verboseprint(kwargs.keys())
+        self.possible_cue_orders = possible_cue_orders
 
         c = self.investment_decisions
         d = - self.investment_decisions + 1
@@ -199,6 +202,7 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         self.set_parameters()
 
         self.m_trajectory = pd.DataFrame(columns=self.var_names)
+        self.e_trajectory = []
 
         # dictionary for final state
         self.final_state = {}
@@ -352,6 +356,33 @@ class IntegrateEquationsAggregate(IntegrateEquations):
         return(df_out)
 
 
+    def get_economic_trajectory(self):
+        self.e_trajectory = []
+        element = list(
+            chain.from_iterable([[
+                'time', 'wage', 'r_c', 'r_d', 'r_c_dot', 'r_d_dot', 'K_c',
+                'K_d', 'P_c', 'P_d', 'L', 'G', 'R', 'C', 'Y_c', 'Y_d',
+                'P_c_cost', 'P_d_cost', 'K_c_cost', 'K_d_cost', 'c_R',
+                'consensus', 'decision state', 'G_alpha', 'i_c'
+            ], [str(x) for x in self.possible_cue_orders
+                ], ['c' + str(x) for x in self.possible_cue_orders
+                    ], ['d' + str(x) for x in self.possible_cue_orders]]))
+
+        self.e_trajectory.append(element)
+
+        data = np.zeros(len(element))
+        self.e_trajectory.append(data)
+
+        columns = self.e_trajectory[0]
+
+        data = np.zeros(len(columns))
+        data[0] = self.p_t_max
+        self.e_trajectory.append(data)
+
+        df = pd.DataFrame(data=self.e_trajectory[1:], columns=columns)
+        df = df.set_index('time')
+
+        return df
 
 if __name__ == "__main__":
     import networkx as nx
