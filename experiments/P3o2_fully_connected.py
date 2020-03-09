@@ -54,7 +54,8 @@ def RUN_FUNC(fully_connected, test):
 
     if fully_connected:
         input_params['phi'] = 0.
-        input_params['tau'] = input_params['tau'] / 2.
+        input_params['tau'] = input_params['tau'] * 0.5
+        input_params['fully_connected'] = True
 
     # investment_decisions:
     nopinions = [10, 190] if not test else [3, 30]
@@ -108,20 +109,12 @@ def RUN_FUNC(fully_connected, test):
         df2 = even_time_series_spacing(model.get_unified_trajectory(),
                                        t_max + t_eq + 1, 0, t_max + t_eq)
 
-        df3 = even_time_series_spacing(model.get_network_trajectory(),
-                                       t_max + t_eq + 1, 0, t_max + t_eq)
-
         for column in df1.columns:
             if column in df2.columns:
                 df2.drop(column, axis=1, inplace=True)
 
-        df_tmp = pd.concat([df1, df2], axis=1)
+        df_out = pd.concat([df1, df2], axis=1)
 
-        for column in df3.columns:
-            if column in df_tmp.columns:
-                df3.drop(column, axis=1, inplace=True)
-
-        df_out = pd.concat([df_tmp, df3], axis=1)
 
         df_out.index.name = 'tstep'
     else:

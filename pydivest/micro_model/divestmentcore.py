@@ -50,6 +50,7 @@ class DivestmentCore:
                  campaign=False,
                  interaction=1,
                  verbosity=0,
+                 fully_connected=False,
                  **kwargs):
         """
 
@@ -138,6 +139,8 @@ class DivestmentCore:
             def verboseprint(*args):
                 pass
 
+        self.fully_connected = fully_connected
+
         self.verboseprint = verboseprint
 
         if test:
@@ -201,6 +204,7 @@ class DivestmentCore:
 
         # System Time
         self.t = 0
+        self.t_net = 0
         # Step counter for output
         self.steps = 0
         # eps == 0: 0 for no consensus, 1 consensus
@@ -1114,8 +1118,9 @@ class DivestmentCore:
 
         # adapt or rewire?
 
-        if (self.phi == 1
-                or (self.phi != 1 and np.random.uniform() < self.phi)):
+        if (self.phi == 1 or
+            (self.phi != 1
+             and np.random.uniform() < self.phi)) and not self.fully_connected:
             # rewire:
 
             for i in range(self.n):
@@ -1339,19 +1344,20 @@ class DivestmentCore:
     def init_network_trajectory(self):
         """initialize trajectory of network properties"""
         self.n_trajectory = []
-        element = [
-            'time', 'local clustering coefficient'
-        ]
+        element = ['time', 'local clustering coefficient']
         self.n_trajectory.append(element)
 
     def _update_network_trajectory(self):
         """updated trajectory of network properties"""
 
-        graph = nx.Graph(self.neighbors)
-        clustering_coeff = nx.average_clustering(graph)
+        if self.t - self.t_net > 1.:
+            self.t_net += 1.
 
-        element = [self.t, clustering_coeff]
-        self.n_trajectory.append(element)
+            graph = nx.Graph(self.neighbors)
+            clustering_coeff = nx.average_clustering(graph)
+
+            element = [self.t, clustering_coeff]
+            self.n_trajectory.append(element)
 
     def get_network_trajectory(self):
         """return trajectory of network properties"""
@@ -1454,8 +1460,7 @@ class DivestmentCore:
         self.ag_trajectory = []
         element = [
             'time', 'x', 'y', 'z', 'K_c^c', 'K_d^c', 'K_c^d', 'K_d^d', 'C',
-            'G', 'N_c over N', '[cc] over M',
-            '[cd] over M'
+            'G', 'N_c over N', '[cc] over M', '[cd] over M'
         ]
         self.ag_trajectory.append(element)
 
@@ -1520,8 +1525,8 @@ class DivestmentCore:
             Wd = 0.
 
         entry = [
-            self.t, x, y, z, Kcc, Kdc, Kcd, Kdd, self.C, self.G,
-            nc / n, cc / k, cd / k
+            self.t, x, y, z, Kcc, Kdc, Kcd, Kdd, self.C, self.G, nc / n,
+            cc / k, cd / k
         ]
         self.ag_trajectory.append(entry)
 
