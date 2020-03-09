@@ -69,7 +69,7 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
     input_params['tau'] = tau
     input_params['xi'] = xi
     input_params['kappa_c'] = kappa_c
-    input_params['test'] = False  # test
+    input_params['test'] = test
 
     # investment_decisions:
     nopinions = [10, 190]
