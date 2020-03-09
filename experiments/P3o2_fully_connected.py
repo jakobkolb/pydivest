@@ -50,7 +50,7 @@ def RUN_FUNC(fully_connected, test):
     ed = ExperimentDefaults()
     input_params = ed.input_params
 
-    input_params['test'] = True
+    input_params['test'] = False
 
     if fully_connected:
         input_params['phi'] = 0.
