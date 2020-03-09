@@ -160,11 +160,6 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
         'G_alpha', '[0]', '[1]', 'c[0]', 'c[1]', 'd[0]', 'd[1]'
     ]
 
-    if not test:
-        for column in df_out.columns:
-            if column in rm_columns:
-                df_out.drop(column, axis=1, inplace=True)
-
     return exit_status, df_out
 
 
