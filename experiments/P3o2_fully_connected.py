@@ -90,11 +90,8 @@ def RUN_FUNC(fully_connected, test):
 
     model = DivestmentCore(*init_conditions, **input_params)
 
-    t_max = 300 if not test else 1
-    t_eq = 300 if not test else 1
-
-    model.n_trajectory_output = True
-    model.init_network_trajectory()
+    t_max = 300 if not test else 30
+    t_eq = 300 if not test else 30
 
     model.R_depletion = False
     model.run(t_max=t_eq)
