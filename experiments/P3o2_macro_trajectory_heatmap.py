@@ -114,51 +114,26 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
     # store data in case of successful run
 
     if exit_status in [0, 1]:
-        if approximate in [0, 1, 4]:
-            df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201,
-                                           0, t_max)
-            df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0,
-                                           t_max)
-
-            if test:
-                df3 = even_time_series_spacing(m.get_economic_trajectory(),
-                                               201, 0, t_max)
-        else:
-            df2 = even_time_series_spacing(m.get_aggregate_trajectory(), 201,
-                                           0, t_max)
-            df1 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0,
-                                           t_max)
-
-            if test:
-                df3 = df2
+        df1 = even_time_series_spacing(m.get_aggregate_trajectory(), 201, 0,
+                                       t_max)
+        df2 = even_time_series_spacing(m.get_unified_trajectory(), 201, 0,
+                                       t_max)
+        df3 = even_time_series_spacing(m.get_economic_trajectory(), 201, 0,
+                                       t_max)
 
         for c in df1.columns:
             if c in df2.columns:
                 df2.drop(c, axis=1, inplace=True)
+        df_tmp = pd.concat([df1, df2], axis=1)
 
-        if not test:
-            df_out = pd.concat([df1, df2], axis=1)
-        else:
-            df_tmp = pd.concat([df1, df2], axis=1)
-
-            for c in df_tmp.columns:
-                if c in df3.columns:
-                    df3.drop(c, axis=1, inplace=True)
-            df_out = pd.concat([df_tmp, df3], axis=1)
+        for c in df_tmp.columns:
+            if c in df3.columns:
+                df3.drop(c, axis=1, inplace=True)
+        df_out = pd.concat([df_tmp, df3], axis=1)
 
         df_out.index.name = 'tstep'
     else:
         df_out = None
-
-    # remove output that is not needed for production plot to
-    # write less on database
-    rm_columns = [
-        'mu_c^c', 'mu_c^d', 'mu_d^c', 'mu_d^d', 'l_c', 'l_d', 'r', 'r_c',
-        'r_d', 'w', 'W_c', 'W_d', 'n_c', 'i_c', 'wage', 'r_c_dot', 'r_d_dot',
-        'K_c', 'K_d', 'P_c', 'P_d', 'L', 'R', 'P_c_cost', 'P_d_cost',
-        'K_c_cost', 'K_d_cost', 'c_R', 'consensus', 'decision state',
-        'G_alpha', '[0]', '[1]', 'c[0]', 'c[1]', 'd[0]', 'd[1]'
-    ]
 
     return exit_status, df_out
 
@@ -204,7 +179,6 @@ def run_experiment(argv):
         test = bool(int(argv[1]))
     else:
         test = False
-
     """
     set input/output paths
     """
@@ -264,10 +238,8 @@ def run_experiment(argv):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = (
-            f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappa_c}'
-            f'& approximate={approximate} & test={test}'
-        )
+        query = (f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappa_c}'
+                 f'& approximate={approximate} & test={test}')
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             try:
@@ -281,10 +253,8 @@ def run_experiment(argv):
 
         from pymofa.safehdfstore import SafeHDFStore
 
-        query = (
-            f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappa_c}'
-            f'& approximate={approximate} & test={test}'
-        )
+        query = (f'tau={tau} & phi={phi} & xi={xi} & kappa_c={kappa_c}'
+                 f'& approximate={approximate} & test={test}')
 
         with SafeHDFStore(compute_handle.path_raw) as store:
             try:
@@ -311,7 +281,9 @@ def run_experiment(argv):
 
     eva_1_handle.compute()
     eva_2_handle.compute()
+
     return 1
+
 
 if __name__ == "__main__":
     run_experiment(sys.argv)
