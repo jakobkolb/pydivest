@@ -203,18 +203,6 @@ def run_experiment(argv):
         test = bool(int(argv[1]))
     else:
         test = False
-    # switch sub_experiment mode
-
-    if len(argv) > 2:
-        mode = int(argv[2])
-    else:
-        mode = 0
-    # switch micro macro model
-
-    if len(argv) > 3:
-        approximate = int(argv[3])
-    else:
-        approximate = 1
     """
     set input/output paths
     """
@@ -228,24 +216,21 @@ def run_experiment(argv):
     else:
         tmppath = "./"
 
-    sub_experiment = ['micro', 'aggregate', 'representative'][approximate - 1]
     folder = 'P3o2n'
 
     # make sure, testing output goes to its own folder:
 
     test_folder = ['', 'test_output/'][int(test)]
 
-    SAVE_PATH_RAW = \
-        "{}/{}{}/{}/" \
-        .format(tmppath, test_folder, folder, sub_experiment)
-    SAVE_PATH_RES = \
-        "{}/{}{}/{}/" \
-        .format(respath, test_folder, folder, sub_experiment)
+    SAVE_PATH_RAW = f"{tmppath}/{test_folder}{folder}/"
+    SAVE_PATH_RES = f"{respath}/{test_folder}{folder}/"
+
     """
     create parameter combinations and index
     """
 
     tau, phi, xi = [1.], [0., .25, .5, .75, .85, .9, .95], [0.1]
+    approximate = 1  # only micro model
 
     param_combs = list(it.product(tau, phi, xi, [0.5], [approximate], [test]))
     """
