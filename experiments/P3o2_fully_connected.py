@@ -63,7 +63,10 @@ def RUN_FUNC(fully_connected, test):
     # network:
     N = sum(nopinions)
 
-    if not fully_connected:
+
+    if fully_connected:
+        adjacency_matrix = np.ones((N, N))
+    elif not fully_connected:
         k = 10
 
         # building initial conditions
@@ -75,8 +78,6 @@ def RUN_FUNC(fully_connected, test):
             if len(list(net)) > 1:
                 break
         adjacency_matrix = nx.adj_matrix(net).toarray()
-    else:
-        adjacency_matrix = np.ones((N, N))
 
     investment_decisions = np.zeros(N, dtype='int')
     investment_decisions[:nopinions[0]] = 1

@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --mail-type=BEGIN,END,FAIL,TIME_LIMIT_80
-#SBATCH --qos=priority
-#SBATCH --job-name=P3o2_micro
-#SBATCH --output=%A_P3o2_micro.out
-#SBATCH --error=%A_P3o2_micro.err
-#SBATCH --nodes=2
+#SBATCH --qos=short
+#SBATCH --job-name=P3o2_network
+#SBATCH --output=%A_P3o2_network.out
+#SBATCH --error=%A_P3o2_network.err
+#SBATCH --nodes=4
 #SBATCH --tasks-per-node=16
 
 
