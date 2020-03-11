@@ -26,7 +26,7 @@ from pymofa.experiment_handling import (even_time_series_spacing,
                                         experiment_handling)
 
 
-def RUN_FUNC(fully_connected, test):
+def RUN_FUNC(fully_connected, phi, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -51,10 +51,11 @@ def RUN_FUNC(fully_connected, test):
     input_params = ed.input_params
 
     input_params['test'] = False
+    input_params['phi'] = phi
 
     if fully_connected:
         input_params['phi'] = 0.
-        input_params['tau'] = input_params['tau'] * 0.5
+        input_params['tau'] = input_params['tau'] * phi
         input_params['fully_connected'] = True
 
     # investment_decisions:
@@ -66,6 +67,8 @@ def RUN_FUNC(fully_connected, test):
 
     if fully_connected:
         adjacency_matrix = np.ones((N, N))
+        for i in range(N):
+            adjacency_matrix[i,i] = 0
     elif not fully_connected:
         k = 10
 
@@ -78,6 +81,7 @@ def RUN_FUNC(fully_connected, test):
             if len(list(net)) > 1:
                 break
         adjacency_matrix = nx.adj_matrix(net).toarray()
+    print(sum(sum(adjacency_matrix)))
 
     investment_decisions = np.zeros(N, dtype='int')
     investment_decisions[:nopinions[0]] = 1
@@ -93,7 +97,7 @@ def RUN_FUNC(fully_connected, test):
     model = DivestmentCore(*init_conditions, **input_params)
 
     t_max = 300 if not test else 30
-    t_eq = 300 if not test else 30
+    t_eq = 500 if not test else 30
 
     model.R_depletion = False
     model.run(t_max=t_eq)
@@ -197,7 +201,7 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    param_combs = list(it.product([True, False], [test]))
+    param_combs = list(it.product([True, False], [.5, .8, .9], [test]))
     """
     run computation and/or post processing and/or plotting
     """

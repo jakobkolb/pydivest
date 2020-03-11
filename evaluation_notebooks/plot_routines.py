@@ -351,7 +351,7 @@ class plot_routines(object):
         l_vars = len(self.variable_combos)
         fig = plt.figure(figsize=figsize)
         axes = [fig.add_subplot(2, 2, i + 1) for i in range(l_vars)]
-        axes = [axes[i] for i in [0, 2, 1, 3]]
+        axes = [axes[i] for i in [0, 1, 2, 3]]
 
         #        for j, variables in enumerate(self.variable_combos):
 

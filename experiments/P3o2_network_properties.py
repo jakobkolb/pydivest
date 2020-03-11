@@ -109,7 +109,7 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
         raise ValueError(
             'approximate must be in [1, 2, 3] but is {}'.format(approximate))
 
-    t_max = 300 if not test else 10
+    t_max = 500 if not test else 10
     t_eq = 300
     m.R_depletion = False
     m.run(t_max=t_eq)
