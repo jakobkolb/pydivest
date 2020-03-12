@@ -40,6 +40,8 @@ def RUN_FUNC(fully_connected, phi, test):
         change wheter the model is running with default variables or with a
         fully connected network and phi and tau changed such that the rate of
         immitation events stays the same
+    phi : float in [0,1]
+        the rewiring probability for the network update
     test: int in [0,1]
         wheter this is a test run, e.g.
         can be executed with lower runtime
@@ -55,21 +57,21 @@ def RUN_FUNC(fully_connected, phi, test):
 
     if fully_connected:
         input_params['phi'] = 0.
-        input_params['tau'] = input_params['tau'] * phi
+        input_params['tau'] = input_params['tau'] / (1 - phi)
         input_params['fully_connected'] = True
 
     # investment_decisions:
-    nopinions = [10, 190] if not test else [3, 30]
+    nopinions = [10, 190]
 
     # network:
     N = sum(nopinions)
+    k = 10
 
     if fully_connected:
         adjacency_matrix = np.ones((N, N))
         for i in range(N):
-            adjacency_matrix[i,i] = 0
-    elif not fully_connected:
-        k = 10
+            adjacency_matrix[i, i] = 0
+    else:
 
         # building initial conditions
         p = float(k) / N
@@ -80,6 +82,8 @@ def RUN_FUNC(fully_connected, phi, test):
             if len(list(net)) > 1:
                 break
         adjacency_matrix = nx.adj_matrix(net).toarray()
+
+    print(N, k)
     print(sum(sum(adjacency_matrix)))
 
     investment_decisions = np.zeros(N, dtype='int')
@@ -118,7 +122,6 @@ def RUN_FUNC(fully_connected, phi, test):
                 df2.drop(column, axis=1, inplace=True)
 
         df_out = pd.concat([df1, df2], axis=1)
-
 
         df_out.index.name = 'tstep'
     else:
@@ -200,9 +203,9 @@ def run_experiment(argv):
     create parameter combinations and index
     """
     if test:
-        param_combs = list(it.product([True, False], [.5, .9], [test]))
+        param_combs = list(it.product([False, True], [.5, .9], [test]))
     else:
-        param_combs = list(it.product([True, False], [.5, .8, .9], [test]))
+        param_combs = list(it.product([False, True], [.5, .8, .9], [test]))
     """
     run computation and/or post processing and/or plotting
     """

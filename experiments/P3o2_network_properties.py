@@ -66,9 +66,6 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
     input_params = ed.input_params
 
     input_params['phi'] = phi
-    input_params['tau'] = tau
-    input_params['xi'] = xi
-    input_params['kappa_c'] = kappa_c
     input_params['test'] = test
 
     # investment_decisions:
@@ -87,6 +84,9 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
         if len(list(net)) > 1:
             break
     adjacency_matrix = nx.adj_matrix(net).toarray()
+
+    print(N, k)
+    print(sum(sum(adjacency_matrix)))
 
     investment_decisions = np.zeros(N, dtype='int')
     investment_decisions[:nopinions[0]] = 1
@@ -231,10 +231,10 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    tau, phi, xi = [1.], [0., .25, .5, .75, .85, .9, .95], [0.1]
+    phi = [0., .25, .5, .75, .85, .9, .95]
     approximate = 1  # only micro model
 
-    param_combs = list(it.product(tau, phi, xi, [0.5], [approximate], [test]))
+    param_combs = list(it.product([approximate], phi, [test]))
     """
     run computation and/or post processing and/or plotting
     """
