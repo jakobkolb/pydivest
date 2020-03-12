@@ -1118,9 +1118,8 @@ class DivestmentCore:
 
         # adapt or rewire?
 
-        if (self.phi == 1 or
-            (self.phi != 1
-             and np.random.uniform() < self.phi)) and not self.fully_connected:
+        random_number = np.random.uniform()
+        if (random_number < self.phi) and not self.fully_connected:
             # rewire:
 
             for i in range(self.n):
@@ -1149,8 +1148,8 @@ class DivestmentCore:
                     self.neighbors[new_neighbor, candidate] = 1
                 # 3) count event (and normalize to get the rate)
                 self.adaptation_events += 1. / self.n
-        else:
-            # adapt:
+        elif (random_number > self.phi):
+            # imitate:
             # compare fitness
             Wi = self.fitness(candidate)
             Wj = self.fitness(neighbor)
