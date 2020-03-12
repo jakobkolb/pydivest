@@ -99,8 +99,8 @@ def RUN_FUNC(fully_connected, phi, test):
 
     model = DivestmentCore(*init_conditions, **input_params)
 
-    t_max = 500
-    t_eq = 200
+    t_max = 500 if not test else 30
+    t_eq = 300 if not test else 30
 
     model.R_depletion = False
     model.run(t_max=t_eq)

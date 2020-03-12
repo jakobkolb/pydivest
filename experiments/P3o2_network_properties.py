@@ -305,20 +305,11 @@ def run_experiment(argv):
                                        parameter_combinations=param_combs,
                                        path_raw=SAVE_PATH_RES + '/std.h5')
 
-    if mode == 0:
-        compute_handle.compute()
+    compute_handle.compute()
 
-        return 1
-    elif mode == 1:
+    eva_1_handle.compute()
+    eva_2_handle.compute()
 
-        compute_handle.compute()
-
-        eva_1_handle.compute()
-        eva_2_handle.compute()
-
-        return 1
-
-    return 0
 
 
 if __name__ == "__main__":
