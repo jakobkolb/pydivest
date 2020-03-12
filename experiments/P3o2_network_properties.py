@@ -32,7 +32,7 @@ from pymofa.experiment_handling import (even_time_series_spacing,
                                         experiment_handling)
 
 
-def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
+def RUN_FUNC(approximate, phi, test):
     """
     Set up the model for various parameters and determine
     which parts of the output are saved where.
@@ -42,22 +42,14 @@ def RUN_FUNC(tau, phi, xi, kappa_c, approximate, test):
 
     Parameters:
     -----------
-    tau : float > 0
-        the frequency of social interactions
-    phi : float in [0,1]
-        the rewiring probability for the network update
-    xi : float
-        elasticity of knowledge in the clean sector
-    kappa_c: float
-        elasticity of capital in the clean sector
     approximate: bool
         if True: run macroscopic approximation
         if False: run micro-model
+    phi : float in [0,1]
+        the rewiring probability for the network update
     test: int in [0,1]
         wheter this is a test run, e.g.
         can be executed with lower runtime
-    filename: string
-        filename for the results of the run
     """
 
     # Parameters:
