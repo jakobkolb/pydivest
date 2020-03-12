@@ -54,11 +54,7 @@ def RUN_FUNC(fully_connected, phi, test):
 
     input_params['test'] = False
     input_params['phi'] = phi
-
-    if fully_connected:
-        input_params['phi'] = 0.
-        input_params['tau'] = input_params['tau'] / (1 - phi)
-        input_params['fully_connected'] = True
+    input_params['fully_connected'] = fully_connected
 
     # investment_decisions:
     nopinions = [10, 190]
