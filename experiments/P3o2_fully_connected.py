@@ -64,7 +64,6 @@ def RUN_FUNC(fully_connected, phi, test):
     # network:
     N = sum(nopinions)
 
-
     if fully_connected:
         adjacency_matrix = np.ones((N, N))
         for i in range(N):
@@ -96,8 +95,8 @@ def RUN_FUNC(fully_connected, phi, test):
 
     model = DivestmentCore(*init_conditions, **input_params)
 
-    t_max = 300 if not test else 30
-    t_eq = 500 if not test else 30
+    t_max = 500
+    t_eq = 200
 
     model.R_depletion = False
     model.run(t_max=t_eq)
@@ -200,8 +199,10 @@ def run_experiment(argv):
     """
     create parameter combinations and index
     """
-
-    param_combs = list(it.product([True, False], [.5, .8, .9], [test]))
+    if test:
+        param_combs = list(it.product([True, False], [.5, .9], [test]))
+    else:
+        param_combs = list(it.product([True, False], [.5, .8, .9], [test]))
     """
     run computation and/or post processing and/or plotting
     """
