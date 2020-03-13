@@ -603,7 +603,7 @@ class DivestmentCore:
         sys.stdout.write('[%s] %s%s ...%s\r' % (bar, percents, '%', status))
         sys.stdout.flush()
 
-    def run(self, t_max=200.):
+    def run(self, t_max=200., run_primitive=False):
         """
         run model for t<t_max or until consensus is reached
 
@@ -633,8 +633,12 @@ class DivestmentCore:
             self.verboseprint(self.t, t_max)
 
             # 1 find update candidate and respective update time
-            (candidate, neighbor, neighbors,
-             update_time) = self.find_update_candidates()
+            if run_primitive:
+                (candidate, neighbor, neighbors,
+                 update_time) = self.update_candidate_primitive()
+            else:
+                (candidate, neighbor, neighbors,
+                 update_time) = self.find_update_candidates()
 
             # 2 integrate economic model until t=update_time:
             # don't make steps too large. The integrator handles that badly..
@@ -990,6 +994,43 @@ class DivestmentCore:
             if self.n_trajectory_output:
                 self._update_network_trajectory()
             self.update_event_rate_data()
+
+    def update_candidate_primitive(self):
+
+        # update opinion state
+        i, n = np.unique(self.opinions, return_counts=True)
+        self.opinion_state = [
+            n[list(i).index(j)] if j in i else 0
+
+            for j in range(len(self.possible_cue_orders))
+        ]
+
+        # find household with min waiting time
+        candidate = self.waiting_times.argmin()
+
+        # remember update_time and increase waiting time of household
+        update_time = self.waiting_times[candidate]
+        self.waiting_times[candidate] += \
+            np.random.exponential(scale=self.tau)
+
+        # count household activation event:
+        self.total_events += 1. / self.n
+
+        # determine if event is a noise event.
+        rdn = np.random.uniform()
+
+        if rdn < self.eps * (1 - self.phi):
+            # determine new opinion
+            new_opinion = np.random.randint(len(self.possible_cue_orders))
+            self.opinions[candidate] = new_opinion
+        elif self.eps * (1 - self.phi) < rdn < (1 - self.phi):
+            if self.r_c > self.r_d:
+                self.opinions[candidate] = 1
+            else:
+                self.opinions[candidate] = 0
+
+        return -1, 1, [1, 2, 3], update_time
+
 
     def find_update_candidates(self):
 
@@ -1715,16 +1756,16 @@ if __name__ == '__main__':
 
         input_parameters = {
             'tau': 1,
-            'eps': 0.01,
+            'eps': 0.03,
             'b_d': 4,
             'b_c': 1.,
             'phi': 0.5,
             'e': 1,
-            'G_0': 2000000,
+            'G_0': 100000,
             'b_r0': 0.1**2,
             'possible_cue_orders': possible_cue_orders,
             'C': 1,
-            'xi': 1. / 8.,
+            'xi': .1,
             'beta': 0.06,
             'campaign': False,
             'learning': True,
@@ -1773,14 +1814,14 @@ if __name__ == '__main__':
     # Turn on debugging
     model.debug = True
 
-    t_max = 800
-    t_e = 100
+    t_max = 150
+    t_e = 50
 
     # Run Model
     model.R_depletion = False
     model.run(t_max=t_e)
     model.R_depletion = True
-    model.run(t_max=t_max)
+    model.run(t_max=t_max, run_primitive=True)
 
     # Print some output
 
@@ -1792,12 +1833,11 @@ if __name__ == '__main__':
     print('finish time', model.t)
     print('steps computed', model.steps)
 
-    model.get_unified_trajectory()
-
     colors = [c for c in 'gk']
 
     df = model.get_unified_trajectory()
     print(df.columns)
+    df_e = model.get_economic_trajectory()
     columns = [
         'k_c', 'k_d', 'l_c', 'l_d', 'g', 'c', 'r', 'n_c', 'i_c', 'r_c', 'r_d',
         'w'
@@ -1826,7 +1866,6 @@ if __name__ == '__main__':
     trj_agg = model.get_aggregate_trajectory()
     network_trajectory = model.get_network_trajectory()
 
-    print(network_trajectory)
 
     trj_agg[['z']].plot(ax=axes[4])
     network_trajectory[['local clustering coefficient']].plot(ax=axes[5])
