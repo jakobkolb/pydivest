@@ -265,7 +265,7 @@ def run_experiment(argv):
     create parameter combinations and index
     """
 
-    phis, n_rds, n_cps = [.5, .7, .8], range(16, 50, 1), range(0, 20, 1)
+    phis, n_rds, n_cps = [.5, .7, .8], range(16, 16, 1), range(0, 26, 1)
     phi, n_rd, n_cp = [.5], [0, 15, 25], [0, 15, 25]
 
     if test:
@@ -296,7 +296,7 @@ def run_experiment(argv):
         return 1
     # define computation handle
 
-    sample_size = 20 if not test else 5
+    sample_size = 200 if not test else 5
 
     if test:
         print('initializing compute handles', flush=True)
