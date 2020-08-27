@@ -197,8 +197,7 @@ pyflakes==2.1.1
 Pygments==2.2.0
 pylama==7.4.1
 pylint==1.8.2
-# Editable install with no version control (pymofa==0.2.2)
--e /home/jakob/anaconda3/envs/py36/lib/python3.6/site-packages
+-e git+git@github.com:jakobkolb/pymofa.git@8d0752ed6c6053ea82bc62bb819b1137c0f8e012#egg=pymofa
 PyNaCl==1.3.0
 pyodbc==4.0.22
 pyOpenSSL==17.5.0
