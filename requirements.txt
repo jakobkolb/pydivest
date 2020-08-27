@@ -188,7 +188,7 @@ pycosat==0.6.3
 pycparser==2.18
 pycrypto==2.6.1
 pycurl==7.43.0.1
--e git+git@github.com:jakobkolb/decarbonize.git@be162536ac093f7e12e90acbf558fa61f210ea7f#egg=pydivest
+-e git+git@github.com:jakobkolb/decarbonize.git@c434aee0758c765c3ea7254d2bc8a1b895e8798c#egg=pydivest
 -e git+git@github.com:jakobkolb/pydivest_parameters.git@1dc3852468ece7750fd6b7313ca2bfea04807b9e#egg=pydivestparameters
 pydocstyle==2.0.0
 PyDSTool==0.90.2
